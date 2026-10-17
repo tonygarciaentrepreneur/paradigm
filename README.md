@@ -6,7 +6,7 @@ A Tetris-style priority stack for your phone. Everything here is free.
 
 1. Create a free account at github.com.
 2. Create a new **public** repository named `paradigm`.
-3. Choose **uploading an existing file** and drag in everything from this folder, keeping the `js` folder intact. Commit.
+3. Choose **uploading an existing file** and drag in every file from this folder. Commit.
 4. In the repo, open **Settings → Pages**. Under *Build and deployment*, choose **Deploy from a branch**, branch `main`, folder `/ (root)`. Save.
 5. After a minute your app is at `https://YOUR-USERNAME.github.io/paradigm/`.
 
