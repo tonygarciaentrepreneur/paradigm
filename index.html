@@ -433,6 +433,8 @@ function repair() {
     if (b.subId) delete state.blocks[bid];   // a loose subtask simply returns to its project
     else state.backlogs[blockKind(bid)].push(bid);
   }
+  // Every task and list that isn't on STACK or in FOCUS lives in its backlog, recurring ones included.
+  for (const it of Object.values(state.items)) placeInBacklog(it.id);
 }
 
 /* ---------- model queries ---------- */
@@ -490,6 +492,15 @@ function deleteItem(id) {
   for (const bid of Object.keys(state.blocks)) if (state.blocks[bid].itemId === id) removeBlock(bid);
   delete state.items[id];
   state.backlogs.project = state.backlogs.project.filter(x => x !== id);
+}
+/* Puts a task or list with no block anywhere onto the top (lowest priority) of its backlog. */
+function placeInBacklog(itemId) {
+  const it = state.items[itemId];
+  if (!it || (it.type !== 'task' && it.type !== 'list') || findBlock(itemId, null)) return false;
+  const bid = uid();
+  state.blocks[bid] = { bid, itemId, subId: null, elapsed: 0 };
+  state.backlogs[it.type].push(bid);
+  return true;
 }
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
@@ -593,6 +604,7 @@ function completeRunning() {
   }
   delete state.blocks[r.bid];
   state.running = null;
+  if (state.items[b.itemId]) placeInBacklog(b.itemId);   // recurring items go back to their backlog
   save();
   return res;
 }
@@ -1229,9 +1241,11 @@ function openEditor(item, isNew) {
     if (!validName()) return;
     if (d.type === 'event') return saveEvent();
     commit(); clearMainInput();
+    const msg = placeInBacklog(d.id) ? `Saved to ${BACKLOG_TITLE[d.type]}` : 'Saved';
+    if (msg !== 'Saved') save();
     // New items came from the chooser, so go home; existing ones return to where you were.
-    if (isNew) closeAll(() => { goPanel('stack'); toast('Saved'); });
-    else closeTop(() => { renderAll(); toast('Saved'); });
+    if (isNew) closeAll(() => { goPanel('stack'); toast(msg); });
+    else closeTop(() => { renderAll(); toast(msg); });
   }
   function onAdd() {
     if (!validName()) return;
@@ -1571,7 +1585,7 @@ function openSummary(res, tp) {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.4.2';
+const VERSION = '1.4.4';
 const PANELS = ['project', 'list', 'task', 'stack', 'settings'];
 let panel = 'stack';
 
@@ -1684,8 +1698,7 @@ function renderBacklogs() {
 function backlogLeft(bid) {
   const b = state.blocks[bid], it = state.items[b.itemId];
   if (b.subId) withUndo('Returned to project', () => removeBlock(bid));
-  else if (it.recurring) withUndo('Skipped until next time', () => removeBlock(bid));
-  else withUndo('Deleted', () => deleteItem(it.id));
+  else withUndo(`Deleted ${it.name}`, () => deleteItem(it.id));
 }
 
 /* ---------- FOCUS ---------- */

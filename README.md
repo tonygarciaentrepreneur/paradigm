@@ -46,7 +46,7 @@ Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STA
 | PROJECT BACKLOG title | STACK | STACK | |
 | SETTINGS title | STACK | STACK | |
 | STACK block | Start (pick time block) | Send to its backlog (project subtasks return to their project) | Reorder |
-| Task or list in a backlog | Add to top of STACK | Delete, or skip if recurring | Reorder |
+| Task or list in a backlog | Add to top of STACK | Delete | Reorder |
 | Project in PROJECT BACKLOG | Open its subtasks | Delete project | Reorder |
 | Project subtask | Add to top of STACK | | Reorder |
 | FOCUS, paused | Complete | Back to top of STACK | |
