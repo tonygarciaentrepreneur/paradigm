@@ -34,20 +34,33 @@ Your data never goes to GitHub. It stays on your phone, plus your own Google Dri
 
 ## Gestures
 
-Swipe right = finger moves left to right. Swipe left = right to left.
+Swipe right = finger moves left to right. Swipe left = right to left. Screen titles sit at the bottom; swipe on a title to move between screens.
 
-| Where | Swipe right | Swipe left | Hold + drag | Tap |
-| --- | --- | --- | --- | --- |
-| STACK title | BACKLOG | SETTINGS | | |
-| STACK block | Start | Send to top of BACKLOG | Reorder | |
-| New floating block | Start | Bottom of BACKLOG | Drop into place | Place (empty STACK) |
-| BACKLOG block | Add to STACK | Delete / return subtask / skip recurring | Reorder | Select |
-| START (paused) | Complete | Save to BACKLOG | | Play resumes |
-| START (list or task with notes) | Swipe up shows subtasks or notes; swipe down hides them | | | |
+Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SETTINGS**. FOCUS slides in when you start something and stays until you complete or save it.
 
-The bottom of STACK is the highest priority. The top of BACKLOG is the highest priority.
+| Where | Swipe right | Swipe left | Hold + drag |
+| --- | --- | --- | --- |
+| STACK title | TASK BACKLOG | SETTINGS | |
+| TASK BACKLOG title | LIST BACKLOG | STACK | |
+| LIST BACKLOG title | PROJECT BACKLOG | STACK | |
+| PROJECT BACKLOG title | STACK | STACK | |
+| SETTINGS title | STACK | STACK | |
+| STACK block | Start (pick time block) | Send to its backlog (project subtasks return to their project) | Reorder |
+| Task or list in a backlog | Add to top of STACK | Delete, or skip if recurring | Reorder |
+| Project in PROJECT BACKLOG | Open its subtasks | Delete project | Reorder |
+| Project subtask | Add to top of STACK | | Reorder |
+| FOCUS, paused | Complete | Back to top of STACK | |
+| FOCUS subtask | Check off | | |
 
-Every send-to-backlog and delete shows **UNDO** for 5 seconds.
+On FOCUS, swipe up (or tap ▲ subtasks ▲) to show subtasks or notes; swipe down to hide them.
+
+**Editing anytime:** hold any block (on STACK, a backlog, a project's subtasks, or in FOCUS) and let go. It turns solid green. Swipe it right to open EDIT. Swipe right on EDIT at the bottom to save and go back. Tap a green block to unselect it. Hold and drag still reorders.
+
+New structures land on the top of STACK (lowest priority). The bottom of STACK and of every backlog is the highest priority. Due recurring items drop to the bottom of STACK.
+
+The countdown starts the moment you tap START. When you complete, the Paradigm calendar entry starts at the next 15-minute mark and its length is rounded up to the nearest 15 minutes.
+
+Every send-to-backlog, delete, and subtask check-off shows **UNDO** for 5 seconds.
 
 ## Backups
 
