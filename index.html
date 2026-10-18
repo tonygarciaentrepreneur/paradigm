@@ -1585,7 +1585,7 @@ function openSummary(res, tp) {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.4.4';
+const VERSION = '1.4.5';
 const PANELS = ['project', 'list', 'task', 'stack', 'settings'];
 let panel = 'stack';
 
@@ -1953,7 +1953,7 @@ async function boot() {
 
   // Panels, left to right: PROJECT BACKLOG, LIST BACKLOG, TASK BACKLOG, STACK, SETTINGS.
   // FOCUS slides over them and stays until the structure is completed or saved.
-  navTitle('#t-project', 'stack', 'stack');
+  navTitle('#t-project', null, 'stack');   // end of the row: swiping right does nothing
   navTitle('#t-list', 'project', 'stack');
   navTitle('#t-task', 'list', 'stack');
   navTitle('#t-stack', 'task', 'settings');
