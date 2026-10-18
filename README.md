@@ -69,7 +69,9 @@ Every send-to-backlog, delete, and subtask check-off shows **UNDO** for 5 second
 
 ## Updating the app
 
-Edit files in the repo, then bump `VERSION` at the top of `sw.js` so phones pick up the change. Close and reopen the app twice.
+Upload the new files over the old ones in the repo (same names). GitHub takes a minute or two to publish; the **Actions** tab shows when it's done. Then open Paradigm: it checks for a new version every time it opens and reloads itself once when one arrives. The version number is at the bottom of SETTINGS.
+
+Never use Chrome's *Clear site data* to force an update. It also deletes your stacks and backlogs.
 
 ## Known limits
 
