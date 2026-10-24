@@ -271,6 +271,8 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .pair p { color: var(--g2); font-size: 15px; line-height: 1.45; margin: 0 0 12px; }
 .pair b { color: var(--g); font-weight: 400; }
 .pair .small { font-size: 13px; color: var(--dim); }
+.pair .btn { margin: 4px 0 10px; }
+.pair textarea { font-size: 13px; margin-bottom: 12px; }
 
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -3964,7 +3966,7 @@ function openCompletePicker(bid) {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.6.0';
+const VERSION = '1.6.1';
 const PANELS = ['project', 'list', 'task', 'stack', 'settings'];
 let panel = 'stack';
 
@@ -4237,12 +4239,26 @@ function openPairing() {
   const el = screenEl('pairscreen', `
     <div class="bar"><button class="back" aria-label="Back">‹</button><span class="label">GLASSES</span></div>
     <div class="body pair">
+      <a class="btn primary wide" id="pair-open">OPEN IN META AI APP</a>
+      <p>Opens the Meta AI app's add-to-glasses screen. Confirm <b>Paradigm</b>; it will say unverified, which is expected for your own app.</p>
+      <button class="btn wide" id="pair-copy">COPY GLASSES LINK</button>
+      <p>Or add it by hand: in the Meta AI app go to your glasses' settings → <b>App connections</b> → <b>Web apps</b> → <b>Add a web app</b>, and paste the link.</p>
       <div class="qrbox">${qr.createSvgTag({ cellSize: 6, margin: 3, scalable: true })}</div>
-      <p>Put on your glasses and look at this code, then confirm <b>Paradigm</b> on the glasses. It will say the app is unverified; that's expected for your own app.</p>
+      <p>The same link as a code, for scanning from another phone or screen.</p>
       <p>Developer Mode must be on in the Meta AI app (Settings → App Info → tap the version number five times).</p>
-      <p class="small">This code links the glasses to your data. Don't share it.</p>
+      <p class="small">This link connects to your data. Don't share it.</p>
     </div>`);
   backBtn(el);
+  $('#pair-open', el).href = link;
+  $('#pair-copy', el).addEventListener('click', async () => {
+    const url = glassesUrl();
+    try { await navigator.clipboard.writeText(url); toast('Glasses link copied'); }
+    catch (e) {
+      // Clipboard blocked: show the link so it can be selected and copied by hand.
+      const box = document.createElement('textarea'); box.value = url; box.readOnly = true; box.rows = 4;
+      $('#pair-copy', el).after(box); box.focus(); box.select();
+    }
+  });
   openScreen(el);
 }
 

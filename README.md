@@ -65,8 +65,11 @@ Your data is stored under a random 32-character key that only your phone and gla
 
 **C. Pair**
 1. Open Paradigm on your phone from its GitHub Pages address (pairing doesn't work from a downloaded file).
-2. SETTINGS → **PAIR GLASSES**.
-3. Wear the glasses and look at the code on your phone. Confirm **Paradigm** on the glasses; it will be labeled unverified, which is normal for your own app.
+2. SETTINGS → **PAIR GLASSES** → **OPEN IN META AI APP**. The Meta AI app opens its add-to-glasses screen; confirm **Paradigm**. It's labeled unverified, which is normal for your own app. Paradigm appears at the bottom of the app grid on your glasses.
+3. If that button doesn't open anything: tap **COPY GLASSES LINK**, then in the Meta AI app go to your glasses' settings → **App connections** → **Web apps** → **Add a web app** (on some versions: **App Settings → Apps → Web Apps → Connect Web App**) and paste the link.
+4. The QR code on the same screen is the same link, for scanning from another phone or screen.
+
+If the Meta AI app has no Web apps section at all even with Developer Mode on, that's a known Meta issue on some Android versions; updating the Meta AI app and glasses software is the first thing to try.
 
 **Calendar:** the glasses can't sign in to Google, so completions you make there wait on your phone. They're logged to your Paradigm calendar the next time Paradigm is open on your phone and Google is connected (SETTINGS shows any that are waiting, with a **LOG TO CALENDAR** button).
 
