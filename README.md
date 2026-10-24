@@ -36,7 +36,7 @@ Your data never goes to GitHub. It stays on your phone, plus your own Google Dri
 
 Swipe right = finger moves left to right. Swipe left = right to left. Screen titles sit at the bottom; swipe on a title to move between screens.
 
-Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SETTINGS**. FOCUS slides in when you start something and stays until you complete or save it.
+Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SETTINGS**. PROJECT BACKLOG is the end of the row.
 
 | Where | Swipe right | Swipe left | Hold + drag |
 | --- | --- | --- | --- |
@@ -45,22 +45,24 @@ Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STA
 | LIST BACKLOG title | PROJECT BACKLOG | STACK | |
 | PROJECT BACKLOG title | (end of row) | STACK | |
 | SETTINGS title | STACK | STACK | |
-| STACK block | Start (pick time block) | Send to its backlog (project subtasks return to their project) | Reorder |
-| Task or list in a backlog | Add to top of STACK | Delete | Reorder |
-| Project in PROJECT BACKLOG | Open its subtasks | Delete project | Reorder |
+| STACK block | Complete (pick when it happened) | Send to its backlog (project subtasks return to their project) | Reorder |
+| Task or list in a backlog | Add to top of STACK | | Reorder |
+| Project in PROJECT BACKLOG | Open its subtasks | | Reorder |
 | Project subtask | Add to top of STACK | | Reorder |
-| FOCUS, paused | Complete | Back to top of STACK | |
-| FOCUS subtask | Check off | | |
 
-On FOCUS, swipe up (or tap ▲ subtasks ▲) to show subtasks or notes; swipe down to hide them.
+**Hold, let go, then swipe** (the block turns solid green when held): swipe right to EDIT, swipe left to delete. This works on every block on STACK, in the backlogs, and on a project's subtasks screen. Deleting never adds anything to the calendar. Tap a green block to unselect it.
 
-**Editing anytime:** hold any block (on STACK, a backlog, a project's subtasks, or in FOCUS) and let go. It turns solid green. Swipe it right to open EDIT. Swipe right on EDIT at the bottom to save and go back. Tap a green block to unselect it. Hold and drag still reorders.
+**EDIT** has no buttons: swipe right on EDIT at the bottom to save and go back. Android's back gesture leaves without saving. Events keep a DELETE EVENT button, since nothing else can remove them.
 
-New structures land on the top of STACK (lowest priority). The bottom of STACK and of every backlog is the highest priority. Due recurring items drop to the bottom of STACK.
+**Completing:** swipe a STACK block right, then pick when it happened. The block is pre-filled with the half hour ending now; drag the bar at its bottom to change the end, or hold and drag on the day to paint a new span (15-minute steps). COMPLETE adds it to your Paradigm calendar.
 
-The countdown starts the moment you tap START. When you complete, the Paradigm calendar entry starts at the next 15-minute mark and its length is rounded up to the nearest 15 minutes.
+**Where things land on STACK:** new things typed into STACK go to the bottom (highest priority). Things added from a backlog go to the top (lowest priority). Due recurring items drop to the bottom. The bottom of every backlog is its highest priority too.
 
-Every send-to-backlog, delete, and subtask check-off shows **UNDO** for 5 seconds.
+**Completing project subtasks** logs them to the calendar and removes them from the project, unless the project is marked *Recurring project* in EDIT; then they stay, ready to do again.
+
+A block only moves in directions that do something: plain blocks in a backlog can't be swiped left; hold one first (it turns green) to delete it.
+
+Send-to-backlog and delete show **UNDO** for 5 seconds.
 
 ## Backups
 
@@ -75,5 +77,4 @@ Never use Chrome's *Clear site data* to force an update. It also deletes your st
 
 ## Known limits
 
-- The timer can't alert you at zero while the app is fully closed. It vibrates if open and stays accurate either way.
 - Start swipes a little inside the screen edges so Android's back gesture doesn't catch them. The Android back gesture closes the current screen.

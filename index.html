@@ -290,7 +290,6 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
     </section>
 
     <section class="panel" id="p-stack">
-      <button id="runbar" class="hidden"></button>
       <div class="list stack" id="stack-list"></div>
       <p class="empty" id="stack-empty">Type below to add something.</p>
       <div class="stackfoot">
@@ -307,10 +306,7 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
       <header class="title" id="t-settings"><h1>SETTINGS</h1></header>
     </section>
   </div>
-<section class="focus-layer" id="p-focus">
-      <div class="focus-body" id="focus-body"></div>
-      <header class="title" id="t-focus"><h1>FOCUS</h1></header>
-    </section>
+
   <div id="overlays"></div>
   <div id="toast" class="hidden"></div>
   <div id="ghost-layer"></div>
@@ -372,7 +368,7 @@ function idbSet(k, v) {
 
 function freshState() {
   return {
-    v: 3, items: {}, blocks: {}, stack: [], backlogs: { project: [], list: [], task: [] }, running: null,
+    v: 4, items: {}, blocks: {}, stack: [], backlogs: { project: [], list: [], task: [] }, running: null,
     lastDueCheck: todayStr(),
     settings: { clientId: '', connected: false, paradigmCalId: '', driveFileId: '', lastBackup: 0 },
     auth: { token: '', exp: 0 }
@@ -389,6 +385,9 @@ function normalize(s) {
   delete s.backlog; delete s.placing;
   // v3: PROJECT BACKLOG holds projects (item ids), not subtask blocks.
   if ((s.v || 1) < 3) { s.backlogs.project = []; s.v = 3; }
+  // v4: no FOCUS timer. Anything mid-session goes back to the bottom of STACK.
+  if (s.running) { s.stack = [s.running.bid].concat((s.stack || []).filter(b => b !== s.running.bid)); s.running = null; }
+  s.v = 4;
   for (const k of Object.keys(f)) if (s[k] === undefined) s[k] = f[k];
   s.settings = Object.assign(f.settings, s.settings || {});
   s.auth = Object.assign(f.auth, s.auth || {});
@@ -484,7 +483,7 @@ function newItem(type, name) {
   const it = { id: uid(), type, name: name.trim(), created: Date.now() };
   if (type === 'task') Object.assign(it, { notes: '', recurring: false, schedule: { freq: 'none' } });
   if (type === 'list') Object.assign(it, { subtasks: [], recurring: false, recSubtasks: false, schedule: { freq: 'none' } });
-  if (type === 'project') Object.assign(it, { subtasks: [] });
+  if (type === 'project') Object.assign(it, { subtasks: [], recurring: false });
   if (type === 'event') Object.assign(it, { event: null });
   return it;
 }
@@ -504,16 +503,25 @@ function placeInBacklog(itemId) {
 }
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
-/* Adds an item (or project subtask) to the top of STACK (lowest priority). Returns a message or null. */
-function addToStack(itemId, subId) {
+/* Adds an item (or project subtask) to STACK. where: 'top' (lowest priority, from a backlog)
+   or 'bottom' (highest priority, new from the STACK input). Returns a message or null. */
+function addToStack(itemId, subId, where) {
   let bid = findBlock(itemId, subId);
   const w = bid && whereBlock(bid);
   if (w === 'stack') return 'Already on STACK';
-  if (w === 'running') return 'Already in FOCUS';
   if (w === 'backlog') detach(bid);
   if (!bid) { bid = uid(); state.blocks[bid] = { bid, itemId, subId: subId || null, elapsed: 0 }; }
-  state.stack.push(bid);
+  if (where === 'bottom') state.stack.unshift(bid); else state.stack.push(bid);
   return null;
+}
+/* Deletes what a block stands for: the task or list, or just the subtask for a project subtask. */
+function deleteBlockItem(bid) {
+  const b = state.blocks[bid]; if (!b) return;
+  if (b.subId) {
+    const it = state.items[b.itemId];
+    if (it) it.subtasks = it.subtasks.filter(s => s.id !== b.subId);
+    removeBlock(bid);
+  } else deleteItem(b.itemId);
 }
 /* Sends a block to the bottom (highest priority) of its backlog. Project subtasks return to their project. */
 function sendToBacklog(bid) {
@@ -564,37 +572,15 @@ function runDueCheck() {
   return arrived;
 }
 
-/* ---------- timer ---------- */
-function startBlock(bid, plannedEnd) {
-  const now = Date.now();
-  detach(bid);
-  state.running = { bid, sessionStart: now, segStart: now, accum: 0, prior: state.blocks[bid].elapsed || 0, budget: Math.max(MIN, plannedEnd - now), vibrated: false };
-  save();
-}
-function sessionWorked(r) { return r.accum + (r.segStart ? Date.now() - r.segStart : 0); }
-function isPaused() { return state.running && !state.running.segStart; }
-function pauseRunning() { const r = state.running; if (!r || !r.segStart) return; r.accum += Date.now() - r.segStart; r.segStart = null; save(); }
-function resumeRunning() { const r = state.running; if (!r || r.segStart) return; r.segStart = Date.now(); save(); }
-
-function saveRunning() {
-  const r = state.running; if (!r) return;
-  pauseRunning();
-  state.blocks[r.bid].elapsed = r.prior + r.accum;
-  state.stack.push(r.bid);
-  state.running = null;
-  save();
-}
-/* Completes the running block; returns the summary used for the calendar entry. */
-function completeRunning() {
-  const r = state.running; if (!r) return null;
-  pauseRunning();
-  const total = r.prior + r.accum;
-  const start = nextQuarter(r.sessionStart);
-  const end = start + ceilQuarter(total);
-  const b = state.blocks[r.bid], it = state.items[b.itemId];
-  const res = { name: blockName(r.bid), total, start, end };
+/* ---------- completion ---------- */
+/* Completes a block over the chosen time span; returns what to log on the Paradigm calendar. */
+function completeBlock(bid, start, end) {
+  const b = state.blocks[bid]; if (!b) return null;
+  const it = state.items[b.itemId];
+  const res = { name: blockName(bid), start, end };
   if (b.subId) {
-    const s = it.subtasks.find(x => x.id === b.subId); if (s) s.done = true;
+    // Done subtasks leave the project, unless it's a recurring project (then it stays, ready to do again).
+    if (!it.recurring) it.subtasks = it.subtasks.filter(x => x.id !== b.subId);
   } else if (it.type === 'task') {
     if (!it.recurring) delete state.items[it.id];
   } else if (it.type === 'list') {
@@ -602,8 +588,7 @@ function completeRunning() {
     else if (it.recSubtasks) it.subtasks.forEach(s => { s.done = false; });
     else it.subtasks = [];
   }
-  delete state.blocks[r.bid];
-  state.running = null;
+  removeBlock(bid);
   if (state.items[b.itemId]) placeInBacklog(b.itemId);   // recurring items go back to their backlog
   save();
   return res;
@@ -654,7 +639,11 @@ function gesture(el, o) {
     }
     if (st.mode === 'h') {
       if (e.cancelable) e.preventDefault();
-      const m = mover(); if (m) { m.style.transition = 'none'; m.style.transform = `translateX(${dx}px)`; }
+      // Directions that do nothing don't move the block.
+      let x = dx;
+      if (x < 0 && o.allowLeft && !o.allowLeft()) x = 0;
+      if (x > 0 && o.allowRight && !o.allowRight()) x = 0;
+      const m = mover(); if (m) { m.style.transition = 'none'; m.style.transform = `translateX(${x}px)`; }
     } else if (st.mode === 'v') {
       if (e.cancelable) e.preventDefault();
     }
@@ -687,8 +676,8 @@ function gesture(el, o) {
     if (s.mode === 'h') {
       const fast = Math.abs(s.dx) > 40 && Date.now() - s.t < 260;
       if (Math.abs(s.dx) > SWIPE_DIST || fast) {
-        if (s.dx > 0 && o.onSwipeRight) return fly(1, o.onSwipeRight);
-        if (s.dx < 0 && o.onSwipeLeft) return fly(-1, o.onSwipeLeft);
+        if (s.dx > 0 && o.onSwipeRight && !(o.allowRight && !o.allowRight())) return fly(1, o.onSwipeRight);
+        if (s.dx < 0 && o.onSwipeLeft && !(o.allowLeft && !o.allowLeft())) return fly(-1, o.onSwipeLeft);
       }
       snapBack(); return;
     }
@@ -761,7 +750,7 @@ function beginDrag({ listEl, srcEl, x, y, reverse, external }) {
 }
 
 /* ---------- hold-to-select ----------
-   Hold a block and let go: it turns inverse (selected). Swipe it right to edit.
+   Hold a block and let go: it turns inverse (selected). Swipe it right to edit, left to delete.
    Touching anywhere else clears the selection. Hold and drag still reorders. */
 let armed = null;
 function arm(el) { disarm(); armed = el; el.classList.add('armed'); }
@@ -773,7 +762,7 @@ document.addEventListener('touchstart', e => {
 
 /* Wires a rendered list: each child .block with data-key gets swipe/hold/tap per opts.
    opts: { reverse, onReorder(newKeys), swipeRight(key), swipeLeft(key), tap(key), enabled(),
-           armable(key) -> bool, openEdit(key) } */
+           armable(key) -> bool, openEdit(key), armDelete(key) } */
 function wireList(listEl, opts) {
   [...listEl.children].forEach(el => {
     if (!el.classList.contains('block')) return;
@@ -786,7 +775,12 @@ function wireList(listEl, opts) {
         if (isArmed(el)) { disarm(); opts.openEdit(key); return; }
         if (opts.swipeRight) opts.swipeRight(key);
       } : null,
-      onSwipeLeft: opts.swipeLeft ? () => opts.swipeLeft(key) : null,
+      allowLeft: () => !!opts.swipeLeft || (isArmed(el) && !!opts.armDelete),
+      allowRight: () => !!opts.swipeRight || (isArmed(el) && !!opts.openEdit),
+      onSwipeLeft: (opts.swipeLeft || (canArm && opts.armDelete)) ? () => {
+        if (isArmed(el)) { disarm(); if (opts.armDelete) opts.armDelete(key); return; }
+        if (opts.swipeLeft) opts.swipeLeft(key);
+      } : null,
       onTap: () => {
         if (isArmed(el)) { disarm(); return; }
         if (opts.tap) opts.tap(key);
@@ -907,7 +901,7 @@ async function calDeleteEvent(tok, id) {
 async function calLogCompletion(tok, res) {
   const body = {
     summary: res.name,
-    description: `Worked ${fmtDur(res.total)} in Paradigm`,
+    description: 'Completed in Paradigm',
     start: { dateTime: new Date(res.start).toISOString(), timeZone: TZ },
     end: { dateTime: new Date(res.end).toISOString(), timeZone: TZ }
   };
@@ -1091,7 +1085,7 @@ function chooseType(t, name) {
   if (t === 'task') {
     const it = newItem('task', name);
     state.items[it.id] = it;
-    addToStack(it.id, null);
+    addToStack(it.id, null, 'bottom');
     save(); clearMainInput();
     closeAll(() => goPanel('stack'));
   } else if (t === 'event') {
@@ -1148,6 +1142,10 @@ function openEditor(item, isNew) {
     }
     if (d.type === 'list') {
       const r = document.createElement('div'); r.className = 'sect'; content.appendChild(r); recurringUI(d, r);
+    }
+    if (d.type === 'project') {
+      const r = document.createElement('div'); r.className = 'sect'; content.appendChild(r);
+      r.append(checkBtn('Recurring project', !!d.recurring, () => { d.recurring = !d.recurring; render(); }));
     }
     if (d.type === 'list' || d.type === 'project') {
       const s = document.createElement('div'); s.className = 'sect editor-list';
@@ -1206,19 +1204,13 @@ function openEditor(item, isNew) {
 
   function renderFoot() {
     foot.innerHTML = '';
-    const row = document.createElement('div'); row.className = 'btnrow';
-    const mk = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + (cls || ''); b.textContent = label; b.addEventListener('click', fn); return b; };
-    if (selMode) {
-      row.append(mk('CANCEL', 'quiet', () => { selMode = false; selected = []; render(); }));
-      const add = mk(selected.length ? `ADD ${selected.length} TO STACK` : 'ADD TO STACK', 'primary', addProjectSubs);
-      add.disabled = !selected.length;
-      row.append(add); foot.append(row); return;
+    foot.classList.toggle('hidden', !(d.type === 'event' && !isNew));
+    if (d.type === 'event' && !isNew) {
+      const b = document.createElement('button');
+      b.className = 'btn danger wide'; b.textContent = 'DELETE EVENT';
+      b.addEventListener('click', del);
+      foot.append(b);
     }
-    if (!isNew) row.append(mk('DELETE', 'danger', del));
-    row.append(mk('SAVE', '', onSave));
-    foot.append(row);
-    const inFocus = state.running && state.blocks[state.running.bid] && state.blocks[state.running.bid].itemId === d.id && !state.blocks[state.running.bid].subId;
-    if (d.type !== 'event' && !inFocus) foot.append(mk('ADD TO STACK', 'primary wide', onAdd));
   }
 
   function validName() {
@@ -1241,28 +1233,14 @@ function openEditor(item, isNew) {
     if (!validName()) return;
     if (d.type === 'event') return saveEvent();
     commit(); clearMainInput();
-    const msg = placeInBacklog(d.id) ? `Saved to ${BACKLOG_TITLE[d.type]}` : 'Saved';
-    if (msg !== 'Saved') save();
+    let msg = 'Saved';
+    if (isNew && d.type === 'list') { addToStack(d.id, null, 'bottom'); msg = 'Added to STACK'; }
+    else if (isNew && d.type === 'project') msg = 'Saved to PROJECT BACKLOG';
+    else if (placeInBacklog(d.id)) msg = `Saved to ${BACKLOG_TITLE[d.type]}`;
+    save();
     // New items came from the chooser, so go home; existing ones return to where you were.
     if (isNew) closeAll(() => { goPanel('stack'); toast(msg); });
     else closeTop(() => { renderAll(); toast(msg); });
-  }
-  function onAdd() {
-    if (!validName()) return;
-    if (d.type === 'project') {
-      if (!d.subtasks.some(s => !s.done)) { toast('Add a subtask first'); return; }
-      selMode = true; selected = []; render(); return;
-    }
-    commit(); clearMainInput();
-    const msg = addToStack(d.id, null); save();
-    closeAll(() => { goPanel('stack'); if (msg) toast(msg); });
-  }
-  function addProjectSubs() {
-    if (!validName()) return;
-    commit(); clearMainInput();
-    const msgs = selected.map(sid => addToStack(d.id, sid)).filter(Boolean);
-    save();
-    closeAll(() => { goPanel('stack'); if (msgs.length) toast('Some subtasks were already on STACK'); });
   }
   function del() {
     const msg = d.type === 'project' ? `Delete project “${orig.name}” and remove its subtasks from STACK?` : `Delete “${orig.name}”?`;
@@ -1350,6 +1328,14 @@ function openProjectSubs(id) {
       },
       armable: () => true,
       openEdit: () => openEditor(state.items[id], false),
+      armDelete: sid => {
+        const sub = item.subtasks.find(x => x.id === sid);
+        withUndo(`Deleted ${sub ? sub.name : 'subtask'}`, () => {
+          const bid = findBlock(id, sid); if (bid) removeBlock(bid);
+          item.subtasks = item.subtasks.filter(x => x.id !== sid);
+        });
+        render();
+      },
       swipeRight: sid => {
         const msg = addToStack(id, sid);
         save(); renderAll(); render();
@@ -1441,14 +1427,17 @@ function openMonth({ title, picked, onPick }) {
 
 /* ---------- day view: event time picker and START time block ---------- */
 const SLOT_H = 32;
-function openDay({ mode, date, name, sel, onSave, onStart }) {
-  const isStart = mode === 'start';
+function openDay({ mode, date, name, sel, onSave }) {
+  // mode 'event': 30-minute steps, All day toggle, SAVE.
+  // mode 'complete': 15-minute steps, pre-filled with the half hour ending now, COMPLETE.
+  const isComplete = mode === 'complete';
+  const step = isComplete ? 15 : 30, slots = 1440 / step, slotH = SLOT_H * step / 30;
   const el = screenEl('dayscreen', `
     <div class="bar"><button class="back" aria-label="Back">‹</button><span class="label"></span></div>
-    <div class="dayhead"><span class="d"></span>${isStart ? '' : '<button class="check allday" style="width:auto"><span class="box"></span><span>All day</span></button>'}</div>
+    <div class="dayhead"><span class="d"></span>${isComplete ? '' : '<button class="check allday" style="width:auto"><span class="box"></span><span>All day</span></button>'}</div>
     <div class="allday-strip"></div>
     <div class="dayscroll"><div class="grid" style="margin-top:12px;margin-bottom:24px"></div></div>
-    <div class="foot"><div class="selinfo"></div><button class="btn primary wide go">${isStart ? 'START' : 'SAVE'}</button></div>`);
+    <div class="foot"><div class="selinfo"></div><button class="btn primary wide go">${isComplete ? 'COMPLETE' : 'SAVE'}</button></div>`);
   $('.label', el).textContent = name;
   $('.d', el).textContent = parseDate(date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
   backBtn(el);
@@ -1463,29 +1452,33 @@ function openDay({ mode, date, name, sel, onSave, onStart }) {
   const nowMin = nowD.getHours() * 60 + nowD.getMinutes() + nowD.getSeconds() / 60;
   if (date === todayStr()) { const nl = document.createElement('div'); nl.className = 'nowline'; nl.style.top = (nowMin / 30 * SLOT_H) + 'px'; grid.appendChild(nl); }
 
-  let minEnd = 0;
-  if (isStart) {
-    const s = Math.min(1425, Math.ceil(nowMin / 15) * 15);
-    minEnd = s + 15;
-    sel = { allDay: false, startMin: s, endMin: minEnd };
+  const slotAt = y => Math.max(0, Math.min(slots - 1, Math.floor((y - grid.getBoundingClientRect().top) / slotH)));
+  let anchor = 0;
+  gesture(grid, {
+    moveEl: false,
+    enabled: () => !(sel && sel.allDay),
+    ignore: t => !!t.closest('.handle'),
+    onHoldStart: (x, y) => { anchor = slotAt(y); sel = { allDay: false, startMin: anchor * step, endMin: anchor * step + step }; draw(); },
+    onHoldMove: (x, y) => { edgeScroll(y); const s = slotAt(y), lo = Math.min(anchor, s), hi = Math.max(anchor, s); sel.startMin = lo * step; sel.endMin = (hi + 1) * step; draw(); },
+    onHoldEnd: () => {},
+    onTap: e => { const t = e.changedTouches ? e.changedTouches[0] : e; const s = slotAt(t.clientY); sel = { allDay: false, startMin: s * step, endMin: s * step + step }; draw(); }
+  });
+
+  if (isComplete) {
+    const end = Math.min(1440, Math.max(30, Math.ceil(nowMin / 15) * 15));
+    if (!sel) sel = { allDay: false, startMin: end - 30, endMin: end };
+    // Drag the bar at the bottom of the block to change when it ended.
     const h = document.createElement('div'); h.className = 'handle'; h.setAttribute('aria-label', 'Drag to set end time'); blk.appendChild(h);
-    const setEnd = y => { const r = grid.getBoundingClientRect(); sel.endMin = Math.max(minEnd, Math.min(1440, Math.round((y - r.top) / (SLOT_H / 2)) * 15)); draw(); };
     h.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
-    h.addEventListener('touchmove', e => { if (e.cancelable) e.preventDefault(); const y = e.touches[0].clientY; edgeScroll(y); setEnd(y); }, { passive: false });
-    gesture(grid, { moveEl: false, ignore: t => t.closest('.handle'), onTap: e => { const t = e.changedTouches ? e.changedTouches[0] : e; setEnd(t.clientY + SLOT_H / 4); } });
+    h.addEventListener('touchmove', e => {
+      if (e.cancelable) e.preventDefault();
+      const y = e.touches[0].clientY; edgeScroll(y);
+      const r = grid.getBoundingClientRect();
+      sel.endMin = Math.max(sel.startMin + step, Math.min(1440, Math.round((y - r.top) / slotH) * step));
+      draw();
+    }, { passive: false });
   } else {
-    let anchor = 0;
-    const slotAt = y => Math.max(0, Math.min(47, Math.floor((y - grid.getBoundingClientRect().top) / SLOT_H)));
-    gesture(grid, {
-      moveEl: false,
-      enabled: () => !(sel && sel.allDay),
-      onHoldStart: (x, y) => { anchor = slotAt(y); sel = { allDay: false, startMin: anchor * 30, endMin: anchor * 30 + 30 }; draw(); },
-      onHoldMove: (x, y) => { edgeScroll(y); const s = slotAt(y), a = Math.min(anchor, s), b = Math.max(anchor, s); sel.startMin = a * 30; sel.endMin = (b + 1) * 30; draw(); },
-      onHoldEnd: () => {},
-      onTap: e => { const t = e.changedTouches ? e.changedTouches[0] : e; const s = slotAt(t.clientY); sel = { allDay: false, startMin: s * 30, endMin: s * 30 + 30 }; draw(); }
-    });
-    const ad = $('.allday', el);
-    ad.addEventListener('click', () => {
+    $('.allday', el).addEventListener('click', () => {
       if (sel && sel.allDay) sel = null; else sel = { allDay: true, startMin: 0, endMin: 0 };
       draw();
     });
@@ -1506,17 +1499,14 @@ function openDay({ mode, date, name, sel, onSave, onStart }) {
     blk.style.height = ((sel.endMin - sel.startMin) / 30 * SLOT_H) + 'px';
     const range = `${minToClock(sel.startMin)} to ${minToClock(sel.endMin % 1440)}`;
     if (blk.firstChild && blk.firstChild.nodeType === 3) blk.firstChild.textContent = range; else blk.insertBefore(document.createTextNode(range), blk.firstChild);
-    if (isStart) {
-      const mins = Math.max(1, Math.round(sel.endMin - (new Date().getHours() * 60 + new Date().getMinutes() + new Date().getSeconds() / 60)));
-      info.textContent = `${range}, ${mins >= 60 ? Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm' : mins + ' min'}`;
-    } else info.textContent = range;
+    const mins = sel.endMin - sel.startMin;
+    info.textContent = isComplete ? `${range}, ${mins >= 60 ? Math.floor(mins / 60) + 'h' + (mins % 60 ? ' ' + (mins % 60) + 'm' : '') : mins + ' min'}` : range;
     go.disabled = false;
   }
 
   go.addEventListener('click', () => {
     if (!sel) return;
-    if (isStart) onStart(parseDate(date).getTime() + sel.endMin * MIN);
-    else onSave({ date, allDay: !!sel.allDay, startMin: sel.startMin, endMin: sel.endMin });
+    onSave({ date, allDay: !!sel.allDay, startMin: sel.startMin, endMin: sel.endMin });
   });
 
   draw();
@@ -1542,65 +1532,42 @@ function openDay({ mode, date, name, sel, onSave, onStart }) {
   });
 }
 
-/* ---------- START time block ---------- */
-function openStartPicker(bid) {
-  if (state.running) { toast('Finish or save what is in FOCUS first'); goPanel('focus'); return; }
-  openDay({ mode: 'start', date: todayStr(), name: blockName(bid), onStart: endMs => {
-    startBlock(bid, endMs);
-    closeAll(() => { renderAll(); goPanel('focus'); });
+/* ---------- completing a STACK block: pick when it happened ---------- */
+function openCompletePicker(bid) {
+  const name = blockName(bid);
+  openDay({ mode: 'complete', date: todayStr(), name, onSave: sel => {
+    const tp = getToken(true);
+    const t0 = parseDate(sel.date).getTime();
+    const res = completeBlock(bid, t0 + sel.startMin * MIN, t0 + sel.endMin * MIN);
+    if (!res) return;
+    closeAll(() => {
+      goPanel('stack');
+      toast(`Completed ${res.name}`);
+      tp.then(async tok => {
+        const link = () => calFallbackToast('Completed. Google is not connected.', res.name, { startMs: res.start, endMs: res.end }, 'Completed in Paradigm');
+        if (!tok) return link();
+        try { await calLogCompletion(tok, res); toast(`Completed ${res.name}. Added to Paradigm calendar`); }
+        catch (e) { link(); }
+      });
+    });
   } });
-}
-
-/* ---------- completion summary ---------- */
-function openSummary(res, tp) {
-  const el = screenEl('sumscreen', `
-    <div class="summary">
-      <div class="sub">Complete</div>
-      <div class="nm"></div>
-      <div class="big">${fmtDur(res.total)}</div>
-      <div class="sub">Logged ${msToClock(res.start)} to ${msToClock(res.end)}</div>
-      <div class="sub status">Adding to your Paradigm calendar</div>
-      <div class="fb"></div>
-    </div>
-    <div class="foot"><button class="btn primary wide done">DONE</button></div>`);
-  $('.nm', el).textContent = res.name;
-  $('.done', el).addEventListener('click', () => closeAll(() => goPanel('stack')));
-  const status = $('.status', el), fb = $('.fb', el);
-  const fail = msg => {
-    status.textContent = msg;
-    fb.innerHTML = '';
-    const a = document.createElement('a');
-    a.className = 'btn'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'ADD TO CALENDAR';
-    a.href = calLink(res.name, { startMs: res.start, endMs: res.end }, `Worked ${fmtDur(res.total)} in Paradigm`);
-    fb.appendChild(a);
-  };
-  openScreen(el);
-  tp.then(async tok => {
-    if (!tok) return fail('Google is not connected.');
-    try { await calLogCompletion(tok, res); status.textContent = 'Added to your Paradigm calendar'; }
-    catch (e) { fail('Could not reach Google Calendar.'); }
-  });
 }
 
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.4.5';
+const VERSION = '1.5.1';
 const PANELS = ['project', 'list', 'task', 'stack', 'settings'];
 let panel = 'stack';
 
-/* FOCUS slides over the row of panels; it isn't part of the swipe order. */
 function goPanel(name, instant) {
-  if (state && state.running) name = 'focus';   // FOCUS stays until the structure is completed or saved
   panel = name;
-  const fl = $('#p-focus'), tr = $('#track');
-  if (instant) { fl.style.transition = 'none'; tr.style.transition = 'none'; }
-  fl.classList.toggle('show', name === 'focus');
-  if (name !== 'focus') tr.style.transform = `translateX(${-PANELS.indexOf(name) * 100 / PANELS.length}%)`;
-  if (instant) requestAnimationFrame(() => { fl.style.transition = ''; tr.style.transition = ''; });
+  const tr = $('#track');
+  if (instant) tr.style.transition = 'none';
+  tr.style.transform = `translateX(${-PANELS.indexOf(name) * 100 / PANELS.length}%)`;
+  if (instant) requestAnimationFrame(() => { tr.style.transition = ''; });
   hideSuggest();
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  renderRunbar();
 }
 
 /* ---------- blocks ---------- */
@@ -1617,16 +1584,18 @@ function blockEl(bid) {
   return el;
 }
 
-/* Any block can be held to select, then swiped right to edit (project subtasks edit their project). */
+/* Any block can be held to select, then swiped right to edit (project subtasks edit their project)
+   or swiped left to delete (project subtasks delete just that subtask). Deleting never logs to the calendar. */
 function blockEditable(bid) { return !!state.blocks[bid]; }
 function editBlock(bid) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false); }
+function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName(bid)}`, () => deleteBlockItem(bid)); }
 
 function renderAll() {
   if (!state) return;
-  renderStack(); renderBacklogs(); renderSettings(); renderRunbar(); renderFocus();
+  renderStack(); renderBacklogs(); renderSettings();
 }
 
-/* ---------- STACK (bottom = highest priority; new blocks land on top) ---------- */
+/* ---------- STACK (bottom = highest priority; new from the input lands at the bottom, from a backlog at the top) ---------- */
 function renderStack() {
   const list = $('#stack-list');
   list.innerHTML = '';
@@ -1636,7 +1605,8 @@ function renderStack() {
     onReorder: keys => { state.stack = keys; save(); },
     armable: blockEditable,
     openEdit: editBlock,
-    swipeRight: bid => openStartPicker(bid),
+    armDelete: deleteBlock,
+    swipeRight: bid => openCompletePicker(bid),
     swipeLeft: bid => {
       const b = state.blocks[bid];
       const msg = b.subId ? `Returned to ${state.items[b.itemId].name}` : `Sent to ${BACKLOG_TITLE[blockKind(bid)]}`;
@@ -1644,16 +1614,6 @@ function renderStack() {
     }
   });
   $('#stack-empty').classList.toggle('hidden', !!state.stack.length);
-}
-
-function renderRunbar() {
-  const rb = $('#runbar');
-  if (!rb || !state) return;
-  const show = !!state.running && panel !== 'focus';
-  rb.classList.toggle('hidden', !show);
-  if (!show) return;
-  const r = state.running, rem = r.budget - sessionWorked(r);
-  rb.innerHTML = `<span>${isPaused() ? 'Paused' : 'In focus'}: ${esc(blockName(r.bid))}</span><span>${rem >= 0 ? fmtDur(rem) : '+' + fmtDur(-rem)}</span>`;
 }
 
 /* ---------- BACKLOGS (bottom-aligned; bottom = highest priority) ---------- */
@@ -1673,8 +1633,8 @@ function renderBacklogs() {
     onReorder: keys => { state.backlogs.project = keys; save(); },
     armable: () => true,
     openEdit: id => openEditor(state.items[id], false),
-    swipeRight: id => openProjectSubs(id),
-    swipeLeft: id => withUndo(`Deleted ${state.items[id].name}`, () => deleteItem(id))
+    armDelete: id => withUndo(`Deleted ${state.items[id].name}`, () => deleteItem(id)),
+    swipeRight: id => openProjectSubs(id)
   });
   $('#empty-project').classList.toggle('hidden', !!state.backlogs.project.length);
   for (const k of BLOCK_KINDS) {
@@ -1686,149 +1646,15 @@ function renderBacklogs() {
       onReorder: keys => { state.backlogs[k] = keys; save(); },
       armable: blockEditable,
       openEdit: editBlock,
+      armDelete: deleteBlock,
       swipeRight: bid => {
         detach(bid); state.stack.push(bid); save(); renderAll();
         toast('Added to top of STACK');
-      },
-      swipeLeft: bid => backlogLeft(bid)
+      }
     });
     $('#empty-' + k).classList.toggle('hidden', !!state.backlogs[k].length);
   }
 }
-function backlogLeft(bid) {
-  const b = state.blocks[bid], it = state.items[b.itemId];
-  if (b.subId) withUndo('Returned to project', () => removeBlock(bid));
-  else withUndo(`Deleted ${it.name}`, () => deleteItem(it.id));
-}
-
-/* ---------- FOCUS ---------- */
-const ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16"/><rect x="14" y="4" width="5" height="16"/></svg>';
-const ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4 L20 12 L6 20 Z"/></svg>';
-const RING_C = 2 * Math.PI * 135;
-let focusKey = null;
-
-function focusInfo() {
-  const r = state.running; if (!r) return null;
-  const b = state.blocks[r.bid], it = state.items[b.itemId];
-  const isList = !b.subId && it.type === 'list';
-  const notes = !b.subId && it.type === 'task' && (it.notes || '').trim() ? it.notes : '';
-  return { r, b, it, isList, notes, hasDrawer: isList || !!notes };
-}
-
-function renderFocus(force) {
-  const body = $('#focus-body');
-  const f = focusInfo();
-  const key = f ? `${f.r.bid}|${f.isList}|${f.notes}` : 'none';
-  if (!force && key === focusKey) { refreshFocus(); return; }
-  focusKey = key;
-  body.classList.remove('open');
-  if (!f) {
-    body.innerHTML = '';
-    if (panel === 'focus' && !screens.some(sc => sc.classList.contains('sumscreen'))) goPanel('stack');
-    return;
-  }
-  body.innerHTML = `
-    <div class="stage">
-      <div class="ringwrap">
-        <svg viewBox="0 0 300 300"><circle class="ring-track" cx="150" cy="150" r="135"/><circle class="ring" cx="150" cy="150" r="135" stroke-dasharray="${RING_C} ${RING_C}"/></svg>
-        <button class="pp" aria-label="Pause"></button>
-      </div>
-      <div class="minirow hidden"><div class="linebar"><i></i></div><button class="pp small" aria-label="Pause"></button></div>
-      <div class="tclock"></div>
-      <div class="fb-slot"></div>
-      ${f.hasDrawer ? `<button class="subhint"><span class="tri">▲</span>${f.isList ? 'subtasks' : 'notes'}<span class="tri">▲</span></button>` : ''}
-    </div>
-    <div class="drawer">${f.isList ? '<div class="list rev"></div>' : f.notes ? '<div class="notesview"></div>' : ''}</div>`;
-  if (f.notes) $('.notesview', body).textContent = f.notes;
-  body.querySelectorAll('.pp').forEach(p => p.addEventListener('click', () => { if (isPaused()) resumeRunning(); else pauseRunning(); tickFocus(); renderRunbar(); }));
-  const hint = $('.subhint', body);
-  if (hint) hint.addEventListener('click', () => setFocusOpen(true));
-  refreshFocus();
-}
-function setFocusOpen(open) {
-  const f = focusInfo(); if (!f || !f.hasDrawer) return;
-  const body = $('#focus-body');
-  body.classList.toggle('open', open);
-  if (f.isList) { $('.ringwrap', body).classList.toggle('hidden', open); $('.minirow', body).classList.toggle('hidden', !open); }
-  const h = $('.subhint', body); if (h) h.classList.toggle('hidden', open);
-}
-/* Re-renders the structure box and the open subtasks without rebuilding the timer. */
-function refreshFocus() {
-  const f = focusInfo(); if (!f) return;
-  const body = $('#focus-body');
-  const slot = $('.fb-slot', body);
-  if (slot) {
-    const blk = blockEl(f.r.bid); blk.classList.add('focus-block', 'fb-slot'); slot.replaceWith(blk);
-    if (blockEditable(f.r.bid)) {
-      const bid = f.r.bid;
-      gesture(blk, {
-        moveEl: false,
-        onHoldStart: () => {},
-        onHoldEnd: cancelled => { if (!cancelled) arm(blk); },
-        onSwipeRight: () => { if (isArmed(blk)) { disarm(); editBlock(bid); } },
-        onTap: () => { if (isArmed(blk)) disarm(); }
-      });
-    }
-  }
-  const list = $('.drawer .list', body);
-  if (list) {
-    const open = f.it.subtasks.filter(s => !s.done);
-    list.innerHTML = '';
-    open.forEach(s => {
-      const d = document.createElement('div');
-      d.className = 'block small'; d.dataset.key = s.id;
-      d.innerHTML = `<span class="name">${esc(s.name)}</span>`;
-      list.appendChild(d);
-    });
-    let done = $('.drawer .alldone', body);
-    if (!open.length && !done) list.insertAdjacentHTML('beforebegin', '<div class="alldone">All subtasks done</div>');
-    if (open.length && done) done.remove();
-    wireList(list, { reverse: true, swipeRight: k => checkSubtask(k) });
-  }
-  tickFocus();
-}
-function checkSubtask(id) {
-  const f = focusInfo(); if (!f) return;
-  const s = f.it.subtasks.find(x => x.id === id); if (!s) return;
-  s.done = true;
-  if (f.it.subtasks.every(x => x.done)) pauseRunning();
-  save(); refreshFocus(); renderStack();
-  toast(`Checked off ${s.name}`, { label: 'UNDO', fn: () => { s.done = false; save(); refreshFocus(); renderStack(); } });
-}
-function tickFocus() {
-  const r = state.running, body = $('#focus-body');
-  if (!r || !focusKey || !focusKey.startsWith(r.bid + '|')) return;
-  const ring = $('.ring', body); if (!ring) return;
-  const rem = r.budget - sessionWorked(r), fr = Math.max(0, Math.min(1, rem / r.budget)), over = rem < 0;
-  ring.setAttribute('stroke-dasharray', `${fr * RING_C} ${RING_C}`);
-  ring.classList.toggle('over', over);
-  $('.linebar i', body).style.width = (fr * 100) + '%';
-  $('.linebar', body).classList.toggle('over', over);
-  const clock = $('.tclock', body);
-  clock.textContent = over ? '+' + fmtDur(-rem) : fmtDur(rem);
-  clock.classList.toggle('over', over);
-  const paused = isPaused();
-  body.querySelectorAll('.pp').forEach(p => {
-    const want = paused ? 'play' : 'pause';
-    if (p.dataset.icon !== want) { p.innerHTML = paused ? ICON_PLAY : ICON_PAUSE; p.dataset.icon = want; }
-    p.classList.toggle('paused', paused); p.setAttribute('aria-label', paused ? 'Resume' : 'Pause');
-  });
-  if (over && !paused && !r.vibrated) { r.vibrated = true; save(); if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]); }
-}
-function doComplete() {
-  const tp = getToken(true);
-  const res = completeRunning();
-  if (!res) return;
-  renderAll();
-  openSummary(res, tp);
-}
-function doSave() {
-  saveRunning();
-  renderAll();
-  goPanel('stack');
-  toast('Back on top of STACK');
-}
-
 /* ---------- search / create ---------- */
 function clearMainInput() { $('#main-input').value = ''; hideSuggest(); }
 function hideSuggest() { const s = $('#suggest'); if (s) s.classList.add('hidden'); }
@@ -1952,22 +1778,11 @@ async function boot() {
   catch (e) { state = freshState(); toast('Storage is unavailable. Changes will not be kept.'); }
 
   // Panels, left to right: PROJECT BACKLOG, LIST BACKLOG, TASK BACKLOG, STACK, SETTINGS.
-  // FOCUS slides over them and stays until the structure is completed or saved.
   navTitle('#t-project', null, 'stack');   // end of the row: swiping right does nothing
   navTitle('#t-list', 'project', 'stack');
   navTitle('#t-task', 'list', 'stack');
   navTitle('#t-stack', 'task', 'settings');
   navTitle('#t-settings', 'stack', 'stack');
-  $('#runbar').addEventListener('click', () => goPanel('focus'));
-
-  gesture($('#focus-body'), {
-    moveEl: false,
-    ignore: t => !!t.closest('.subhint, .drawer .list, .notesview, .focus-block.armed'),
-    onSwipeRight: () => { if (state.running && isPaused()) doComplete(); },
-    onSwipeLeft: () => { if (state.running && isPaused()) doSave(); },
-    onSwipeUp: () => setFocusOpen(true),
-    onSwipeDown: () => setFocusOpen(false)
-  });
 
   const inp = $('#main-input'), sug = $('#suggest'), ps = $('#p-stack');
   inp.addEventListener('focus', () => { ps.classList.add('searching'); showSuggest(); });
@@ -1984,13 +1799,12 @@ async function boot() {
   const arrived = runDueCheck();
   renderAll();
   flashArrivals(arrived);
-  goPanel(state.running ? 'focus' : 'stack', true);
+  goPanel('stack', true);
 
-  setInterval(() => { renderRunbar(); tickFocus(); }, 250);
   setInterval(checkDue, 15000);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) flush();
-    else { checkDue(); renderRunbar(); tickFocus(); }
+    else checkDue();
   });
   window.addEventListener('pagehide', flush);
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
