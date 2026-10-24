@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="application-name" content="Paradigm">
+<meta name="color-scheme" content="dark">
+<title>Paradigm</title>
+<link rel="icon" href="icon-192-v2.png">
+<link rel="apple-touch-icon" href="icon-192-v2.png">
+<style>
+/* Additive display: black is see-through, so the page canvas stays unlit black and
+   everything readable sits in bounded green surfaces. Sized from the viewport (600×600 on device). */
+@font-face { font-family: "OCR-A"; src: url(data:font/woff2;base64,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) format("woff2"); font-display: block; }
+:root {
+  --bg: #000; --g: #00ff41; --g2: #00c434; --dim: #0d6b24; --faint: #052e11; --hot: #d2ffdc;
+  --font: "Share Tech Mono", "Roboto Mono", "Droid Sans Mono", monospace;
+  --pad: clamp(16px, 4vw, 28px);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body, #app { inline-size: 100%; block-size: 100%; }
+body { margin: 0; background: var(--bg); color: var(--g); font-family: var(--font); font-size: clamp(18px, 4.4vw, 26px); overflow: hidden; }
+button { font: inherit; color: inherit; }
+.hidden { display: none !important; }
+
+#app { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: var(--pad); gap: 8px; }
+#status { font-size: 0.6em; color: var(--dim); text-align: end; min-block-size: 1em; letter-spacing: .1em; }
+#status.live { color: var(--g2); }
+#main { min-block-size: 0; display: flex; flex-direction: column; position: relative; }
+
+/* Lists sit at the bottom like the phone; the bottom block is highest priority. */
+.list { flex: 1 1 auto; min-block-size: 0; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 6px; padding: 4px; }
+.list > :last-child { margin-block-start: auto; }
+
+.block { display: flex; align-items: center; gap: 12px; inline-size: 100%; min-block-size: 2.4em; padding: 0.4em 0.7em; text-align: start;
+  background: var(--bg); color: var(--g); border: 2px solid var(--g); border-radius: 0; cursor: pointer; }
+.block .name { flex: 1; min-inline-size: 0; overflow-wrap: anywhere; }
+.block .proj { color: var(--g2); }
+.block .meta { flex: none; font-size: 0.7em; color: var(--g2); }
+/* Focus = the phone's solid green "selected" block, plus an outline so it isn't color alone. */
+.block:focus-visible, .block:focus { background: var(--g); color: var(--bg); outline: 3px solid var(--hot); outline-offset: 3px; }
+.block:focus .proj, .block:focus .meta { color: var(--bg); }
+.block.moving { border-style: dashed; }
+.block.moving::before { content: "↕"; }
+
+#empty, .note { color: var(--g2); text-align: center; margin: auto 0; font-size: 0.85em; line-height: 1.35; }
+#unpaired { margin: auto 0; text-align: center; line-height: 1.4; font-size: 0.9em; }
+#unpaired p { margin: 0 0 0.8em; }
+
+nav { display: flex; justify-content: center; }
+#navtitle { background: none; border: 2px solid transparent; padding: 6px 14px; display: flex; gap: 16px; align-items: center; cursor: pointer; }
+#navtitle .t { font-family: "OCR-A", var(--font); font-size: 1.15em; letter-spacing: .2em; text-shadow: 0 0 10px rgba(0, 255, 65, .55); white-space: nowrap; }
+#navtitle .l, #navtitle .r { color: var(--dim); }
+#navtitle:focus, #navtitle:focus-visible { border-color: var(--g); outline: 3px solid var(--hot); outline-offset: 3px; }
+
+#overlay { position: fixed; inset: 0; background: var(--bg); padding: var(--pad); display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.ohead { text-align: center; margin-block-end: 6px; }
+.kicker { font-family: "OCR-A", var(--font); font-size: 0.75em; letter-spacing: .25em; color: var(--g2); }
+.otitle { font-size: 1.1em; margin-block-start: 4px; overflow-wrap: anywhere; }
+.opts, .olist { display: flex; flex-direction: column; gap: 8px; }
+.olist { flex: 1 1 auto; min-block-size: 0; overflow-y: auto; padding: 4px; }
+.opt { inline-size: 100%; padding: 0.45em; background: var(--bg); border: 2px solid var(--g); letter-spacing: .12em; cursor: pointer; }
+.opt.danger { border-style: dashed; }
+.opt.primary { margin-block-start: auto; }
+.opt:focus, .opt:focus-visible { background: var(--g); color: var(--bg); outline: 3px solid var(--hot); outline-offset: 3px; }
+.row { display: flex; gap: 10px; }
+.row .opt { flex: 1; }
+.trow { display: grid; grid-template-columns: 4.5em auto 1fr auto; align-items: center; gap: 10px; }
+.tlab { font-size: 0.75em; color: var(--g2); letter-spacing: .15em; }
+.tval { text-align: center; font-size: 1.1em; }
+.opt.small { inline-size: 2.4em; padding: 0.3em 0; }
+.notes { flex: 1; overflow-y: auto; white-space: pre-wrap; line-height: 1.45; border: 2px solid var(--dim); padding: 0.6em; }
+.notes:focus { border-color: var(--g); outline: none; }
+
+#toast { position: fixed; inset-inline: var(--pad); inset-block-start: var(--pad); background: var(--bg); border: 2px solid var(--g); padding: 0.4em 0.7em; font-size: 0.8em; text-align: center; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* Leave room at the top for the confirmation message, and stack subtasks from the bottom like the phone. */
+#overlay { padding-block-start: calc(var(--pad) + 2.2em); }
+.olist { flex-direction: column-reverse; }
+.olist > :last-child { margin-block-start: auto; }
+
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="status" aria-live="polite"></div>
+  <main id="main">
+    <div id="unpaired" class="hidden">
+      <p>Not paired with your phone yet.</p>
+      <p>On your phone, open Paradigm, go to SETTINGS, tap PAIR GLASSES, and look at the code with your glasses.</p>
+    </div>
+    <div id="list" class="list"></div>
+    <p id="empty" class="note hidden"></p>
+  </main>
+  <nav>
+    <button type="button" id="navtitle"><span class="l" aria-hidden="true">‹</span><span class="t">STACK</span><span class="r" aria-hidden="true">›</span></button>
+  </nav>
+</div>
+<div id="overlay" class="hidden" role="dialog" aria-modal="true"></div>
+<div id="toast" class="hidden" role="status" aria-live="polite"></div>
+<script>
+
+window.__errs=[];
+function __showErr(msg){try{var b=document.getElementById('errbar');if(!b){b=document.createElement('div');b.id='errbar';b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:999;background:#300;color:#fbb;font:13px monospace;padding:8px 10px;white-space:pre-wrap;max-height:40%;overflow:auto';document.body.appendChild(b);}b.textContent+= (b.textContent?'\n':'')+'Error: '+msg;}catch(e){}}
+window.addEventListener('error',function(e){__showErr((e.message||'unknown')+(e.filename?' @'+e.filename.split('/').pop()+':'+e.lineno:''));});
+window.addEventListener('unhandledrejection',function(e){var r=e.reason;__showErr('promise: '+(r&&r.message||r));});
+/* Paradigm: state, persistence and model rules */
+'use strict';
+
+const MIN = 60000, HALF = 30 * MIN, DAY = 24 * 60 * MIN;
+let state = null;
+let idb = null;
+
+/* ---------- small helpers ---------- */
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const pad = n => String(n).padStart(2, '0');
+function dateStr(d) { d = new Date(d); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+const todayStr = () => dateStr(Date.now());
+function parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function addDays(s, n) { const d = parseDate(s); d.setDate(d.getDate() + n); return dateStr(d); }
+function floor30(ms) { const d = new Date(ms); d.setSeconds(0, 0); d.setMinutes(d.getMinutes() < 30 ? 0 : 30); return d.getTime(); }
+function ceilHalf(ms) { return Math.max(1, Math.ceil(ms / HALF)) * HALF; }
+const Q15 = 15 * MIN;
+function nextQuarter(ms) { const d = new Date(ms); if (d.getSeconds() || d.getMilliseconds() || d.getMinutes() % 15) { d.setSeconds(0, 0); d.setMinutes(Math.floor(d.getMinutes() / 15) * 15 + 15); } return d.getTime(); }
+function ceilQuarter(ms) { return Math.max(1, Math.ceil(ms / Q15)) * Q15; }
+function minToClock(min) { const h = Math.floor(min / 60) % 24, m = min % 60; const ap = h < 12 ? 'AM' : 'PM'; const h12 = h % 12 || 12; return `${h12}:${pad(m)} ${ap}`; }
+function msToClock(ms) { const d = new Date(ms); return minToClock(d.getHours() * 60 + d.getMinutes()); }
+function fmtDur(ms) { ms = Math.max(0, Math.round(ms / 1000)); const h = Math.floor(ms / 3600), m = Math.floor(ms % 3600 / 60), s = ms % 60; return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`; }
+function fmtShort(ms) { const m = Math.round(ms / MIN); return m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? pad(m % 60) : ''}` : `${m}m`; }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* ---------- persistence (IndexedDB) ---------- */
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('paradigm', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function idbGet(k) {
+  return new Promise((res, rej) => {
+    const q = idb.transaction('kv').objectStore('kv').get(k);
+    q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+  });
+}
+function idbSet(k, v) {
+  return new Promise((res, rej) => {
+    const t = idb.transaction('kv', 'readwrite');
+    t.objectStore('kv').put(v, k);
+    t.oncomplete = () => res(); t.onerror = () => rej(t.error);
+  });
+}
+
+function freshState() {
+  return {
+    v: 4, items: {}, blocks: {}, stack: [], backlogs: { project: [], list: [], task: [] }, running: null,
+    lastDueCheck: todayStr(),
+    calQueue: [],   // completions made on the glasses, waiting for the phone to log them to Google Calendar
+    settings: { clientId: '', connected: false, paradigmCalId: '', driveFileId: '', lastBackup: 0 },
+    auth: { token: '', exp: 0 }
+  };
+}
+function normalize(s) {
+  const f = freshState();
+  // v1 -> v2: one backlog becomes three; the placement queue goes to the top of STACK.
+  if (!s.backlogs) {
+    s.backlogs = { project: [], list: [], task: [] };
+    (s.backlog || []).forEach(bid => { const k = blockKind(bid, s); if (k) s.backlogs[k].push(bid); });
+  }
+  if (Array.isArray(s.placing)) { s.stack = (s.stack || []).concat(s.placing); }
+  delete s.backlog; delete s.placing;
+  // v3: PROJECT BACKLOG holds projects (item ids), not subtask blocks.
+  if ((s.v || 1) < 3) { s.backlogs.project = []; s.v = 3; }
+  // v4: no FOCUS timer. Anything mid-session goes back to the bottom of STACK.
+  if (s.running) { s.stack = [s.running.bid].concat((s.stack || []).filter(b => b !== s.running.bid)); s.running = null; }
+  s.v = 4;
+  for (const k of Object.keys(f)) if (s[k] === undefined) s[k] = f[k];
+  s.settings = Object.assign(f.settings, s.settings || {});
+  s.auth = Object.assign(f.auth, s.auth || {});
+  return s;
+}
+
+let saveTimer = null;
+function save(opts) {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flush, 200);
+  if (!(opts && opts.noBackup) && typeof scheduleBackup === 'function') scheduleBackup();
+  if (!(opts && opts.noSync) && typeof scheduleSync === 'function') scheduleSync();
+}
+function flush() { clearTimeout(saveTimer); if (idb && state) return idbSet('state', state).catch(e => console.error(e)); }
+
+async function loadState() {
+  idb = await idbOpen();
+  const s = await idbGet('state');
+  state = normalize(s || freshState());
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  repair();
+}
+
+/* Keep lists consistent: drop dead blocks, rescue orphans into the backlog. */
+function repair() {
+  const seen = new Set();
+  const clean = arr => arr.filter(b => {
+    const ok = state.blocks[b] && state.items[state.blocks[b].itemId] && !seen.has(b);
+    if (ok) seen.add(b); return ok;
+  });
+  if (state.running && !(state.blocks[state.running.bid] && state.items[state.blocks[state.running.bid].itemId])) state.running = null;
+  if (state.running) seen.add(state.running.bid);
+  state.stack = clean(state.stack);
+  for (const k of BLOCK_KINDS) state.backlogs[k] = clean(state.backlogs[k] || []);
+  // PROJECT BACKLOG lists every project, by item id.
+  const pseen = new Set();
+  state.backlogs.project = (state.backlogs.project || []).filter(id => state.items[id] && state.items[id].type === 'project' && !pseen.has(id) && pseen.add(id));
+  for (const it of Object.values(state.items)) if (it.type === 'project' && !pseen.has(it.id)) state.backlogs.project.push(it.id);
+  for (const [bid, b] of Object.entries(state.blocks)) {
+    const it = state.items[b.itemId];
+    if (!it || (b.subId && !(it.subtasks || []).some(s => s.id === b.subId))) { delete state.blocks[bid]; continue; }
+    if (seen.has(bid)) continue;
+    if (b.subId) delete state.blocks[bid];   // a loose subtask simply returns to its project
+    else state.backlogs[blockKind(bid)].push(bid);
+  }
+  // Every task and list that isn't on STACK or in FOCUS lives in its backlog, recurring ones included.
+  for (const it of Object.values(state.items)) placeInBacklog(it.id);
+}
+
+/* ---------- model queries ---------- */
+const TYPES = { task: 'TASK', list: 'LIST', event: 'EVENT', project: 'PROJECT' };
+const KINDS = ['project', 'list', 'task'];
+const BLOCK_KINDS = ['list', 'task'];
+const BACKLOG_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG' };
+/* Which backlog a block belongs to: project subtasks -> project, otherwise the item's type. */
+function blockKind(bid, s) {
+  s = s || state;
+  const b = s.blocks[bid]; if (!b) return null;
+  if (b.subId) return 'project';
+  const it = s.items[b.itemId]; if (!it) return null;
+  return it.type === 'list' ? 'list' : 'task';
+}
+function inBacklog(bid) { return BLOCK_KINDS.some(k => state.backlogs[k].includes(bid)); }
+function itemByName(name) {
+  const n = name.trim().toLowerCase();
+  return Object.values(state.items).find(i => i.name.trim().toLowerCase() === n) || null;
+}
+function findBlock(itemId, subId) {
+  return Object.keys(state.blocks).find(b => state.blocks[b].itemId === itemId && (state.blocks[b].subId || null) === (subId || null)) || null;
+}
+function whereBlock(bid) {
+  if (state.running && state.running.bid === bid) return 'running';
+  if (state.stack.includes(bid)) return 'stack';
+  if (inBacklog(bid)) return 'backlog';
+  return null;
+}
+function detach(bid) {
+  state.stack = state.stack.filter(b => b !== bid);
+  for (const k of BLOCK_KINDS) state.backlogs[k] = state.backlogs[k].filter(b => b !== bid);
+}
+function removeBlock(bid) {
+  detach(bid);
+  if (state.running && state.running.bid === bid) state.running = null;
+  delete state.blocks[bid];
+}
+function blockLabel(bid) {
+  const b = state.blocks[bid], it = state.items[b.itemId];
+  if (b.subId) { const s = it.subtasks.find(x => x.id === b.subId); return { proj: it.name, name: s ? s.name : '?' }; }
+  return { proj: null, name: it.name };
+}
+function blockName(bid) { const l = blockLabel(bid); return l.proj ? `${l.proj} › ${l.name}` : l.name; }
+
+function newItem(type, name) {
+  const it = { id: uid(), type, name: name.trim(), created: Date.now() };
+  if (type === 'task') Object.assign(it, { notes: '', recurring: false, schedule: { freq: 'none' } });
+  if (type === 'list') Object.assign(it, { subtasks: [], recurring: false, recSubtasks: false, schedule: { freq: 'none' } });
+  if (type === 'project') Object.assign(it, { subtasks: [], recurring: false });
+  if (type === 'event') Object.assign(it, { event: null });
+  return it;
+}
+function deleteItem(id) {
+  for (const bid of Object.keys(state.blocks)) if (state.blocks[bid].itemId === id) removeBlock(bid);
+  delete state.items[id];
+  state.backlogs.project = state.backlogs.project.filter(x => x !== id);
+}
+/* Puts a task or list with no block anywhere onto the top (lowest priority) of its backlog. */
+function placeInBacklog(itemId) {
+  const it = state.items[itemId];
+  if (!it || (it.type !== 'task' && it.type !== 'list') || findBlock(itemId, null)) return false;
+  const bid = uid();
+  state.blocks[bid] = { bid, itemId, subId: null, elapsed: 0 };
+  state.backlogs[it.type].push(bid);
+  return true;
+}
+function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
+
+/* Adds an item (or project subtask) to STACK. where: 'top' (lowest priority, from a backlog)
+   or 'bottom' (highest priority, new from the STACK input). Returns a message or null. */
+function addToStack(itemId, subId, where) {
+  let bid = findBlock(itemId, subId);
+  const w = bid && whereBlock(bid);
+  if (w === 'stack') return 'Already on STACK';
+  if (w === 'backlog') detach(bid);
+  if (!bid) { bid = uid(); state.blocks[bid] = { bid, itemId, subId: subId || null, elapsed: 0 }; }
+  if (where === 'bottom') state.stack.unshift(bid); else state.stack.push(bid);
+  return null;
+}
+/* Deletes what a block stands for: the task or list, or just the subtask for a project subtask. */
+function deleteBlockItem(bid) {
+  const b = state.blocks[bid]; if (!b) return;
+  if (b.subId) {
+    const it = state.items[b.itemId];
+    if (it) it.subtasks = it.subtasks.filter(s => s.id !== b.subId);
+    removeBlock(bid);
+  } else deleteItem(b.itemId);
+}
+/* Sends a block to the bottom (highest priority) of its backlog. Project subtasks return to their project. */
+function sendToBacklog(bid) {
+  if (state.blocks[bid].subId) { removeBlock(bid); return; }
+  detach(bid);
+  state.backlogs[blockKind(bid)].unshift(bid);
+}
+
+/* ---------- schedules ---------- */
+function defaultSchedule(freq) {
+  const d = new Date();
+  return { freq, days: [d.getDay()], dom: d.getDate(), month: d.getMonth() };
+}
+function matchesSchedule(sch, d) {
+  if (!sch || sch.freq === 'none') return false;
+  const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  switch (sch.freq) {
+    case 'daily': return true;
+    case 'weekly': return (sch.days || []).includes(d.getDay());
+    case 'monthly': return d.getDate() === Math.min(sch.dom || 1, dim);
+    case 'annually': return d.getMonth() === sch.month && d.getDate() === Math.min(sch.dom || 1, dim);
+  }
+  return false;
+}
+/* Drops due recurring items onto the bottom of STACK. Returns ids that arrived. */
+function runDueCheck() {
+  const today = todayStr();
+  if (state.lastDueCheck >= today) return [];
+  const due = [];
+  for (const it of Object.values(state.items)) {
+    if (!it.recurring || !it.schedule || it.schedule.freq === 'none') continue;
+    let d = addDays(state.lastDueCheck, 1), n = 0;
+    while (d <= today && n++ < 400) { if (matchesSchedule(it.schedule, parseDate(d))) { due.push(it); break; } d = addDays(d, 1); }
+  }
+  state.lastDueCheck = today;
+  due.sort((a, b) => b.created - a.created);
+  const arrived = [];
+  for (const it of due) {
+    let bid = findBlock(it.id, null);
+    const w = bid && whereBlock(bid);
+    if (w === 'stack' || w === 'running') continue;
+    if (w === 'backlog') detach(bid);
+    if (!bid) { bid = uid(); state.blocks[bid] = { bid, itemId: it.id, subId: null, elapsed: 0 }; }
+    state.stack.unshift(bid);
+    arrived.push(bid);
+  }
+  if (due.length || arrived.length) save();
+  return arrived;
+}
+
+/* ---------- completion ---------- */
+/* Completes a block over the chosen time span; returns what to log on the Paradigm calendar. */
+function completeBlock(bid, start, end) {
+  const b = state.blocks[bid]; if (!b) return null;
+  const it = state.items[b.itemId];
+  const res = { name: blockName(bid), start, end };
+  if (b.subId) {
+    // Done subtasks leave the project, unless it's a recurring project (then it stays, ready to do again).
+    if (!it.recurring) it.subtasks = it.subtasks.filter(x => x.id !== b.subId);
+  } else if (it.type === 'task') {
+    if (!it.recurring) delete state.items[it.id];
+  } else if (it.type === 'list') {
+    if (!it.recurring) delete state.items[it.id];
+    else if (it.recSubtasks) it.subtasks.forEach(s => { s.done = false; });
+    else it.subtasks = [];
+  }
+  removeBlock(bid);
+  if (state.items[b.itemId]) placeInBacklog(b.itemId);   // recurring items go back to their backlog
+  save();
+  return res;
+}
+
+/* Paradigm: phone <-> glasses sync through a free Firebase Realtime Database.
+   Both devices keep a full local copy. Every change is written as one small record:
+     /paradigm/<key>/state.json = { rev, by, at, data: "<the shared state as JSON text>" }
+   The higher rev wins. Each device listens for the other's writes (server-sent events). */
+'use strict';
+
+const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue'];
+let syncCfg = null;            // { db, key }
+let syncDevice = 'phone';
+let syncRev = 0, syncLastSent = '', syncTimer = null, syncES = null, syncPoll = null;
+let syncStatus = 'off';        // off | connecting | live | offline
+let onSyncAdopt = null;        // callback after remote data is applied
+let syncDeferred = null;       // remote record waiting for a drag to finish
+
+function syncConfigured() { return !!(syncCfg && syncCfg.db && syncCfg.key); }
+function syncUrl() { return `${syncCfg.db.replace(/\/+$/, '')}/paradigm/${encodeURIComponent(syncCfg.key)}/state.json`; }
+function syncPayload() { const o = {}; SYNC_FIELDS.forEach(k => { o[k] = state[k]; }); return JSON.stringify(o); }
+function newSyncKey() { const a = new Uint8Array(18); crypto.getRandomValues(a); return Array.from(a, b => b.toString(36).padStart(2, '0')).join('').slice(0, 32); }
+function setSyncStatus(s) { syncStatus = s; if (typeof onSyncStatus === 'function') onSyncStatus(s); }
+
+/* Called by save(): push shortly after a change. */
+function scheduleSync() {
+  if (!syncConfigured()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncPush, 600);
+}
+async function syncPush() {
+  if (!syncConfigured()) return;
+  const data = syncPayload();
+  if (data === syncLastSent) return;
+  try {
+    // Number this write after whatever is on the server, so the newest change always wins
+    // and both devices end up with the same data.
+    let base = syncRev;
+    try { const cur = await syncFetch(); if (cur && cur.rev > base) base = cur.rev; } catch (e) { /* offline: the PUT below will fail and retry */ }
+    const rec = { rev: base + 1, by: syncDevice, at: Date.now(), data };
+    const r = await fetch(syncUrl(), { method: 'PUT', body: JSON.stringify(rec) });
+    if (!r.ok) throw new Error('sync ' + r.status);
+    syncRev = rec.rev; syncLastSent = data; saveSyncMeta();
+    if (syncStatus !== 'live') setSyncStatus(syncES ? 'live' : 'connecting');
+  } catch (e) {
+    setSyncStatus('offline');
+    clearTimeout(syncTimer); syncTimer = setTimeout(syncPush, 5000);   // retry until it goes through
+  }
+}
+
+/* Applies a record from the other device if it's newer than what we have. */
+function syncReceive(rec) {
+  if (!rec || typeof rec !== 'object' || !rec.data) return;
+  if (rec.rev <= syncRev) return;
+  if (rec.by === syncDevice && rec.data === syncLastSent) { syncRev = rec.rev; saveSyncMeta(); return; }
+  if (typeof dragCtx !== 'undefined' && dragCtx) { syncDeferred = rec; return; }
+  let incoming;
+  try { incoming = JSON.parse(rec.data); } catch (e) { return; }
+  SYNC_FIELDS.forEach(k => { if (incoming[k] !== undefined) state[k] = incoming[k]; });
+  if (!state.calQueue) state.calQueue = [];
+  repair();
+  syncRev = rec.rev; syncLastSent = syncPayload(); saveSyncMeta();
+  save({ noSync: true, noBackup: false });
+  if (onSyncAdopt) onSyncAdopt();
+}
+setInterval(() => { if (syncDeferred && !(typeof dragCtx !== 'undefined' && dragCtx)) { const r = syncDeferred; syncDeferred = null; syncReceive(r); } }, 500);
+
+async function syncFetch() {
+  const r = await fetch(syncUrl(), { cache: 'no-store' });
+  if (!r.ok) throw new Error('sync ' + r.status);
+  return r.json();
+}
+
+/* Connects: pulls the latest record, pushes ours if we're ahead, then listens live. */
+async function syncStart() {
+  syncStop();
+  if (!syncConfigured()) { setSyncStatus('off'); return; }
+  setSyncStatus('connecting');
+  try {
+    const rec = await syncFetch();
+    if (rec && rec.rev > syncRev) syncReceive(rec);
+    else if (!rec || syncPayload() !== syncLastSent || rec.rev < syncRev) { syncLastSent = ''; await syncPush(); }
+  } catch (e) { setSyncStatus('offline'); }
+  try {
+    syncES = new EventSource(syncUrl());
+    syncES.addEventListener('put', ev => {
+      setSyncStatus('live');
+      let msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
+      if (msg.path === '/') syncReceive(msg.data);
+      else syncFetch().then(syncReceive).catch(() => {});
+    });
+    syncES.addEventListener('patch', () => { syncFetch().then(syncReceive).catch(() => {}); });
+    syncES.addEventListener('keep-alive', () => setSyncStatus('live'));
+    syncES.onopen = () => setSyncStatus('live');
+    syncES.onerror = () => setSyncStatus('offline');
+  } catch (e) { /* polling below still works */ }
+  // Safety net in case live updates drop silently.
+  syncPoll = setInterval(() => { if (!document.hidden) syncFetch().then(syncReceive).catch(() => setSyncStatus('offline')); }, 20000);
+}
+function syncStop() {
+  if (syncES) { syncES.close(); syncES = null; }
+  clearInterval(syncPoll); syncPoll = null;
+}
+
+/* Paradigm for Meta Ray-Ban Display.
+   Same data as the phone (synced), viewed and worked through with arrows + Enter.
+   It can complete, reorder, move between STACK and backlogs, check off subtasks and delete,
+   but it never creates or renames anything: that stays on the phone.
+
+   Input mirrors the phone:  → (swipe right) on a STACK block = complete,  ← = send to backlog,
+   → on a backlog block = add to STACK.  Enter = the actions menu (the phone's hold).
+   On the screen name at the bottom, → / ← move between screens like the phone's title swipes. */
+'use strict';
+
+const $ = (s, r) => (r || document).querySelector(s);
+const LS_KEY = 'paradigm.glasses.v1';
+const SCREENS = ['project', 'list', 'task', 'stack'];
+const SCREEN_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
+let screen = 'stack';
+let focusKey = null;      // keeps focus on the same block across re-renders
+let moving = null;        // key of the block being reordered
+let overlayOpen = false;
+
+/* ---------- storage + sync (replaces the phone's IndexedDB versions in store.js) ---------- */
+async function loadState() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { saved = null; }
+  const q = new URLSearchParams(location.search);
+  const cfg = q.get('db') && q.get('k') ? { db: q.get('db'), key: q.get('k') } : (saved && saved.cfg) || null;
+  // A different pairing link means a different phone: start clean.
+  const samePair = saved && saved.cfg && cfg && saved.cfg.key === cfg.key;
+  state = normalize(samePair && saved.state ? saved.state : freshState());
+  syncRev = samePair ? (saved.rev || 0) : 0;
+  syncCfg = cfg;
+  repair();
+}
+function flush() {
+  try {
+    const keep = {}; SYNC_FIELDS.forEach(k => { keep[k] = state[k]; });
+    localStorage.setItem(LS_KEY, JSON.stringify({ state: keep, rev: syncRev, cfg: syncCfg }));
+  } catch (e) { /* storage full or unavailable: sync still holds the data */ }
+}
+function saveSyncMeta() { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 200); }
+function onSyncStatus(s) {
+  const el = $('#status'); if (!el) return;
+  el.textContent = { live: '● SYNCED', connecting: '○ CONNECTING', offline: '○ OFFLINE', off: '' }[s] || '';
+  el.className = s;
+}
+
+/* ---------- helpers ---------- */
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.remove('hidden');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+function listFor(name) { return name === 'stack' ? state.stack : state.backlogs[name]; }
+function setList(name, arr) { if (name === 'stack') state.stack = arr; else state.backlogs[name] = arr; }
+function keyName(key) { return screen === 'project' ? state.items[key].name : blockName(key); }
+function blockInfo(key) {
+  if (screen === 'project') return { kind: 'project', it: state.items[key] };
+  const b = state.blocks[key]; if (!b) return null;
+  const it = state.items[b.itemId];
+  return { kind: b.subId ? 'subtask' : it.type, it, b };
+}
+function hasNotes(info) { return info && info.kind === 'task' && (info.it.notes || '').trim(); }
+function openSubtasks(it) { return (it.subtasks || []).filter(s => !s.done); }
+
+/* ---------- main screen ---------- */
+function render() {
+  if (!state) return;
+  const paired = !!(syncCfg && syncCfg.key);
+  $('#unpaired').classList.toggle('hidden', paired);
+  $('#navtitle .t').textContent = SCREEN_TITLE[screen];
+  $('#navtitle .l').style.visibility = screen === 'stack' ? 'hidden' : 'visible';
+  $('#navtitle .r').style.visibility = screen === 'project' ? 'hidden' : 'visible';
+  const list = $('#list');
+  list.innerHTML = '';
+  const keys = listFor(screen) || [];
+  keys.forEach(key => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'block' + (moving === key ? ' moving' : '');
+    btn.dataset.key = key;
+    let name, meta = '';
+    if (screen === 'project') {
+      const it = state.items[key]; if (!it) return;
+      const open = openSubtasks(it).length;
+      name = esc(it.name); meta = `<span class="meta">${open} open</span>`;
+    } else {
+      const l = blockLabel(key), info = blockInfo(key);
+      name = (l.proj ? `<span class="proj">${esc(l.proj)} ›</span> ` : '') + esc(l.name);
+      if (info.kind === 'list' && info.it.subtasks.length) meta = `<span class="meta">${info.it.subtasks.filter(s => s.done).length}/${info.it.subtasks.length}</span>`;
+      if (info.it.recurring && !info.b.subId) meta += '<span class="meta">↻</span>';
+    }
+    btn.innerHTML = `<span class="name">${name}</span>${meta}`;
+    btn.addEventListener('keydown', e => blockKey(e, key));
+    btn.addEventListener('click', () => { if (moving === key) { moving = null; save(); render(); toast('Moved'); } else openMenu(key); });
+    btn.addEventListener('focus', () => { focusKey = key; });
+    list.appendChild(btn);
+  });
+  const empty = $('#empty');
+  empty.textContent = screen === 'stack' ? 'STACK is empty. Add things on your phone.' : `Nothing in ${SCREEN_TITLE[screen]}.`;
+  empty.classList.toggle('hidden', !!keys.length);
+  if (!overlayOpen) restoreFocus();
+}
+function restoreFocus() {
+  const list = $('#list');
+  const el = (focusKey && list.querySelector(`[data-key="${CSS.escape(focusKey)}"]`)) || list.querySelector('.block');
+  (el || $('#navtitle')).focus({ preventScroll: false });
+  if (el) el.scrollIntoView({ block: 'nearest' });
+}
+function goScreen(name) {
+  if (!SCREENS.includes(name)) return;
+  screen = name; moving = null; focusKey = null;
+  render();
+  $('#navtitle').focus();
+}
+
+/* Arrow keys on a block mirror the phone's swipes. Up/Down are left to the browser's own focus movement. */
+function blockKey(e, key) {
+  if (moving === key && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+    e.preventDefault();
+    const arr = listFor(screen).slice(), i = arr.indexOf(key);
+    // Lists are drawn bottom-up, so Up means later in the array (lower priority).
+    const j = e.key === 'ArrowUp' ? i + 1 : i - 1;
+    if (j < 0 || j >= arr.length) return;
+    arr.splice(i, 1); arr.splice(j, 0, key);
+    setList(screen, arr); focusKey = key; render();
+    return;
+  }
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  e.preventDefault();
+  if (moving) return;
+  const right = e.key === 'ArrowRight';
+  if (screen === 'stack') {
+    if (right) openComplete(key);
+    else { const k = blockKind(key); focusNext(key); sendToBacklog(key); save(); render(); toast(state.blocks[key] ? `Sent to ${BACKLOG_TITLE[k]}` : 'Returned to project'); }
+  } else if (right) {
+    if (screen === 'project') openProjectSubs(key);
+    else { focusNext(key); detach(key); state.stack.push(key); save(); render(); toast('Added to top of STACK'); }
+  }
+}
+/* After a block leaves the list, focus its neighbour instead of jumping to the end. */
+function focusNext(key) {
+  const arr = listFor(screen), i = arr.indexOf(key);
+  focusKey = arr[i - 1] || arr[i + 1] || null;
+}
+
+/* ---------- overlay (one history entry; Back closes it) ---------- */
+function openOverlay(build) {
+  const ov = $('#overlay');
+  ov.innerHTML = '';
+  build(ov);
+  ov.classList.remove('hidden');
+  if (!overlayOpen) { overlayOpen = true; history.pushState({ overlay: 1 }, ''); }
+  const f = ov.querySelector('[data-autofocus]') || ov.querySelector('button, [tabindex="0"]');
+  if (f) f.focus();
+}
+function closeOverlay() { if (overlayOpen) history.back(); }
+window.addEventListener('popstate', () => {
+  if (!overlayOpen) return;
+  overlayOpen = false;
+  $('#overlay').classList.add('hidden');
+  $('#overlay').innerHTML = '';
+  render();
+});
+function btn(label, fn, cls) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'opt' + (cls ? ' ' + cls : ''); b.textContent = label;
+  b.addEventListener('click', fn);
+  return b;
+}
+function head(ov, kicker, title) {
+  const h = document.createElement('div'); h.className = 'ohead';
+  h.innerHTML = `<div class="kicker"></div><div class="otitle"></div>`;
+  h.querySelector('.kicker').textContent = kicker;
+  h.querySelector('.otitle').textContent = title;
+  ov.appendChild(h);
+}
+
+/* Enter on a block: the phone's hold. */
+function openMenu(key) {
+  const info = blockInfo(key); if (!info) return;
+  openOverlay(ov => {
+    head(ov, info.kind.toUpperCase(), keyName(key));
+    const box = document.createElement('div'); box.className = 'opts';
+    const add = (label, fn, cls) => box.appendChild(btn(label, fn, cls));
+    if (screen === 'stack') {
+      add('COMPLETE', () => openComplete(key));
+      add(info.kind === 'subtask' ? 'BACK TO PROJECT' : 'TO BACKLOG', () => { closeOverlay(); focusNext(key); sendToBacklog(key); save(); });
+    } else if (screen === 'project') {
+      add('SUBTASKS', () => openProjectSubs(key));
+    } else {
+      add('ADD TO STACK', () => { closeOverlay(); focusNext(key); detach(key); state.stack.push(key); save(); toast('Added to top of STACK'); });
+    }
+    if (info.kind === 'list') add('SUBTASKS', () => openListSubs(info.it.id));
+    if (hasNotes(info)) add('NOTES', () => openNotes(info.it));
+    add('MOVE', () => { closeOverlay(); moving = key; focusKey = key; toast('↑ ↓ to move, then Enter'); });
+    add('DELETE', () => confirmDelete(key, info), 'danger');
+    ov.appendChild(box);
+    box.firstChild.dataset.autofocus = '1';
+  });
+}
+function confirmDelete(key, info) {
+  openOverlay(ov => {
+    head(ov, 'DELETE', keyName(key));
+    const p = document.createElement('p'); p.className = 'note';
+    p.textContent = info.kind === 'project' ? 'Deletes the whole project and its subtasks.' : info.kind === 'subtask' ? 'Deletes this subtask from its project.' : 'This can’t be undone here.';
+    ov.appendChild(p);
+    const row = document.createElement('div'); row.className = 'row';
+    row.appendChild(btn('CANCEL', closeOverlay));
+    row.appendChild(btn('DELETE', () => {
+      closeOverlay(); focusNext(key);
+      if (screen === 'project') deleteItem(key); else deleteBlockItem(key);
+      save(); toast('Deleted');
+    }, 'danger'));
+    ov.appendChild(row);
+    row.firstChild.dataset.autofocus = '1';
+  });
+}
+
+/* Completing: pick when it happened with − / + (15 minutes), like the phone's drag. */
+function openComplete(key) {
+  const name = blockName(key);
+  const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+  let end = Math.min(1440, Math.max(30, Math.ceil(nowMin / 15) * 15)), start = end - 30;
+  openOverlay(ov => {
+    head(ov, 'COMPLETE', name);
+    const mkRow = (label, get, set) => {
+      const row = document.createElement('div'); row.className = 'trow';
+      const lab = document.createElement('span'); lab.className = 'tlab'; lab.textContent = label;
+      const val = document.createElement('span'); val.className = 'tval';
+      const minus = btn('−', () => { set(get() - 15); paint(); }, 'small');
+      const plus = btn('+', () => { set(get() + 15); paint(); }, 'small');
+      minus.setAttribute('aria-label', `${label} 15 minutes earlier`); plus.setAttribute('aria-label', `${label} 15 minutes later`);
+      row.append(lab, minus, val, plus); ov.appendChild(row);
+      return val;
+    };
+    const sv = mkRow('START', () => start, v => { start = Math.max(0, Math.min(v, end - 15)); });
+    const ev = mkRow('END', () => end, v => { end = Math.min(1440, Math.max(v, start + 15)); });
+    const dur = document.createElement('p'); dur.className = 'note'; ov.appendChild(dur);
+    function paint() {
+      sv.textContent = minToClock(start); ev.textContent = minToClock(end % 1440);
+      const m = end - start; dur.textContent = m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ' ' + (m % 60) + 'm' : ''}` : `${m} min`;
+    }
+    paint();
+    const go = btn('COMPLETE', () => {
+      const t0 = parseDate(todayStr()).getTime();
+      focusNext(key);
+      const res = completeBlock(key, t0 + start * MIN, t0 + end * MIN);
+      if (res) state.calQueue.push({ id: uid(), name: res.name, start: res.start, end: res.end });
+      save(); closeOverlay(); toast(`Completed ${res ? res.name : ''}`);
+    }, 'primary');
+    go.dataset.autofocus = '1';
+    ov.appendChild(go);
+  });
+}
+
+/* A list's subtasks: → or Enter checks one off and it disappears. */
+function openListSubs(itemId) {
+  openOverlay(ov => {
+    const it = state.items[itemId];
+    head(ov, 'SUBTASKS', it.name);
+    const list = document.createElement('div'); list.className = 'olist';
+    ov.appendChild(list);
+    const paint = (focusIdx) => {
+      list.innerHTML = '';
+      const open = openSubtasks(it);
+      if (!open.length) { list.innerHTML = '<p class="note">All subtasks done.</p>'; return; }
+      open.forEach((s, i) => {
+        const b = btn(s.name, () => check(s, i), 'block');
+        b.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { e.preventDefault(); check(s, i); } });
+        list.appendChild(b);
+      });
+      const bs = list.querySelectorAll('button');
+      (bs[Math.min(focusIdx || 0, bs.length - 1)] || bs[0]).focus();
+    };
+    const check = (s, i) => { s.done = true; save(); toast(`Checked off ${s.name}`); paint(i); };
+    paint(0);
+  });
+}
+/* A project's subtasks: → adds one to the top of STACK; Enter offers add or delete. */
+function openProjectSubs(projectId) {
+  openOverlay(ov => {
+    const it = state.items[projectId];
+    head(ov, 'PROJECT', it.name);
+    const list = document.createElement('div'); list.className = 'olist';
+    ov.appendChild(list);
+    const paint = (focusIdx) => {
+      list.innerHTML = '';
+      const open = openSubtasks(it);
+      if (!open.length) { list.innerHTML = '<p class="note">No open subtasks. Add some on your phone.</p>'; return; }
+      open.forEach(s => {
+        const bid = findBlock(projectId, s.id), w = bid && whereBlock(bid);
+        const b = btn('', () => subMenu(s), 'block');
+        b.innerHTML = `<span class="name">${esc(s.name)}</span>${w === 'stack' ? '<span class="meta">STACK</span>' : ''}`;
+        b.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { e.preventDefault(); addSub(s); } });
+        list.appendChild(b);
+      });
+      const bs = list.querySelectorAll('button');
+      (bs[Math.min(focusIdx || 0, bs.length - 1)] || bs[0]).focus();
+    };
+    const idx = s => openSubtasks(it).indexOf(s);
+    const addSub = s => { const msg = addToStack(projectId, s.id, 'top'); save(); toast(msg || 'Added to top of STACK'); paint(idx(s)); };
+    const subMenu = s => {
+      const i = idx(s);
+      list.innerHTML = '';
+      const p = document.createElement('p'); p.className = 'note'; p.textContent = s.name; list.appendChild(p);
+      const add = btn('ADD TO STACK', () => addSub(s), 'opt'); list.appendChild(add);
+      list.appendChild(btn('DELETE SUBTASK', () => {
+        const bid = findBlock(projectId, s.id); if (bid) removeBlock(bid);
+        it.subtasks = it.subtasks.filter(x => x.id !== s.id); save(); toast('Deleted'); paint(i);
+      }, 'opt danger'));
+      list.appendChild(btn('CANCEL', () => paint(i), 'opt'));
+      add.focus();
+    };
+    paint(0);
+  });
+}
+function openNotes(it) {
+  openOverlay(ov => {
+    head(ov, 'NOTES', it.name);
+    const n = document.createElement('div'); n.className = 'notes'; n.tabIndex = 0; n.dataset.autofocus = '1';
+    n.textContent = it.notes;
+    ov.appendChild(n);
+  });
+}
+
+/* ---------- boot ---------- */
+async function boot() {
+  history.replaceState({ home: 1 }, '');
+  await loadState();
+  syncDevice = 'glasses';
+  onSyncAdopt = () => { if (!overlayOpen) render(); };
+  const nav = $('#navtitle');
+  nav.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const i = SCREENS.indexOf(screen);
+    // → walks out from STACK through the backlogs (like swiping right on the phone); ← walks back.
+    goScreen(SCREENS[e.key === 'ArrowRight' ? i - 1 : i + 1]);
+  });
+  nav.addEventListener('click', () => goScreen('stack'));
+  const arrived = runDueCheck();
+  render();
+  if (arrived.length) toast(`${arrived.length} recurring item${arrived.length > 1 ? 's' : ''} due today`);
+  syncStart();
+  setInterval(() => { if (state.lastDueCheck < todayStr()) { runDueCheck(); if (!overlayOpen) render(); } }, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && syncConfigured()) syncFetch().then(syncReceive).catch(() => {}); });
+}
+boot();
+
+</script>
+</body>
+</html>

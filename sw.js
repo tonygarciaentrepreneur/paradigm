@@ -1,6 +1,6 @@
 /* Paradigm service worker: offline app shell. Bump VERSION when you change files. */
-const VERSION = 'paradigm-v1.5.1';
-const SHELL = ['./', 'index.html', 'manifest.json', 'icon-192-v2.png', 'icon-512-v2.png', 'icon-maskable-v2.png'];
+const VERSION = 'paradigm-v1.6.0';
+const SHELL = ['./', 'index.html', 'glasses.html', 'manifest.json', 'icon-192-v2.png', 'icon-512-v2.png', 'icon-maskable-v2.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -11,6 +11,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
+  // Never touch sync traffic (live updates or data reads).
+  if ((e.request.headers.get('accept') || '').includes('text/event-stream') || url.pathname.includes('/paradigm/') && url.pathname.endsWith('.json')) return;
   // Never cache Google APIs or sign-in.
   if (/googleapis\.com$|accounts\.google\.com$/.test(url.hostname) && url.hostname !== 'fonts.googleapis.com') return;
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';

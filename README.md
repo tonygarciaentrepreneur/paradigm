@@ -32,6 +32,61 @@ Your data never goes to GitHub. It stays on your phone, plus your own Google Dri
 
 **What to expect:** Google gives browser apps one-hour access. When access has lapsed, the next calendar action (saving an event, completing something) briefly flashes a sign-in window that closes by itself. If Google ever asks you to approve again, tap Continue. When Google can't be reached, Paradigm shows an **ADD TO CALENDAR** button that opens a pre-filled event in one tap.
 
+## 4. Glasses: Meta Ray-Ban Display (~15 min, free)
+
+The glasses run their own copy of Paradigm (`glasses.html`) that stays in sync with your phone through a free Firebase database. On the glasses you can do everything except create or rename things: complete, reorder, move between STACK and backlogs, check off subtasks, add project subtasks to STACK, and delete.
+
+**A. Create the sync database (free Spark plan, no card)**
+1. Go to console.firebase.google.com → **Create a project** → choose your existing **Paradigm** Google Cloud project (or make a new one). Google Analytics can be off.
+2. Left menu: **Build → Realtime Database → Create Database**. Pick a location, choose **Start in locked mode**, and enable it.
+3. Open the **Rules** tab, replace everything with this, and tap **Publish**:
+```json
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "paradigm": {
+      "$key": {
+        ".read": "$key.length >= 32",
+        ".write": "$key.length >= 32"
+      }
+    }
+  }
+}
+```
+4. On the **Data** tab, copy the database URL at the top (it looks like `https://paradigm-xxxxx-default-rtdb.firebaseio.com`).
+5. In Paradigm on your phone: SETTINGS → **Glasses** → paste the URL → **CONNECT**. It should say *Sync on*.
+
+Your data is stored under a random 32-character key that only your phone and glasses know. Nobody can list or browse the database.
+
+**B. Get the glasses ready**
+- Glasses software v125 or newer, and Meta AI app v272 or newer.
+- Developer Mode in the Meta AI app: **Settings → App Info**, tap the **App version** five times, then **Enable**.
+
+**C. Pair**
+1. Open Paradigm on your phone from its GitHub Pages address (pairing doesn't work from a downloaded file).
+2. SETTINGS → **PAIR GLASSES**.
+3. Wear the glasses and look at the code on your phone. Confirm **Paradigm** on the glasses; it will be labeled unverified, which is normal for your own app.
+
+**Calendar:** the glasses can't sign in to Google, so completions you make there wait on your phone. They're logged to your Paradigm calendar the next time Paradigm is open on your phone and Google is connected (SETTINGS shows any that are waiting, with a **LOG TO CALENDAR** button).
+
+**If both devices change things at the same moment,** the most recent change wins.
+
+### Glasses controls
+
+Swipe right on the touchpad or Neural Band = →. Swipe left = ←. Tap/pinch = Enter. Back = the system Back.
+
+| Where | → | ← | Enter |
+| --- | --- | --- | --- |
+| Screen name at the bottom | Next screen out: STACK → TASK → LIST → PROJECT BACKLOG (stops there) | Back toward STACK | Jump to STACK |
+| STACK block | Complete (set START and END with − / +, then COMPLETE) | Send to its backlog (project subtasks return to their project) | Menu: complete, to backlog, subtasks or notes, move, delete |
+| Task or list in a backlog | Add to top of STACK | — | Menu: add to stack, subtasks or notes, move, delete |
+| Project in PROJECT BACKLOG | Open its subtasks | — | Menu: subtasks, move, delete |
+| Project subtask | Add to top of STACK | — | Add or delete |
+| List subtask | Check off (it disappears) | — | Check off |
+
+**MOVE:** choose MOVE in the menu, press ↑ or ↓ to slide the block, then Enter to drop it.
+
 ## Gestures
 
 Swipe right = finger moves left to right. Swipe left = right to left. Screen titles sit at the bottom; swipe on a title to move between screens.
