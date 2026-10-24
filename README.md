@@ -81,7 +81,7 @@ Swipe right on the touchpad or Neural Band = →. Swipe left = ←. Tap/pinch = 
 
 | Where | → | ← | Enter |
 | --- | --- | --- | --- |
-| Screen name at the bottom | Next screen out: STACK → TASK → LIST → PROJECT BACKLOG (stops there) | Back toward STACK | Jump to STACK |
+| Screen name at the bottom | Back toward STACK | Next screen out: STACK → TASK → LIST → PROJECT BACKLOG (stops there) | Jump to STACK |
 | STACK block | Complete (set START and END with − / +, then COMPLETE) | Send to its backlog (project subtasks return to their project) | Menu: complete, to backlog, subtasks or notes, move, delete |
 | Task or list in a backlog | Add to top of STACK | — | Menu: add to stack, subtasks or notes, move, delete |
 | Project in PROJECT BACKLOG | Open its subtasks | — | Menu: subtasks, move, delete |

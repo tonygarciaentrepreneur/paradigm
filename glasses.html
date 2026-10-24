@@ -6,8 +6,12 @@
 <meta name="application-name" content="Paradigm">
 <meta name="color-scheme" content="dark">
 <title>Paradigm</title>
-<link rel="icon" href="icon-192-v2.png">
-<link rel="apple-touch-icon" href="icon-192-v2.png">
+<meta name="description" content="Your Paradigm STACK and backlogs, synced with your phone.">
+<link rel="manifest" href="glasses.webmanifest">
+<link rel="icon" type="image/png" sizes="96x96" href="icon-96-v2.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512-v2.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192-v2.png">
 <style>
 /* Additive display: black is see-through, so the page canvas stays unlit black and
    everything readable sits in bounded green surfaces. Sized from the viewport (600×600 on device). */
@@ -491,7 +495,7 @@ function syncStop() {
 
    Input mirrors the phone:  → (swipe right) on a STACK block = complete,  ← = send to backlog,
    → on a backlog block = add to STACK.  Enter = the actions menu (the phone's hold).
-   On the screen name at the bottom, → / ← move between screens like the phone's title swipes. */
+   On the screen name at the bottom, ← moves out to the backlogs and → comes back to STACK. */
 'use strict';
 
 const $ = (s, r) => (r || document).querySelector(s);
@@ -554,8 +558,8 @@ function render() {
   const paired = !!(syncCfg && syncCfg.key);
   $('#unpaired').classList.toggle('hidden', paired);
   $('#navtitle .t').textContent = SCREEN_TITLE[screen];
-  $('#navtitle .l').style.visibility = screen === 'stack' ? 'hidden' : 'visible';
-  $('#navtitle .r').style.visibility = screen === 'project' ? 'hidden' : 'visible';
+  $('#navtitle .l').style.visibility = screen === 'project' ? 'hidden' : 'visible';
+  $('#navtitle .r').style.visibility = screen === 'stack' ? 'hidden' : 'visible';
   const list = $('#list');
   list.innerHTML = '';
   const keys = listFor(screen) || [];
@@ -820,8 +824,8 @@ async function boot() {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     e.preventDefault();
     const i = SCREENS.indexOf(screen);
-    // → walks out from STACK through the backlogs (like swiping right on the phone); ← walks back.
-    goScreen(SCREENS[e.key === 'ArrowRight' ? i - 1 : i + 1]);
+    // ← walks out from STACK through the backlogs (TASK, LIST, PROJECT; stops there); → walks back to STACK.
+    goScreen(SCREENS[e.key === 'ArrowLeft' ? i - 1 : i + 1]);
   });
   nav.addEventListener('click', () => goScreen('stack'));
   const arrived = runDueCheck();
