@@ -30,7 +30,7 @@ Your data never goes to GitHub. It stays on your phone, plus your own Google Dri
 5. In Paradigm, swipe left on the STACK title to open SETTINGS, paste the client ID, and tap **CONNECT GOOGLE**.
 6. Google will warn that the app is unverified. Tap **Continue**. It's your own app.
 
-**What to expect:** Google gives browser apps one-hour access. When access has lapsed, the next calendar action (saving an event, completing something) briefly flashes a sign-in window that closes by itself. If Google ever asks you to approve again, tap Continue. When Google can't be reached, Paradigm shows an **ADD TO CALENDAR** button that opens a pre-filled event in one tap.
+**What to expect:** Google gives browser apps one-hour access. When access has lapsed, the next calendar action (saving an event, scheduling something, REFRESH on SCHEDULE) briefly flashes a sign-in window that closes by itself. If Google ever asks you to approve again, tap Continue. When Google can't be reached, Paradigm shows an **ADD TO CALENDAR** button that opens a pre-filled event in one tap.
 
 ## 4. Glasses: Meta Ray-Ban Display (~15 min, free)
 
@@ -71,7 +71,7 @@ Your data is stored under a random 32-character key that only your phone and gla
 
 If the Meta AI app has no Web apps section at all even with Developer Mode on, that's a known Meta issue on some Android versions; updating the Meta AI app and glasses software is the first thing to try.
 
-**Calendar:** the glasses can't sign in to Google, so completions you make there wait on your phone. They're logged to your Paradigm calendar the next time Paradigm is open on your phone and Google is connected (SETTINGS shows any that are waiting, with a **LOG TO CALENDAR** button).
+**Calendar:** the glasses can't sign in to Google. Things you schedule there wait on your phone and are added to your Paradigm calendar the next time Paradigm is open on your phone with Google connected (SETTINGS shows any that are waiting, with a **LOG TO CALENDAR** button). The glasses' SCHEDULE screen shows today's calendar as your phone last loaded it, so open SCHEDULE on the phone to refresh it.
 
 **If both devices change things at the same moment,** the most recent change wins.
 
@@ -79,48 +79,52 @@ If the Meta AI app has no Web apps section at all even with Developer Mode on, t
 
 Swipe right on the touchpad or Neural Band = →. Swipe left = ←. Tap/pinch = Enter. Back = the system Back.
 
+Screens: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SCHEDULE**.
+
 | Where | → | ← | Enter |
 | --- | --- | --- | --- |
-| Screen name at the bottom | Back toward STACK | Next screen out: STACK → TASK → LIST → PROJECT BACKLOG (stops there) | Jump to STACK |
-| STACK block | Complete (set START and END with − / +, then COMPLETE) | Send to its backlog (project subtasks return to their project) | Menu: complete, to backlog, subtasks or notes, move, delete |
-| Task or list in a backlog | Add to top of STACK | — | Menu: add to stack, subtasks or notes, move, delete |
-| Project in PROJECT BACKLOG | Open its subtasks | — | Menu: subtasks, move, delete |
-| Project subtask | Add to top of STACK | — | Add or delete |
-| List subtask | Check off (it disappears) | — | Check off |
+| Screen name at the bottom | Toward SCHEDULE (stops there) | Out to TASK → LIST → PROJECT BACKLOG (stops there) | Jump to STACK |
+| STACK block | Complete (it leaves STACK; nothing goes on the calendar) | Send to its backlog (project subtasks return to their project) | FOCUS menu |
+| Task or list in a backlog | Add to top of STACK | — | FOCUS menu |
+| Project in PROJECT BACKLOG | Open its subtasks | — | FOCUS menu |
+| Project subtask | Add to top of STACK | — | Add, schedule or delete |
+| List subtask | Complete (it disappears) | Delete | Complete |
 
-**MOVE:** choose MOVE in the menu, press ↑ or ↓ to slide the block, then Enter to drop it.
+**FOCUS menu** (the phone's hold): SCHEDULE (pick a time today with − / +; it stays on STACK), TO BACKLOG or ADD TO STACK, SUBTASKS or NOTES, MOVE (↑ ↓ then Enter), DELETE.
 
-## Gestures
+## Gestures (phone)
 
-Swipe right = finger moves left to right. Swipe left = right to left. Screen titles sit at the bottom; swipe on a title to move between screens.
+Swipe right = finger moves left to right. Swipe left = right to left. Screen names sit at the bottom; swipe on a name to move between screens.
 
-Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SETTINGS**. PROJECT BACKLOG is the end of the row.
+Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SCHEDULE**. Each end of the row is a hard stop. **Swipe up on STACK** opens SETTINGS; swipe down on the SETTINGS title at the top returns to STACK.
 
 | Where | Swipe right | Swipe left | Hold + drag |
 | --- | --- | --- | --- |
-| STACK title | TASK BACKLOG | SETTINGS | |
-| TASK BACKLOG title | LIST BACKLOG | STACK | |
-| LIST BACKLOG title | PROJECT BACKLOG | STACK | |
-| PROJECT BACKLOG title | (end of row) | STACK | |
-| SETTINGS title | STACK | STACK | |
-| STACK block | Complete (pick when it happened) | Send to its backlog (project subtasks return to their project) | Reorder |
+| STACK name | TASK BACKLOG | SCHEDULE | |
+| Backlog names | Next backlog out | STACK | |
+| SCHEDULE name | STACK | (end of row) | |
+| STACK block | Complete (it leaves STACK; nothing goes on the calendar) | Send to its backlog (project subtasks return to their project) | Reorder |
 | Task or list in a backlog | Add to top of STACK | | Reorder |
 | Project in PROJECT BACKLOG | Open its subtasks | | Reorder |
 | Project subtask | Add to top of STACK | | Reorder |
 
-**Hold, let go, then swipe** (the block turns solid green when held): swipe right to EDIT, swipe left to delete. This works on every block on STACK, in the backlogs, and on a project's subtasks screen. Deleting never adds anything to the calendar. Tap a green block to unselect it.
+**FOCUS:** hold a block and let go. It turns solid green and the name at the bottom reads **FOCUS**. Then:
+- swipe the block **right** to schedule it today (STACK is for today): drag the block to move it, drag the bar below it to change the length, then swipe right on **SCHEDULE** at the bottom to add it to your Paradigm calendar, or left to cancel. The activity stays where it was;
+- swipe the block **left** to delete it (never touches the calendar);
+- swipe **up on FOCUS** to open the activity's own screen.
+Tap a green block, or anywhere else, to leave FOCUS.
 
-**EDIT** has no buttons: swipe right on EDIT at the bottom to save and go back. Android's back gesture leaves without saving. Events keep a DELETE EVENT button, since nothing else can remove them.
+**The activity's screen** has its name at the top and works like STACK: subtasks pile up from the bottom, the entry box at the bottom adds one, swipe a subtask right to complete it or left to delete it, hold and drag to reorder. Tasks show their notes instead. OPTIONS has the name and recurring settings. On the name at the top: swipe down to save and return to STACK, swipe right to save and add it to STACK, swipe left to save and go back. Android's back gesture leaves without saving. Searching for something opens this same screen.
 
-**Completing:** swipe a STACK block right, then pick when it happened. The block is pre-filled with the half hour ending now; drag the bar at its bottom to change the end, or hold and drag on the day to paint a new span (15-minute steps). COMPLETE adds it to your Paradigm calendar.
+**SCHEDULE** shows today's calendar (your main calendar plus Paradigm). **CALENDAR** at the top opens the Google Calendar app to edit events. REFRESH reloads it.
 
-**Where things land on STACK:** new things typed into STACK go to the bottom (highest priority). Things added from a backlog go to the top (lowest priority). Due recurring items drop to the bottom. The bottom of every backlog is its highest priority too.
+**Where things land on STACK:** things added from the STACK screen (typed in, or from search) go to the bottom (highest priority). Things added from a backlog go to the top (lowest priority). Due recurring items drop to the bottom. The bottom of every backlog is its highest priority too.
 
-**Completing project subtasks** logs them to the calendar and removes them from the project, unless the project is marked *Recurring project* in EDIT; then they stay, ready to do again.
+**Completing project subtasks** removes them from the project, unless the project is marked *Recurring project* (in OPTIONS); then they stay, ready to do again.
 
-A block only moves in directions that do something: plain blocks in a backlog can't be swiped left; hold one first (it turns green) to delete it.
+A block only moves in directions that do something: plain blocks in a backlog can't be swiped left; hold one first (FOCUS) to delete it.
 
-Send-to-backlog and delete show **UNDO** for 5 seconds.
+Send-to-backlog, complete, and delete show **UNDO** for 5 seconds.
 
 ## Backups
 

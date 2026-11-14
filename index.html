@@ -274,6 +274,47 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .pair .btn { margin: 4px 0 10px; }
 .pair textarea { font-size: 13px; margin-bottom: 12px; }
 
+/* SCHEDULE panel: today's calendar */
+.schedtop { flex: none; padding: 10px 14px 4px; }
+.schedtop .btn { display: block; }
+#p-schedule .dayhead { padding-top: 6px; }
+.btn.small { padding: 8px 12px; font-size: 13px; }
+.schednote { flex: none; margin: 0 14px 6px; font-size: 14px; color: var(--g2); min-height: 0; }
+.schednote:empty { display: none; }
+.ev b { font-weight: 400; color: inherit; opacity: .8; margin-right: 4px; }
+.ev.live { border-color: var(--g); color: var(--g); background: rgba(0, 255, 65, .1); font-size: 13px; }
+.ev.dim { pointer-events: none; }
+
+/* Scheduling day view */
+.daynav { background: none; border: 1px solid var(--dim); color: var(--g); font-size: 22px; line-height: 1; padding: 6px 14px; cursor: pointer; }
+.schedpick .dayhead .d { flex: 1; text-align: center; }
+.schedpick .selblk { touch-action: none; cursor: grab; }
+.schedinfo { flex: none; padding: 8px 14px 0; }
+.sched-title, .act-title { touch-action: none; }
+
+/* Activity screen (formerly EDIT): built like STACK */
+.activity .bar { justify-content: space-between; padding-left: 16px; padding-right: 12px; }
+.activity .bar .label { flex: none; text-align: left; }
+.optbtn.on { border-color: var(--g); color: var(--g); }
+.optpanel { flex: none; max-height: 50vh; overflow-y: auto; padding: 0 16px 8px; border-bottom: 1px solid var(--faint); }
+.actmain { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.actmain .list { flex: 1 1 auto; }
+.actmain textarea.notes { flex: 1; min-height: 0; margin: 10px 14px 0; width: auto; }
+.actmain .sect { padding: 0 16px; }
+.act-title h1 { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* SETTINGS screen */
+.settingsscreen .settings { padding-top: 14px; }
+
+/* Scheduling: the resize bar hangs just below the block so the block itself stays easy to grab and move */
+.schedpick .handle { bottom: -26px; height: 26px; align-items: flex-start; padding-top: 4px; }
+.settingsscreen #t-settings { touch-action: none; }
+
+/* Titles at the top (SETTINGS, the activity screen): swipe down on them to return to STACK */
+.title.top { padding: 18px 12px 12px; border-bottom: 1px solid var(--faint); touch-action: none; }
+.activity .bar { min-height: 46px; padding-top: 6px; }
+.actinput { padding-bottom: 12px; }
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -284,19 +325,19 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
     <section class="panel" id="p-project">
       <div class="list rev" id="bl-project"></div>
       <p class="empty" id="empty-project">No projects yet.</p>
-      <header class="title" id="t-project"><h1>PROJECT BACKLOG</h1></header>
+      <header class="title" id="t-project" data-keeparm><h1>PROJECT BACKLOG</h1></header>
     </section>
 
     <section class="panel" id="p-list">
       <div class="list rev" id="bl-list"></div>
       <p class="empty" id="empty-list">No lists in the backlog.</p>
-      <header class="title" id="t-list"><h1>LIST BACKLOG</h1></header>
+      <header class="title" id="t-list" data-keeparm><h1>LIST BACKLOG</h1></header>
     </section>
 
     <section class="panel" id="p-task">
       <div class="list rev" id="bl-task"></div>
       <p class="empty" id="empty-task">No tasks in the backlog.</p>
-      <header class="title" id="t-task"><h1>TASK BACKLOG</h1></header>
+      <header class="title" id="t-task" data-keeparm><h1>TASK BACKLOG</h1></header>
     </section>
 
     <section class="panel" id="p-stack">
@@ -308,12 +349,16 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
           <input id="main-input" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="go" placeholder="Search or add">
         </div>
       </div>
-      <header class="title" id="t-stack"><h1>STACK</h1></header>
+      <header class="title" id="t-stack" data-keeparm><h1>STACK</h1></header>
     </section>
 
-    <section class="panel" id="p-settings">
-      <div class="settings" id="settings-body"></div>
-      <header class="title" id="t-settings"><h1>SETTINGS</h1></header>
+    <section class="panel" id="p-schedule">
+      <div class="schedtop"><a class="btn wide" id="b-calendar" target="_blank" rel="noopener">CALENDAR</a></div>
+      <div class="dayhead"><span class="d" id="sched-date"></span><button class="btn quiet small" id="b-refresh">REFRESH</button></div>
+      <p class="schednote" id="sched-note"></p>
+      <div class="allday-strip" id="sched-allday"></div>
+      <div class="dayscroll" id="sched-scroll"><div class="grid" id="sched-grid" style="margin-top:12px;margin-bottom:24px"></div></div>
+      <header class="title" id="t-schedule"><h1>SCHEDULE</h1></header>
     </section>
   </div>
 
@@ -380,7 +425,8 @@ function freshState() {
   return {
     v: 4, items: {}, blocks: {}, stack: [], backlogs: { project: [], list: [], task: [] }, running: null,
     lastDueCheck: todayStr(),
-    calQueue: [],   // completions made on the glasses, waiting for the phone to log them to Google Calendar
+    calQueue: [],   // schedules made on the glasses, waiting for the phone to add them to Google Calendar
+    dayCache: null, // today's calendar as last loaded by the phone, for the glasses' SCHEDULE screen
     settings: { clientId: '', connected: false, paradigmCalId: '', driveFileId: '', lastBackup: 0 },
     auth: { token: '', exp: 0 }
   };
@@ -585,11 +631,11 @@ function runDueCheck() {
 }
 
 /* ---------- completion ---------- */
-/* Completes a block over the chosen time span; returns what to log on the Paradigm calendar. */
-function completeBlock(bid, start, end) {
+/* Completes a block: it leaves STACK (nothing goes on the calendar). Returns { name }. */
+function completeBlock(bid) {
   const b = state.blocks[bid]; if (!b) return null;
   const it = state.items[b.itemId];
-  const res = { name: blockName(bid), start, end };
+  const res = { name: blockName(bid) };
   if (b.subId) {
     // Done subtasks leave the project, unless it's a recurring project (then it stays, ready to do again).
     if (!it.recurring) it.subtasks = it.subtasks.filter(x => x.id !== b.subId);
@@ -694,8 +740,9 @@ function gesture(el, o) {
       snapBack(); return;
     }
     if (s.mode === 'v') {
-      if (s.dy < -60 && o.onSwipeUp) o.onSwipeUp();
-      else if (s.dy > 60 && o.onSwipeDown) o.onSwipeDown();
+      const dist = o.vDist || 60;   // labels at the screen's bottom edge use a shorter swipe down
+      if (s.dy < -dist && o.onSwipeUp) o.onSwipeUp();
+      else if (s.dy > Math.min(dist, o.downDist || dist) && o.onSwipeDown) o.onSwipeDown();
       return;
     }
     if (!s.mode && Date.now() - s.t < 450 && o.onTap) { o.onTap(e); }
@@ -762,14 +809,15 @@ function beginDrag({ listEl, srcEl, x, y, reverse, external }) {
 }
 
 /* ---------- hold-to-select ----------
-   Hold a block and let go: it turns inverse (selected). Swipe it right to edit, left to delete.
+   Hold a block and let go: it turns inverse (selected) = FOCUS. Swipe it right to schedule, left to delete.
+   Touching anywhere else clears it, except elements marked data-keeparm (the bottom labels).
    Touching anywhere else clears the selection. Hold and drag still reorders. */
 let armed = null;
-function arm(el) { disarm(); armed = el; el.classList.add('armed'); }
-function disarm() { if (armed) { armed.classList.remove('armed'); armed = null; } }
+function arm(el) { disarm(); armed = el; el.classList.add('armed'); if (typeof onArmChange === 'function') onArmChange(el); }
+function disarm() { if (armed) { armed.classList.remove('armed'); armed = null; if (typeof onArmChange === 'function') onArmChange(null); } }
 function isArmed(el) { return armed === el && el.isConnected; }
 document.addEventListener('touchstart', e => {
-  if (armed && !(armed.isConnected && armed.contains(e.target))) disarm();
+  if (armed && !(armed.isConnected && armed.contains(e.target)) && !(e.target.closest && e.target.closest('[data-keeparm]'))) disarm();
 }, { capture: true, passive: true });
 
 /* Wires a rendered list: each child .block with data-key gets swipe/hold/tap per opts.
@@ -910,12 +958,13 @@ async function calDeleteEvent(tok, id) {
   try { await gfetch(tok, 'DELETE', `${CAL}/calendars/primary/events/${encodeURIComponent(id)}`); }
   catch (e) { if (e.status !== 404 && e.status !== 410) throw e; }
 }
-async function calLogCompletion(tok, res) {
+/* Adds { name, start, end } to the Paradigm calendar. */
+async function calAddParadigm(tok, ev, description) {
   const body = {
-    summary: res.name,
-    description: 'Completed in Paradigm',
-    start: { dateTime: new Date(res.start).toISOString(), timeZone: TZ },
-    end: { dateTime: new Date(res.end).toISOString(), timeZone: TZ }
+    summary: ev.name,
+    description: description || 'Added by Paradigm',
+    start: { dateTime: new Date(ev.start).toISOString(), timeZone: TZ },
+    end: { dateTime: new Date(ev.end).toISOString(), timeZone: TZ }
   };
   let id = await paradigmCalId(tok);
   try { await gfetch(tok, 'POST', `${CAL}/calendars/${encodeURIComponent(id)}/events`, body); }
@@ -3315,7 +3364,7 @@ var qrcode = function() {
    The higher rev wins. Each device listens for the other's writes (server-sent events). */
 'use strict';
 
-const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue'];
+const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue', 'dayCache'];
 let syncCfg = null;            // { db, key }
 let syncDevice = 'phone';
 let syncRev = 0, syncLastSent = '', syncTimer = null, syncES = null, syncPoll = null;
@@ -3524,110 +3573,99 @@ function eventWhen(ev) {
   return ev.allDay ? `${d}, all day` : `${d}, ${minToClock(ev.startMin)} to ${minToClock(ev.endMin)}`;
 }
 
+/* The activity's own screen (formerly EDIT). Laid out like STACK: subtasks pile up from the bottom,
+   with the entry box at the bottom. Its title sits at the top:
+   swipe down on it = save and return to STACK; swipe right = save and add to STACK;
+   swipe left = save and go back. Android back discards. */
 function openEditor(item, isNew) {
   const orig = clone(item);
   const d = clone(item);
-  let selMode = false, selected = [];
-  const el = screenEl('editor', `
-    <div class="bar"><span class="label">${TYPES[d.type]}</span></div>
-    <div class="body"><input class="namein" type="text" autocomplete="off"><div class="content"></div></div>
-    <div class="foot"></div>
-    <header class="title edit-title"><h1>EDIT</h1></header>`);
-  // Swipe right on EDIT saves and returns to the previous screen.
-  gesture($('.edit-title', el), { moveEl: false, onSwipeRight: () => onSave() });
+  const hasSubs = d.type === 'list' || d.type === 'project';
+  const el = screenEl('editor activity', `
+    <header class="title act-title top"><h1></h1></header>
+    <div class="bar"><span class="label">${TYPES[d.type]}</span><button class="btn quiet optbtn">OPTIONS</button></div>
+    <div class="optpanel hidden"><input class="namein" type="text" autocomplete="off" aria-label="Name"><div class="optcontent"></div></div>
+    <div class="actmain"></div>
+    ${hasSubs ? '<div class="inputbar actinput"><input class="subin" type="text" placeholder="Add a subtask" enterkeyhint="done" autocomplete="off"></div>' : ''}`);
+  const title = $('.act-title h1', el), optpanel = $('.optpanel', el), optcontent = $('.optcontent', el), main = $('.actmain', el);
   const nameIn = $('.namein', el);
   nameIn.value = d.name;
-  nameIn.addEventListener('input', () => { d.name = nameIn.value; });
-  const content = $('.content', el), foot = $('.foot', el);
-  let subsList = null;
+  const setTitle = () => { title.textContent = (d.name || 'UNTITLED').toUpperCase(); };
+  nameIn.addEventListener('input', () => { d.name = nameIn.value; setTitle(); });
+  setTitle();
+  const optBtn = $('.optbtn', el);
+  optBtn.addEventListener('click', () => { optpanel.classList.toggle('hidden'); optBtn.classList.toggle('on', !optpanel.classList.contains('hidden')); });
+  if (d.type === 'event' || isNew) { optpanel.classList.remove('hidden'); optBtn.classList.add('on'); }
+  gesture($('.act-title', el), { moveEl: false, onSwipeDown: () => leave(false, true), onSwipeRight: () => leave(true), onSwipeLeft: () => leave(false) });
 
+  let subsList = null;
   function render() {
-    content.innerHTML = '';
-    if (d.type === 'task') {
-      const s = document.createElement('div'); s.className = 'sect';
-      s.innerHTML = '<h3>Notes</h3><textarea class="notes" placeholder="Anything to remember"></textarea>';
-      const ta = $('textarea', s); ta.value = d.notes || ''; ta.addEventListener('input', () => { d.notes = ta.value; });
-      content.appendChild(s);
-      const r = document.createElement('div'); r.className = 'sect'; content.appendChild(r); recurringUI(d, r);
-    }
-    if (d.type === 'list') {
-      const r = document.createElement('div'); r.className = 'sect'; content.appendChild(r); recurringUI(d, r);
-    }
+    optcontent.innerHTML = '';
+    if (d.type === 'task' || d.type === 'list') { const r = document.createElement('div'); r.className = 'sect'; optcontent.appendChild(r); recurringUI(d, r); }
     if (d.type === 'project') {
-      const r = document.createElement('div'); r.className = 'sect'; content.appendChild(r);
+      const r = document.createElement('div'); r.className = 'sect'; optcontent.appendChild(r);
       r.append(checkBtn('Recurring project', !!d.recurring, () => { d.recurring = !d.recurring; render(); }));
     }
-    if (d.type === 'list' || d.type === 'project') {
-      const s = document.createElement('div'); s.className = 'sect editor-list';
-      s.innerHTML = `<h3>${selMode ? 'Tap subtasks to add to STACK' : 'Subtasks'}</h3><div class="list rev"></div>${selMode ? '' : '<input class="subin" type="text" placeholder="Add a subtask" enterkeyhint="done" autocomplete="off">'}`;
-      content.appendChild(s);
-      subsList = $('.list', s);
-      const si = $('.subin', s);
-      if (si) si.addEventListener('keydown', e => {
-        if (e.key !== 'Enter') return;
-        e.preventDefault();
-        const v = si.value.trim(); if (!v) return;
-        d.subtasks.push({ id: uid(), name: v, done: false });
-        si.value = ''; renderSubs();
-      });
+    main.innerHTML = '';
+    if (d.type === 'task') {
+      main.innerHTML = '<textarea class="notes" placeholder="Notes"></textarea>';
+      const ta = $('textarea', main); ta.value = d.notes || ''; ta.addEventListener('input', () => { d.notes = ta.value; });
+    }
+    if (hasSubs) {
+      main.innerHTML = '<div class="list rev"></div><p class="empty hidden">No subtasks. Add one below.</p>';
+      subsList = $('.list', main);
       renderSubs();
     }
     if (d.type === 'event') {
-      const s = document.createElement('div'); s.className = 'sect';
-      s.innerHTML = `<h3>When</h3><p class="status"></p><button class="btn wide">CHANGE TIME</button>`;
-      $('.status', s).textContent = eventWhen(d.event);
-      $('button', s).addEventListener('click', changeTime);
-      content.appendChild(s);
+      main.innerHTML = `<div class="sect"><h3>When</h3><p class="status"></p><button class="btn wide ct">CHANGE TIME</button>${isNew ? '' : '<button class="btn danger wide dl" style="margin-top:10px">DELETE EVENT</button>'}</div>`;
+      $('.status', main).textContent = eventWhen(d.event);
+      $('.ct', main).addEventListener('click', changeTime);
+      const dl = $('.dl', main); if (dl) dl.addEventListener('click', del);
     }
-    renderFoot();
   }
+  const si = $('.subin', el);
+  if (si) si.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const v = si.value.trim(); if (!v) return;
+    d.subtasks.push({ id: uid(), name: v, done: false });
+    si.value = ''; renderSubs();
+  });
 
+  /* Subtasks: swipe right completes (it leaves the list), swipe left deletes, hold and drag reorders. */
   function renderSubs() {
     if (!subsList) return;
     subsList.innerHTML = '';
-    d.subtasks.forEach(s => {
+    const open = d.subtasks.filter(s => !s.done);
+    open.forEach(s => {
       const b = document.createElement('div');
-      b.className = 'block small' + (s.done ? ' done' : '') + (selMode && selected.includes(s.id) ? ' sel' : '');
-      b.dataset.key = s.id;
+      b.className = 'block'; b.dataset.key = s.id;
       let extra = '';
-      if (d.type === 'project') {
-        const bid = findBlock(d.id, s.id), w = bid && whereBlock(bid);
-        if (w) extra = `<span class="onstack">${w === 'backlog' ? 'BACKLOG' : w === 'running' ? 'RUNNING' : 'STACK'}</span>`;
-      }
+      if (d.type === 'project') { const bid = findBlock(d.id, s.id); if (bid && whereBlock(bid) === 'stack') extra = '<span class="meta">STACK</span>'; }
       b.innerHTML = `<span class="name">${esc(s.name)}</span>${extra}`;
       subsList.appendChild(b);
     });
+    $('.empty', main).classList.toggle('hidden', !!open.length);
     wireList(subsList, {
       reverse: true,
-      onReorder: selMode ? null : keys => { d.subtasks = keys.map(k => d.subtasks.find(s => s.id === k)); renderSubs(); },
-      swipeLeft: selMode ? null : k => { d.subtasks = d.subtasks.filter(s => s.id !== k); renderSubs(); },
-      tap: k => {
-        const s = d.subtasks.find(x => x.id === k); if (!s) return;
-        if (selMode) {
-          if (s.done) return;
-          selected = selected.includes(k) ? selected.filter(x => x !== k) : selected.concat(k);
-          renderSubs(); renderFoot();
-        } else { s.done = !s.done; renderSubs(); }
-      }
+      onReorder: keys => { const done = d.subtasks.filter(s => s.done); d.subtasks = keys.map(k => d.subtasks.find(s => s.id === k)).concat(done); renderSubs(); },
+      swipeRight: k => completeSub(k),
+      swipeLeft: k => { d.subtasks = d.subtasks.filter(s => s.id !== k); renderSubs(); }
     });
   }
-
-  function renderFoot() {
-    foot.innerHTML = '';
-    foot.classList.toggle('hidden', !(d.type === 'event' && !isNew));
-    if (d.type === 'event' && !isNew) {
-      const b = document.createElement('button');
-      b.className = 'btn danger wide'; b.textContent = 'DELETE EVENT';
-      b.addEventListener('click', del);
-      foot.append(b);
-    }
+  function completeSub(k) {
+    const s = d.subtasks.find(x => x.id === k); if (!s) return;
+    if (d.type === 'list' && d.recurring && d.recSubtasks) s.done = true;            // comes back when the list resets
+    else if (d.type === 'project' && d.recurring) { toast(`${s.name} done. It stays in this recurring project`); renderSubs(); return; }
+    else d.subtasks = d.subtasks.filter(x => x.id !== k);
+    renderSubs();
   }
 
   function validName() {
     const n = (d.name || '').trim();
-    if (!n) { toast('Give it a name first'); return false; }
+    if (!n) { toast('Give it a name first (OPTIONS)'); optpanel.classList.remove('hidden'); return false; }
     const other = itemByName(n);
-    if (other && other.id !== d.id) { toast('Another item already has that name'); return false; }
+    if (other && other.id !== d.id) { toast('Another item already has that name'); optpanel.classList.remove('hidden'); return false; }
     d.name = n; return true;
   }
   function commit() {
@@ -3639,22 +3677,22 @@ function openEditor(item, isNew) {
     if (d.type === 'project') listProject(d.id);
     save();
   }
-  function onSave() {
+  /* toStack: swipe right on the title (add to STACK). home: swipe down (save, back to STACK). Otherwise swipe left (save, go back). */
+  function leave(toStack, home) {
     if (!validName()) return;
     if (d.type === 'event') return saveEvent();
     commit(); clearMainInput();
     let msg = 'Saved';
-    if (isNew && d.type === 'list') { addToStack(d.id, null, 'bottom'); msg = 'Added to STACK'; }
-    else if (isNew && d.type === 'project') msg = 'Saved to PROJECT BACKLOG';
+    if (toStack && d.type === 'project') msg = 'Projects live in PROJECT BACKLOG. Add their subtasks to STACK from there';
+    else if (toStack) msg = addToStack(d.id, null, 'bottom') || 'Added to STACK';
     else if (placeInBacklog(d.id)) msg = `Saved to ${BACKLOG_TITLE[d.type]}`;
+    else if (isNew && d.type === 'project') msg = 'Saved to PROJECT BACKLOG';
     save();
-    // New items came from the chooser, so go home; existing ones return to where you were.
-    if (isNew) closeAll(() => { goPanel('stack'); toast(msg); });
+    if (isNew || toStack || home) closeAll(() => { goPanel('stack'); toast(msg); });
     else closeTop(() => { renderAll(); toast(msg); });
   }
   function del() {
-    const msg = d.type === 'project' ? `Delete project “${orig.name}” and remove its subtasks from STACK?` : `Delete “${orig.name}”?`;
-    confirmBox(msg, 'DELETE', () => {
+    confirmBox(`Delete “${orig.name}”?`, 'DELETE', () => {
       const gid = orig.type === 'event' && orig.event && orig.event.gcalId;
       const tp = gid ? getToken(true) : null;
       deleteItem(d.id); save(); clearMainInput();
@@ -3714,7 +3752,8 @@ function openProjectSubs(id) {
   backBtn(el);
   const list = $('.list', el), empty = $('.empty', el);
   $('.title h1', el).textContent = it.name.toUpperCase();
-  gesture($('.title', el), { moveEl: false, onSwipeRight: () => closeTop(), onSwipeLeft: () => closeTop() });
+  // Swipe left/right on the name to go back; swipe up to open the project's own screen.
+  gesture($('.title', el), { moveEl: false, onSwipeRight: () => closeTop(), onSwipeLeft: () => closeTop(), onSwipeUp: () => openEditor(state.items[id], false) });
   $('.edit', el).addEventListener('click', () => openEditor(state.items[id], false));
   function render() {
     const item = state.items[id]; if (!item) return;
@@ -3737,7 +3776,7 @@ function openProjectSubs(id) {
         save(); render();
       },
       armable: () => true,
-      openEdit: () => openEditor(state.items[id], false),
+      openEdit: sid => { const sub = item.subtasks.find(x => x.id === sid); if (sub) openSchedulePicker(`${item.name} › ${sub.name}`); },
       armDelete: sid => {
         const sub = item.subtasks.find(x => x.id === sid);
         withUndo(`Deleted ${sub ? sub.name : 'subtask'}`, () => {
@@ -3835,128 +3874,176 @@ function openMonth({ title, picked, onPick }) {
   requestAnimationFrame(() => { const c = $('[data-cur]', box); if (c) box.scrollTop = c.getBoundingClientRect().top - box.getBoundingClientRect().top - 8; });
 }
 
-/* ---------- day view: event time picker and START time block ---------- */
-const SLOT_H = 32;
-function openDay({ mode, date, name, sel, onSave }) {
-  // mode 'event': 30-minute steps, All day toggle, SAVE.
-  // mode 'complete': 15-minute steps, pre-filled with the half hour ending now, COMPLETE.
-  const isComplete = mode === 'complete';
-  const step = isComplete ? 15 : 30, slots = 1440 / step, slotH = SLOT_H * step / 30;
-  const el = screenEl('dayscreen', `
-    <div class="bar"><button class="back" aria-label="Back">‹</button><span class="label"></span></div>
-    <div class="dayhead"><span class="d"></span>${isComplete ? '' : '<button class="check allday" style="width:auto"><span class="box"></span><span>All day</span></button>'}</div>
-    <div class="allday-strip"></div>
-    <div class="dayscroll"><div class="grid" style="margin-top:12px;margin-bottom:24px"></div></div>
-    <div class="foot"><div class="selinfo"></div><button class="btn primary wide go">${isComplete ? 'COMPLETE' : 'SAVE'}</button></div>`);
-  $('.label', el).textContent = name;
-  $('.d', el).textContent = parseDate(date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-  backBtn(el);
-  const grid = $('.grid', el), scroller = $('.dayscroll', el), info = $('.selinfo', el), go = $('.go', el);
+/* ---------- day timeline (shared by the day views and the SCHEDULE screen) ---------- */
+const SLOT_H = 32;   // pixels per 30 minutes
+function dayGridHTML() {
   let g = '';
   for (let i = 0; i < 48; i++) g += `<div class="slot ${i % 2 === 0 ? 'hr' : ''}"></div>`;
   for (let h = 0; h < 24; h++) g += `<span class="hlabel" style="top:${h * 2 * SLOT_H}px">${minToClock(h * 60).replace(':00', '')}</span>`;
-  grid.innerHTML = g;
+  return g;
+}
+/* Google events -> { title, startMin, endMin, allDay } for one day. */
+function normalizeEvents(date, evs) {
+  const t0 = parseDate(date).getTime(), out = [];
+  (evs || []).forEach(e => {
+    if (!e.start) return;
+    if (e.start.date) { out.push({ title: e.summary || '(busy)', allDay: true, startMin: 0, endMin: 0 }); return; }
+    if (!e.start.dateTime) return;
+    const a = Math.max(0, (new Date(e.start.dateTime) - t0) / MIN), b = Math.min(1440, (new Date(e.end.dateTime) - t0) / MIN);
+    if (b > a) out.push({ title: e.summary || '(busy)', allDay: false, startMin: Math.round(a), endMin: Math.round(b) });
+  });
+  out.sort((x, y) => x.startMin - y.startMin);
+  return out;
+}
+function paintEvents(grid, strip, list, cls, before) {
+  grid.querySelectorAll('.ev').forEach(e => e.remove());
+  if (strip) strip.innerHTML = '';
+  list.forEach(e => {
+    if (e.allDay) { if (strip) { const s = document.createElement('span'); s.textContent = e.title; strip.appendChild(s); } return; }
+    const d = document.createElement('div'); d.className = 'ev' + (cls ? ' ' + cls : '');
+    d.style.top = (e.startMin / 30 * SLOT_H) + 'px'; d.style.height = Math.max(16, (e.endMin - e.startMin) / 30 * SLOT_H) + 'px';
+    d.innerHTML = `<b>${esc(minToClock(e.startMin))}</b> ${esc(e.title)}`;
+    grid.insertBefore(d, before || null);
+  });
+}
+function paintNowLine(grid, date) {
+  grid.querySelectorAll('.nowline').forEach(e => e.remove());
+  if (date !== todayStr()) return;
+  const n = new Date(), m = n.getHours() * 60 + n.getMinutes();
+  const nl = document.createElement('div'); nl.className = 'nowline'; nl.style.top = (m / 30 * SLOT_H) + 'px'; grid.appendChild(nl);
+}
+function durText(mins) { return mins >= 60 ? `${Math.floor(mins / 60)}h${mins % 60 ? ' ' + (mins % 60) + 'm' : ''}` : `${mins} min`; }
+
+/* ---------- day view ----------
+   mode 'event': pick a time for a new or edited event (30-minute steps, All day, SAVE).
+   mode 'schedule': drop an activity onto today (STACK is for today; 15-minute steps). Drag the block to move it,
+   drag its bottom bar to resize, hold and drag on empty time to draw a new span.
+   Swipe right on SCHEDULE at the bottom to add it to the calendar; swipe left to cancel. */
+function openDay({ mode, date, name, sel, onSave }) {
+  const isSched = mode === 'schedule';
+  const step = isSched ? 15 : 30, slots = 1440 / step, slotH = SLOT_H * step / 30;
+  const el = screenEl('dayscreen' + (isSched ? ' schedpick' : ''), `
+    <div class="bar">${isSched ? '' : '<button class="back" aria-label="Back">‹</button>'}<span class="label"></span></div>
+    <div class="dayhead"><span class="d"></span>${isSched ? '' : '<button class="check allday" style="width:auto"><span class="box"></span><span>All day</span></button>'}</div>
+    <div class="allday-strip"></div>
+    <div class="dayscroll"><div class="grid" style="margin-top:12px;margin-bottom:24px"></div></div>
+    ${isSched ? '<div class="selinfo schedinfo"></div><header class="title sched-title"><h1>SCHEDULE</h1></header>'
+              : '<div class="foot"><div class="selinfo"></div><button class="btn primary wide go">SAVE</button></div>'}`);
+  $('.label', el).textContent = name;
+  if (!isSched) backBtn(el);
+  const grid = $('.grid', el), scroller = $('.dayscroll', el), info = $('.selinfo', el), go = $('.go', el), strip = $('.allday-strip', el);
+  grid.innerHTML = dayGridHTML();
   const blk = document.createElement('div'); blk.className = 'selblk hidden'; grid.appendChild(blk);
 
-  const nowD = new Date();
-  const nowMin = nowD.getHours() * 60 + nowD.getMinutes() + nowD.getSeconds() / 60;
-  if (date === todayStr()) { const nl = document.createElement('div'); nl.className = 'nowline'; nl.style.top = (nowMin / 30 * SLOT_H) + 'px'; grid.appendChild(nl); }
-
+  const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
   const slotAt = y => Math.max(0, Math.min(slots - 1, Math.floor((y - grid.getBoundingClientRect().top) / slotH)));
+  function edgeScroll(y) { const r = scroller.getBoundingClientRect(); if (y < r.top + 40) scroller.scrollTop -= 10; else if (y > r.bottom - 40) scroller.scrollTop += 10; }
+
   let anchor = 0;
   gesture(grid, {
     moveEl: false,
     enabled: () => !(sel && sel.allDay),
-    ignore: t => !!t.closest('.handle'),
-    onHoldStart: (x, y) => { anchor = slotAt(y); sel = { allDay: false, startMin: anchor * step, endMin: anchor * step + step }; draw(); },
+    ignore: t => !!t.closest('.handle, .selblk'),
+    onHoldStart: (x, y) => { anchor = slotAt(y); sel = { allDay: false, startMin: anchor * step, endMin: anchor * step + (isSched ? 30 : step) }; draw(); },
     onHoldMove: (x, y) => { edgeScroll(y); const s = slotAt(y), lo = Math.min(anchor, s), hi = Math.max(anchor, s); sel.startMin = lo * step; sel.endMin = (hi + 1) * step; draw(); },
     onHoldEnd: () => {},
-    onTap: e => { const t = e.changedTouches ? e.changedTouches[0] : e; const s = slotAt(t.clientY); sel = { allDay: false, startMin: s * step, endMin: s * step + step }; draw(); }
+    onTap: e => {
+      const t = e.changedTouches ? e.changedTouches[0] : e, s = slotAt(t.clientY);
+      const len = sel && !sel.allDay && isSched ? sel.endMin - sel.startMin : step;   // tapping moves the block, keeping its length
+      sel = { allDay: false, startMin: Math.min(s * step, 1440 - len), endMin: Math.min(s * step, 1440 - len) + len }; draw();
+    }
   });
 
-  if (isComplete) {
-    const end = Math.min(1440, Math.max(30, Math.ceil(nowMin / 15) * 15));
-    if (!sel) sel = { allDay: false, startMin: end - 30, endMin: end };
-    // Drag the bar at the bottom of the block to change when it ended.
-    const h = document.createElement('div'); h.className = 'handle'; h.setAttribute('aria-label', 'Drag to set end time'); blk.appendChild(h);
-    h.addEventListener('touchstart', e => { e.stopPropagation(); }, { passive: true });
-    h.addEventListener('touchmove', e => {
+  if (isSched) {
+    if (!sel) { const st = date === todayStr() ? Math.min(1410, Math.ceil(nowMin / 15) * 15) : 9 * 60; sel = { allDay: false, startMin: st, endMin: st + 30 }; }
+    // Drag the block itself to move it.
+    let grab = null;
+    blk.addEventListener('touchstart', e => {
+      if (e.target.closest('.handle')) return;
+      const r = grid.getBoundingClientRect();
+      grab = (e.touches[0].clientY - r.top) - sel.startMin / 30 * SLOT_H;
+    }, { passive: true });
+    blk.addEventListener('touchmove', e => {
+      if (grab === null || e.target.closest('.handle')) return;
       if (e.cancelable) e.preventDefault();
       const y = e.touches[0].clientY; edgeScroll(y);
-      const r = grid.getBoundingClientRect();
-      sel.endMin = Math.max(sel.startMin + step, Math.min(1440, Math.round((y - r.top) / slotH) * step));
-      draw();
+      const r = grid.getBoundingClientRect(), len = sel.endMin - sel.startMin;
+      const st = Math.max(0, Math.min(1440 - len, Math.round((y - r.top - grab) / slotH) * step));
+      sel.startMin = st; sel.endMin = st + len; draw();
     }, { passive: false });
+    blk.addEventListener('touchend', () => { grab = null; });
+    gesture($('.sched-title', el), {
+      moveEl: false,
+      onSwipeRight: () => onSave({ date, allDay: false, startMin: sel.startMin, endMin: sel.endMin }),
+      onSwipeLeft: () => closeTop()
+    });
   } else {
     $('.allday', el).addEventListener('click', () => {
       if (sel && sel.allDay) sel = null; else sel = { allDay: true, startMin: 0, endMin: 0 };
       draw();
     });
+    go.addEventListener('click', () => {
+      if (!sel) return;
+      onSave({ date, allDay: !!sel.allDay, startMin: sel.startMin, endMin: sel.endMin });
+    });
   }
-  function edgeScroll(y) { const r = scroller.getBoundingClientRect(); if (y < r.top + 40) scroller.scrollTop -= 10; else if (y > r.bottom - 40) scroller.scrollTop += 10; }
+  // Bottom bar resizes (both modes allow it once a block exists).
+  const h = document.createElement('div'); h.className = 'handle'; h.setAttribute('aria-label', 'Drag to change the end time'); blk.appendChild(h);
+  h.addEventListener('touchmove', e => {
+    if (e.cancelable) e.preventDefault();
+    const y = e.touches[0].clientY; edgeScroll(y);
+    const r = grid.getBoundingClientRect();
+    sel.endMin = Math.max(sel.startMin + step, Math.min(1440, Math.round((y - r.top) / slotH) * step));
+    draw();
+  }, { passive: false });
 
   function draw() {
     const ad = $('.allday', el);
-    if (ad) { ad.classList.toggle('on', !!(sel && sel.allDay)); }
+    if (ad) ad.classList.toggle('on', !!(sel && sel.allDay));
     grid.classList.toggle('off', !!(sel && sel.allDay));
     if (!sel || sel.allDay) {
       blk.classList.add('hidden');
       info.textContent = sel && sel.allDay ? 'All day' : 'Hold and drag to pick a time';
-      go.disabled = !sel; return;
+      if (go) go.disabled = !sel; return;
     }
     blk.classList.remove('hidden');
     blk.style.top = (sel.startMin / 30 * SLOT_H) + 'px';
     blk.style.height = ((sel.endMin - sel.startMin) / 30 * SLOT_H) + 'px';
     const range = `${minToClock(sel.startMin)} to ${minToClock(sel.endMin % 1440)}`;
     if (blk.firstChild && blk.firstChild.nodeType === 3) blk.firstChild.textContent = range; else blk.insertBefore(document.createTextNode(range), blk.firstChild);
-    const mins = sel.endMin - sel.startMin;
-    info.textContent = isComplete ? `${range}, ${mins >= 60 ? Math.floor(mins / 60) + 'h' + (mins % 60 ? ' ' + (mins % 60) + 'm' : '') : mins + ' min'}` : range;
-    go.disabled = false;
+    info.textContent = isSched ? `${range}, ${durText(sel.endMin - sel.startMin)}` : range;
+    if (go) go.disabled = false;
+  }
+  function setDate(dt) {
+    date = dt;
+    $('.d', el).textContent = parseDate(date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    paintNowLine(grid, date);
+    paintEvents(grid, strip, [], 'dim', blk);
+    calDayEvents(date).then(evs => { if (evs && el.isConnected && date === dt) paintEvents(grid, strip, normalizeEvents(date, evs), 'dim', blk); });
   }
 
-  go.addEventListener('click', () => {
-    if (!sel) return;
-    onSave({ date, allDay: !!sel.allDay, startMin: sel.startMin, endMin: sel.endMin });
-  });
-
+  setDate(date);
   draw();
   openScreen(el);
   requestAnimationFrame(() => {
     const focusMin = sel && !sel.allDay ? sel.startMin : (date === todayStr() ? nowMin : 8 * 60);
     scroller.scrollTop = Math.max(0, focusMin / 30 * SLOT_H - 3 * SLOT_H);
   });
-
-  calDayEvents(date).then(evs => {
-    if (!evs || !el.isConnected) return;
-    const strip = $('.allday-strip', el), t0 = parseDate(date).getTime();
-    evs.forEach(e => {
-      if (e.start && e.start.date) { const s = document.createElement('span'); s.textContent = e.summary || '(busy)'; strip.appendChild(s); return; }
-      if (!e.start || !e.start.dateTime) return;
-      const a = Math.max(0, (new Date(e.start.dateTime) - t0) / MIN), b = Math.min(1440, (new Date(e.end.dateTime) - t0) / MIN);
-      if (b <= a) return;
-      const d = document.createElement('div'); d.className = 'ev';
-      d.style.top = (a / 30 * SLOT_H) + 'px'; d.style.height = Math.max(14, (b - a) / 30 * SLOT_H) + 'px';
-      d.textContent = e.summary || '(busy)';
-      grid.insertBefore(d, blk);
-    });
-  });
 }
 
-/* ---------- completing a STACK block: pick when it happened ---------- */
-function openCompletePicker(bid) {
-  const name = blockName(bid);
-  openDay({ mode: 'complete', date: todayStr(), name, onSave: sel => {
+/* ---------- scheduling an activity (FOCUS, swipe right): it stays where it is ---------- */
+function openSchedulePicker(name) {
+  openDay({ mode: 'schedule', date: todayStr(), name, onSave: sel => {
     const tp = getToken(true);
     const t0 = parseDate(sel.date).getTime();
-    const res = completeBlock(bid, t0 + sel.startMin * MIN, t0 + sel.endMin * MIN);
-    if (!res) return;
-    closeAll(() => {
-      goPanel('stack');
-      toast(`Completed ${res.name}`);
+    const ev = { name, start: t0 + sel.startMin * MIN, end: t0 + sel.endMin * MIN };
+    const when = `${parseDate(sel.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}, ${minToClock(sel.startMin)}`;
+    closeTop(() => {
+      toast(`Scheduling ${name}…`);
       tp.then(async tok => {
-        const link = () => calFallbackToast('Completed. Google is not connected.', res.name, { startMs: res.start, endMs: res.end }, 'Completed in Paradigm');
+        const link = () => calFallbackToast('Google is not connected.', name, { startMs: ev.start, endMs: ev.end }, 'Scheduled in Paradigm');
         if (!tok) return link();
-        try { await calLogCompletion(tok, res); toast(`Completed ${res.name}. Added to Paradigm calendar`); }
+        try { await calAddParadigm(tok, ev, 'Scheduled in Paradigm'); toast(`Scheduled ${name} for ${when}`); if (panel === 'schedule') refreshSchedule(false); }
         catch (e) { link(); }
       });
     });
@@ -3966,8 +4053,8 @@ function openCompletePicker(bid) {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.6.3';
-const PANELS = ['project', 'list', 'task', 'stack', 'settings'];
+const VERSION = '1.7.1';
+const PANELS = ['project', 'list', 'task', 'stack', 'schedule'];
 let panel = 'stack';
 
 function goPanel(name, instant) {
@@ -3978,6 +4065,7 @@ function goPanel(name, instant) {
   if (instant) requestAnimationFrame(() => { tr.style.transition = ''; });
   hideSuggest();
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  if (name === 'schedule') refreshSchedule(false);
 }
 
 /* ---------- blocks ---------- */
@@ -3994,15 +4082,28 @@ function blockEl(bid) {
   return el;
 }
 
-/* Any block can be held to select, then swiped right to edit (project subtasks edit their project)
-   or swiped left to delete (project subtasks delete just that subtask). Deleting never logs to the calendar. */
+/* FOCUS: hold a block and let go (it turns solid green, and the bottom label reads FOCUS).
+   Then: swipe it right to schedule it, left to delete it, or swipe up on FOCUS to open its screen. */
 function blockEditable(bid) { return !!state.blocks[bid]; }
 function editBlock(bid) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false); }
+function scheduleBlock(bid) { if (state.blocks[bid]) openSchedulePicker(blockName(bid)); }
+const PANEL_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
+function onArmChange(el) {
+  for (const k of Object.keys(PANEL_TITLE)) $(`#t-${k} h1`).textContent = PANEL_TITLE[k];
+  const p = el && el.closest('.panel');
+  if (p && PANEL_TITLE[p.id.slice(2)]) $(`#t-${p.id.slice(2)} h1`).textContent = 'FOCUS';
+}
+/* Swipe up on a bottom label: FOCUS opens the selected activity's screen; plain STACK opens SETTINGS. */
+function swipeUpTitle(panelKey) {
+  const a = armed && armed.isConnected && armed.closest(`#p-${panelKey}`) ? armed : null;
+  if (a) { const key = a.dataset.key; disarm(); if (panelKey === 'project') openEditor(state.items[key], false); else editBlock(key); return; }
+  if (panelKey === 'stack') openSettings();
+}
 function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName(bid)}`, () => deleteBlockItem(bid)); }
 
 function renderAll() {
   if (!state) return;
-  renderStack(); renderBacklogs(); renderSettings();
+  renderStack(); renderBacklogs(); renderSettings(); onArmChange(null);
 }
 
 /* ---------- STACK (bottom = highest priority; new from the input lands at the bottom, from a backlog at the top) ---------- */
@@ -4014,9 +4115,9 @@ function renderStack() {
     reverse: true,
     onReorder: keys => { state.stack = keys; save(); },
     armable: blockEditable,
-    openEdit: editBlock,
+    openEdit: scheduleBlock,
     armDelete: deleteBlock,
-    swipeRight: bid => openCompletePicker(bid),
+    swipeRight: bid => { const name = blockName(bid); withUndo(`Completed ${name}`, () => completeBlock(bid)); },
     swipeLeft: bid => {
       const b = state.blocks[bid];
       const msg = b.subId ? `Returned to ${state.items[b.itemId].name}` : `Sent to ${BACKLOG_TITLE[blockKind(bid)]}`;
@@ -4042,7 +4143,7 @@ function renderBacklogs() {
     reverse: true,
     onReorder: keys => { state.backlogs.project = keys; save(); },
     armable: () => true,
-    openEdit: id => openEditor(state.items[id], false),
+    openEdit: id => openSchedulePicker(state.items[id].name),
     armDelete: id => withUndo(`Deleted ${state.items[id].name}`, () => deleteItem(id)),
     swipeRight: id => openProjectSubs(id)
   });
@@ -4055,7 +4156,7 @@ function renderBacklogs() {
       reverse: true,
       onReorder: keys => { state.backlogs[k] = keys; save(); },
       armable: blockEditable,
-      openEdit: editBlock,
+      openEdit: scheduleBlock,
       armDelete: deleteBlock,
       swipeRight: bid => {
         detach(bid); state.stack.push(bid); save(); renderAll();
@@ -4092,7 +4193,7 @@ function submitInput() {
 /* ---------- SETTINGS ---------- */
 function renderSettings() {
   const body = $('#settings-body');
-  if (!body || (document.activeElement && ['cid', 'fdb'].includes(document.activeElement.id))) return;
+  if (!body || !body.isConnected || (document.activeElement && ['cid', 'fdb'].includes(document.activeElement.id))) return;
   const s = state.settings;
   const status = tokenValid() ? 'Connected' : s.connected ? 'Connected. Access refreshes on your next sync.' : 'Not connected';
   body.innerHTML = `
@@ -4220,7 +4321,7 @@ async function processCalQueue(interactive) {
   }
   let done = 0;
   for (const c of state.calQueue.slice()) {
-    try { await calLogCompletion(tok, c); state.calQueue = state.calQueue.filter(x => x.id !== c.id); done++; }
+    try { await calAddParadigm(tok, c, c.kind === 'schedule' ? 'Scheduled in Paradigm' : 'Completed in Paradigm'); state.calQueue = state.calQueue.filter(x => x.id !== c.id); done++; }
     catch (e) { break; }
   }
   calQueueToasted = state.calQueue.length;
@@ -4262,9 +4363,52 @@ function openPairing() {
   openScreen(el);
 }
 
+/* ---------- SCHEDULE: a live copy of today's calendar ---------- */
+function calendarAppUrl(date) {
+  const d = parseDate(date);
+  const web = `https://calendar.google.com/calendar/r/day/${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  // On Android, open the Google Calendar app directly (falling back to the website if it isn't installed).
+  if (/Android/i.test(navigator.userAgent)) return `intent://calendar.google.com/calendar/r/day/${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}#Intent;scheme=https;package=com.google.android.calendar;S.browser_fallback_url=${encodeURIComponent(web)};end`;
+  return web;
+}
+let schedPainted = false;
+async function refreshSchedule(interactive) {
+  const tp = getToken(interactive);   // first, so a tap on REFRESH may sign in
+  const date = todayStr(), grid = $('#sched-grid'), note = $('#sched-note');
+  if (!schedPainted) { grid.innerHTML = dayGridHTML(); schedPainted = true; requestAnimationFrame(() => { const n = new Date(); $('#sched-scroll').scrollTop = Math.max(0, (n.getHours() * 60 + n.getMinutes()) / 30 * SLOT_H - 3 * SLOT_H); }); }
+  $('#sched-date').textContent = parseDate(date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  $('#b-calendar').href = calendarAppUrl(date);
+  paintNowLine(grid, date);
+  const cache = state.dayCache && state.dayCache.date === date ? state.dayCache : null;
+  if (cache) paintEvents(grid, $('#sched-allday'), cache.events, 'live');
+  const tok = await tp;
+  if (!tok) {
+    note.textContent = state.settings.clientId
+      ? (cache ? `As of ${msToClock(cache.at)}. Tap REFRESH to update.` : 'Tap REFRESH to load today from Google Calendar.')
+      : 'Connect Google in SETTINGS (swipe up on STACK) to see your day here.';
+    return;
+  }
+  note.textContent = 'Loading…';
+  const evs = await calDayEvents(date);
+  if (!evs) { note.textContent = 'Could not reach Google Calendar.'; return; }
+  const list = normalizeEvents(date, evs);
+  paintEvents(grid, $('#sched-allday'), list, 'live');
+  note.textContent = list.length ? '' : 'Nothing on your calendar today.';
+  // Share it with the glasses (only when it changed, so sync stays quiet).
+  if (!cache || JSON.stringify(cache.events) !== JSON.stringify(list)) { state.dayCache = { date, at: Date.now(), events: list }; save({ noBackup: true }); }
+}
+
+/* ---------- SETTINGS: swipe up on STACK; swipe down on the SETTINGS title (top) to return ---------- */
+function openSettings() {
+  const el = screenEl('settingsscreen', `<header class="title top" id="t-settings"><h1>SETTINGS</h1></header><div class="settings" id="settings-body"></div>`);
+  gesture($('#t-settings', el), { moveEl: false, onSwipeDown: () => closeAll(() => goPanel('stack')) });
+  openScreen(el);
+  renderSettings();
+}
+
 /* ---------- boot ---------- */
-function navTitle(id, right, left) {
-  gesture($(id), { moveEl: false, onSwipeRight: right ? () => goPanel(right) : null, onSwipeLeft: left ? () => goPanel(left) : null });
+function navTitle(id, right, left, up) {
+  gesture($(id), { moveEl: false, onSwipeRight: right ? () => goPanel(right) : null, onSwipeLeft: left ? () => goPanel(left) : null, onSwipeUp: up || null });
 }
 async function boot() {
   const t0 = Date.now();
@@ -4272,12 +4416,14 @@ async function boot() {
   try { await loadState(); }
   catch (e) { state = freshState(); toast('Storage is unavailable. Changes will not be kept.'); }
 
-  // Panels, left to right: PROJECT BACKLOG, LIST BACKLOG, TASK BACKLOG, STACK, SETTINGS.
-  navTitle('#t-project', null, 'stack');   // end of the row: swiping right does nothing
-  navTitle('#t-list', 'project', 'stack');
-  navTitle('#t-task', 'list', 'stack');
-  navTitle('#t-stack', 'task', 'settings');
-  navTitle('#t-settings', 'stack', 'stack');
+  // Panels, left to right: PROJECT BACKLOG, LIST BACKLOG, TASK BACKLOG, STACK, SCHEDULE. SETTINGS is swipe up on STACK.
+  navTitle('#t-project', null, 'stack', () => swipeUpTitle('project'));   // end of the row: swiping right does nothing
+  navTitle('#t-list', 'project', 'stack', () => swipeUpTitle('list'));
+  navTitle('#t-task', 'list', 'stack', () => swipeUpTitle('task'));
+  navTitle('#t-stack', 'task', 'schedule', () => swipeUpTitle('stack'));
+  navTitle('#t-schedule', 'stack', null);                                  // end of the row the other way
+  $('#b-refresh').addEventListener('click', () => refreshSchedule(true));
+  setInterval(() => { if (panel === 'schedule' && !document.hidden) refreshSchedule(false); }, 5 * 60000);
 
   const inp = $('#main-input'), sug = $('#suggest'), ps = $('#p-stack');
   inp.addEventListener('focus', () => { ps.classList.add('searching'); showSuggest(); });

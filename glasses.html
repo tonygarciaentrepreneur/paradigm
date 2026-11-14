@@ -83,6 +83,11 @@ nav { display: flex; justify-content: center; }
 #overlay { padding-block-start: calc(var(--pad) + 2.2em); }
 .olist { flex-direction: column-reverse; }
 .olist > :last-child { margin-block-start: auto; }
+/* SCHEDULE screen rows */
+.evrow { cursor: default; }
+.evrow .meta { flex: none; min-inline-size: 5.2em; }
+.evrow:focus .meta { color: var(--bg); }
+.asof { margin: 0 0 4px; font-size: 0.65em; }
 
 </style>
 </head>
@@ -162,7 +167,8 @@ function freshState() {
   return {
     v: 4, items: {}, blocks: {}, stack: [], backlogs: { project: [], list: [], task: [] }, running: null,
     lastDueCheck: todayStr(),
-    calQueue: [],   // completions made on the glasses, waiting for the phone to log them to Google Calendar
+    calQueue: [],   // schedules made on the glasses, waiting for the phone to add them to Google Calendar
+    dayCache: null, // today's calendar as last loaded by the phone, for the glasses' SCHEDULE screen
     settings: { clientId: '', connected: false, paradigmCalId: '', driveFileId: '', lastBackup: 0 },
     auth: { token: '', exp: 0 }
   };
@@ -367,11 +373,11 @@ function runDueCheck() {
 }
 
 /* ---------- completion ---------- */
-/* Completes a block over the chosen time span; returns what to log on the Paradigm calendar. */
-function completeBlock(bid, start, end) {
+/* Completes a block: it leaves STACK (nothing goes on the calendar). Returns { name }. */
+function completeBlock(bid) {
   const b = state.blocks[bid]; if (!b) return null;
   const it = state.items[b.itemId];
-  const res = { name: blockName(bid), start, end };
+  const res = { name: blockName(bid) };
   if (b.subId) {
     // Done subtasks leave the project, unless it's a recurring project (then it stays, ready to do again).
     if (!it.recurring) it.subtasks = it.subtasks.filter(x => x.id !== b.subId);
@@ -394,7 +400,7 @@ function completeBlock(bid, start, end) {
    The higher rev wins. Each device listens for the other's writes (server-sent events). */
 'use strict';
 
-const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue'];
+const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue', 'dayCache'];
 let syncCfg = null;            // { db, key }
 let syncDevice = 'phone';
 let syncRev = 0, syncLastSent = '', syncTimer = null, syncES = null, syncPoll = null;
@@ -494,14 +500,14 @@ function syncStop() {
    but it never creates or renames anything: that stays on the phone.
 
    Input mirrors the phone:  → (swipe right) on a STACK block = complete,  ← = send to backlog,
-   → on a backlog block = add to STACK.  Enter = the actions menu (the phone's hold).
+   → on a backlog block = add to STACK.  Enter = FOCUS (the phone's hold): schedule, move, delete…
    On the screen name at the bottom, ← moves out to the backlogs and → comes back to STACK. */
 'use strict';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const LS_KEY = 'paradigm.glasses.v1';
-const SCREENS = ['project', 'list', 'task', 'stack'];
-const SCREEN_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
+const SCREENS = ['project', 'list', 'task', 'stack', 'schedule'];
+const SCREEN_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK', schedule: 'SCHEDULE' };
 let screen = 'stack';
 let focusKey = null;      // keeps focus on the same block across re-renders
 let moving = null;        // key of the block being reordered
@@ -559,9 +565,10 @@ function render() {
   $('#unpaired').classList.toggle('hidden', paired);
   $('#navtitle .t').textContent = SCREEN_TITLE[screen];
   $('#navtitle .l').style.visibility = screen === 'project' ? 'hidden' : 'visible';
-  $('#navtitle .r').style.visibility = screen === 'stack' ? 'hidden' : 'visible';
+  $('#navtitle .r').style.visibility = screen === 'schedule' ? 'hidden' : 'visible';
   const list = $('#list');
   list.innerHTML = '';
+  if (screen === 'schedule') { renderSchedule(list); return; }
   const keys = listFor(screen) || [];
   keys.forEach(key => {
     const btn = document.createElement('button');
@@ -620,7 +627,7 @@ function blockKey(e, key) {
   if (moving) return;
   const right = e.key === 'ArrowRight';
   if (screen === 'stack') {
-    if (right) openComplete(key);
+    if (right) { const name = blockName(key); focusNext(key); completeBlock(key); save(); render(); toast(`Completed ${name}`); }
     else { const k = blockKind(key); focusNext(key); sendToBacklog(key); save(); render(); toast(state.blocks[key] ? `Sent to ${BACKLOG_TITLE[k]}` : 'Returned to project'); }
   } else if (right) {
     if (screen === 'project') openProjectSubs(key);
@@ -669,11 +676,11 @@ function head(ov, kicker, title) {
 function openMenu(key) {
   const info = blockInfo(key); if (!info) return;
   openOverlay(ov => {
-    head(ov, info.kind.toUpperCase(), keyName(key));
+    head(ov, 'FOCUS', keyName(key));
     const box = document.createElement('div'); box.className = 'opts';
     const add = (label, fn, cls) => box.appendChild(btn(label, fn, cls));
+    add('SCHEDULE', () => openSchedule(keyName(key)));
     if (screen === 'stack') {
-      add('COMPLETE', () => openComplete(key));
       add(info.kind === 'subtask' ? 'BACK TO PROJECT' : 'TO BACKLOG', () => { closeOverlay(); focusNext(key); sendToBacklog(key); save(); });
     } else if (screen === 'project') {
       add('SUBTASKS', () => openProjectSubs(key));
@@ -706,13 +713,14 @@ function confirmDelete(key, info) {
   });
 }
 
-/* Completing: pick when it happened with − / + (15 minutes), like the phone's drag. */
-function openComplete(key) {
-  const name = blockName(key);
+/* SCHEDULE (from FOCUS): pick a time today with − / + (STACK is for today). The activity stays where it is.
+   The glasses can't reach Google, so the phone adds it to the Paradigm calendar next time it's open. */
+function openSchedule(name) {
   const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
-  let end = Math.min(1440, Math.max(30, Math.ceil(nowMin / 15) * 15)), start = end - 30;
+  const date = todayStr();
+  let start = Math.min(1410, Math.ceil(nowMin / 15) * 15), end = start + 30;
   openOverlay(ov => {
-    head(ov, 'COMPLETE', name);
+    head(ov, 'SCHEDULE', name);
     const mkRow = (label, get, set) => {
       const row = document.createElement('div'); row.className = 'trow';
       const lab = document.createElement('span'); lab.className = 'tlab'; lab.textContent = label;
@@ -723,7 +731,7 @@ function openComplete(key) {
       row.append(lab, minus, val, plus); ov.appendChild(row);
       return val;
     };
-    const sv = mkRow('START', () => start, v => { start = Math.max(0, Math.min(v, end - 15)); });
+    const sv = mkRow('START', () => start, v => { const len = end - start; start = Math.max(0, Math.min(v, 1440 - len)); end = start + len; });
     const ev = mkRow('END', () => end, v => { end = Math.min(1440, Math.max(v, start + 15)); });
     const dur = document.createElement('p'); dur.className = 'note'; ov.appendChild(dur);
     function paint() {
@@ -731,19 +739,35 @@ function openComplete(key) {
       const m = end - start; dur.textContent = m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ' ' + (m % 60) + 'm' : ''}` : `${m} min`;
     }
     paint();
-    const go = btn('COMPLETE', () => {
-      const t0 = parseDate(todayStr()).getTime();
-      focusNext(key);
-      const res = completeBlock(key, t0 + start * MIN, t0 + end * MIN);
-      if (res) state.calQueue.push({ id: uid(), name: res.name, start: res.start, end: res.end });
-      save(); closeOverlay(); toast(`Completed ${res ? res.name : ''}`);
+    const go = btn('SCHEDULE', () => {
+      const t0 = parseDate(date).getTime();
+      state.calQueue.push({ id: uid(), kind: 'schedule', name, start: t0 + start * MIN, end: t0 + end * MIN });
+      save(); closeOverlay(); toast(`Scheduled ${name}. Your phone adds it to the calendar`);
     }, 'primary');
     go.dataset.autofocus = '1';
     ov.appendChild(go);
   });
 }
 
-/* A list's subtasks: → or Enter checks one off and it disappears. */
+/* SCHEDULE screen: today's calendar as your phone last loaded it. */
+function renderSchedule(list) {
+  const c = state.dayCache && state.dayCache.date === todayStr() ? state.dayCache : null;
+  const empty = $('#empty');
+  if (!c) { empty.textContent = 'Open SCHEDULE on your phone to load today’s calendar.'; empty.classList.remove('hidden'); if (!overlayOpen) $('#navtitle').focus(); return; }
+  empty.textContent = `Nothing on your calendar today. (as of ${msToClock(c.at)})`;
+  empty.classList.toggle('hidden', !!c.events.length);
+  // Drawn top-down in time order; the list itself is bottom-aligned like the others.
+  c.events.slice().reverse().forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'block evrow'; row.tabIndex = 0;
+    row.innerHTML = `<span class="meta">${e.allDay ? 'ALL DAY' : esc(minToClock(e.startMin))}</span><span class="name">${esc(e.title)}</span>`;
+    list.appendChild(row);
+  });
+  if (c.events.length) { const asof = document.createElement('p'); asof.className = 'note asof'; asof.textContent = `As of ${msToClock(c.at)}`; list.appendChild(asof); }
+  if (!overlayOpen) $('#navtitle').focus();
+}
+
+/* A list's subtasks: → completes one (it disappears), ← deletes it. */
 function openListSubs(itemId) {
   openOverlay(ov => {
     const it = state.items[itemId];
@@ -755,14 +779,21 @@ function openListSubs(itemId) {
       const open = openSubtasks(it);
       if (!open.length) { list.innerHTML = '<p class="note">All subtasks done.</p>'; return; }
       open.forEach((s, i) => {
-        const b = btn(s.name, () => check(s, i), 'block');
-        b.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { e.preventDefault(); check(s, i); } });
+        const b = btn(s.name, () => complete(s, i), 'block');
+        b.addEventListener('keydown', e => {
+          if (e.key === 'ArrowRight') { e.preventDefault(); complete(s, i); }
+          if (e.key === 'ArrowLeft') { e.preventDefault(); it.subtasks = it.subtasks.filter(x => x.id !== s.id); save(); toast(`Deleted ${s.name}`); paint(i); }
+        });
         list.appendChild(b);
       });
       const bs = list.querySelectorAll('button');
       (bs[Math.min(focusIdx || 0, bs.length - 1)] || bs[0]).focus();
     };
-    const check = (s, i) => { s.done = true; save(); toast(`Checked off ${s.name}`); paint(i); };
+    // Same rule as the phone: recurring subtasks are checked (they return when the list resets); others leave the list.
+    const complete = (s, i) => {
+      if (it.recurring && it.recSubtasks) s.done = true; else it.subtasks = it.subtasks.filter(x => x.id !== s.id);
+      save(); toast(`Completed ${s.name}`); paint(i);
+    };
     paint(0);
   });
 }
@@ -794,6 +825,7 @@ function openProjectSubs(projectId) {
       list.innerHTML = '';
       const p = document.createElement('p'); p.className = 'note'; p.textContent = s.name; list.appendChild(p);
       const add = btn('ADD TO STACK', () => addSub(s), 'opt'); list.appendChild(add);
+      list.appendChild(btn('SCHEDULE', () => openSchedule(`${it.name} › ${s.name}`), 'opt'));
       list.appendChild(btn('DELETE SUBTASK', () => {
         const bid = findBlock(projectId, s.id); if (bid) removeBlock(bid);
         it.subtasks = it.subtasks.filter(x => x.id !== s.id); save(); toast('Deleted'); paint(i);
@@ -824,7 +856,7 @@ async function boot() {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     e.preventDefault();
     const i = SCREENS.indexOf(screen);
-    // ← walks out from STACK through the backlogs (TASK, LIST, PROJECT; stops there); → walks back to STACK.
+    // ← walks out from STACK through the backlogs (TASK, LIST, PROJECT; stops there); → goes the other way, to SCHEDULE.
     goScreen(SCREENS[e.key === 'ArrowLeft' ? i - 1 : i + 1]);
   });
   nav.addEventListener('click', () => goScreen('stack'));

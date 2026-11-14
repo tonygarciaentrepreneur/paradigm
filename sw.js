@@ -1,5 +1,5 @@
 /* Paradigm service worker: offline app shell. Bump VERSION when you change files. */
-const VERSION = 'paradigm-v1.6.3';
+const VERSION = 'paradigm-v1.7.1';
 const SHELL = ['./', 'index.html', 'glasses.html', 'glasses.webmanifest', 'icon-96-v2.png', 'manifest.json', 'icon-192-v2.png', 'icon-512-v2.png', 'icon-maskable-v2.png'];
 
 self.addEventListener('install', e => {
