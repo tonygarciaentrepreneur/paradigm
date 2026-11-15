@@ -77,20 +77,29 @@ If the Meta AI app has no Web apps section at all even with Developer Mode on, t
 
 ### Glasses controls
 
-Swipe right on the touchpad or Neural Band = →. Swipe left = ←. Tap/pinch = Enter. Back = the system Back.
+The glasses work like the phone as far as the touchpad and Neural Band allow. Swipe right = →, swipe left = ←, tap/pinch = Enter, Back = the system Back.
 
-Screens: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SCHEDULE**.
+Screens: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SCHEDULE · SETTINGS** (SETTINGS is read-only; change settings on the phone).
 
 | Where | → | ← | Enter |
 | --- | --- | --- | --- |
-| Screen name at the bottom | Toward SCHEDULE (stops there) | Out to TASK → LIST → PROJECT BACKLOG (stops there) | Jump to STACK |
-| STACK block | Complete (it leaves STACK; nothing goes on the calendar) | Send to its backlog (project subtasks return to their project) | FOCUS menu |
-| Task or list in a backlog | Add to top of STACK | — | FOCUS menu |
-| Project in PROJECT BACKLOG | Open its subtasks | — | FOCUS menu |
-| Project subtask | Add to top of STACK | — | Add, schedule or delete |
-| List subtask | Complete (it disappears) | Delete | Complete |
+| Screen name at the bottom | STACK → SCHEDULE → SETTINGS; from a backlog, straight back to STACK | STACK → TASK → LIST → PROJECT BACKLOG; from SCHEDULE or SETTINGS, straight back to STACK | Jump to STACK |
+| STACK block | Complete | Send to its backlog (project subtasks return to their project) | FOCUS |
+| Task or list in a backlog | Add to top of STACK | — | FOCUS |
+| Project in PROJECT BACKLOG | Open its subtasks | — | FOCUS |
 
-**FOCUS menu** (the phone's hold): SCHEDULE (pick a time today with − / +; it stays on STACK), TO BACKLOG or ADD TO STACK, SUBTASKS or NOTES, MOVE (↑ ↓ then Enter), DELETE.
+The cursor is a bright outline; a solid green block is in **FOCUS** (the phone's hold), and the name at the bottom reads FOCUS:
+- **↑ ↓** move the block (the phone's drag);
+- **→** opens its screen (subtasks, notes, or its project's subtasks);
+- **←** deletes it;
+- **Enter** moves to the FOCUS label, where **←** plans it on today's schedule (↑ ↓ move it, ← → change its length, Enter goes to the SCHEDULE label, then → adds it to your Paradigm calendar via your phone, ← cancels);
+- **Back** leaves FOCUS.
+
+**Activity screen** (like the phone's): subtasks pile up from the bottom, the name sits at the bottom. List subtask: → complete, ← delete, Enter then ↑ ↓ to reorder. Project subtask: → add to top of STACK; Enter for FOCUS, then ↑ ↓ reorder or ← delete. On the name: ← back, → add the activity to STACK.
+
+**Undo:** for about 6 seconds after completing, sending to backlog, deleting or adding to STACK, Back undoes it.
+
+**SCHEDULE** shows today's timeline as your phone last loaded it (open SCHEDULE on the phone to refresh it).
 
 ## Gestures (phone)
 
