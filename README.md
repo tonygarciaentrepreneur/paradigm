@@ -73,7 +73,7 @@ If the Meta AI app has no Web apps section at all even with Developer Mode on, t
 
 **Calendar:** the glasses can't sign in to Google. Things you schedule there wait on your phone and are added to your Paradigm calendar the next time Paradigm is open on your phone with Google connected (SETTINGS shows any that are waiting, with a **LOG TO CALENDAR** button). The glasses' SCHEDULE screen shows today's calendar as your phone last loaded it, so open SCHEDULE on the phone to refresh it.
 
-**If both devices change things at the same moment,** the most recent change wins.
+**Sync never writes over changes a device hasn't seen.** Before saving, each device checks the server. If the other device has changed things since, it takes that version instead (and says so, so you can redo your last change). A device that can't reach the server waits and retries rather than writing blind. So glasses waking up with an old copy, or a fresh install, can't overwrite your newer data.
 
 ### Glasses controls
 
@@ -96,27 +96,31 @@ Screens: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SCHEDULE*
 
 Swipe right = finger moves left to right. Swipe left = right to left. Screen names sit at the bottom; swipe on a name to move between screens.
 
-Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SCHEDULE**. Each end of the row is a hard stop. **Swipe up on STACK** opens SETTINGS; swipe down on the SETTINGS title at the top returns to STACK.
+Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SCHEDULE · SETTINGS · RECOVERY**. Each end of the row is a hard stop.
 
 | Where | Swipe right | Swipe left | Hold + drag |
 | --- | --- | --- | --- |
 | STACK name | TASK BACKLOG | SCHEDULE | |
-| Backlog names | Next backlog out | STACK | |
-| SCHEDULE name | STACK | (end of row) | |
+| Backlog names | Next backlog out (stops at PROJECT BACKLOG) | Straight back to STACK | |
+| SCHEDULE name | STACK | SETTINGS | |
+| SETTINGS name | RECOVERY | Straight back to STACK | |
+| RECOVERY name | (end of row) | Straight back to STACK | |
 | STACK block | Complete (it leaves STACK; nothing goes on the calendar) | Send to its backlog (project subtasks return to their project) | Reorder |
 | Task or list in a backlog | Add to top of STACK | | Reorder |
 | Project in PROJECT BACKLOG | Open its subtasks | | Reorder |
 | Project subtask | Add to top of STACK | | Reorder |
 
 **FOCUS:** hold a block and let go. It turns solid green and the name at the bottom reads **FOCUS**. Then:
-- swipe the block **right** to schedule it today (STACK is for today): drag the block to move it, drag the bar below it to change the length, then swipe right on **SCHEDULE** at the bottom to add it to your Paradigm calendar, or left to cancel. The activity stays where it was;
+- swipe the block **right** to open the activity's own screen;
 - swipe the block **left** to delete it (never touches the calendar);
-- swipe **up on FOCUS** to open the activity's own screen.
-Tap a green block, or anywhere else, to leave FOCUS.
+- swipe **left on FOCUS** (toward SCHEDULE) to plan where it fits today: drag the block to move it, drag the bar below it to change the length, then swipe right on **SCHEDULE** at the bottom to add it to your Paradigm calendar, or left to cancel. The activity stays where it was.
+Tap a green block, or anywhere else, to leave FOCUS. FOCUS works the same in the backlogs.
 
-**The activity's screen** has its name at the top and works like STACK: subtasks pile up from the bottom, the entry box at the bottom adds one, swipe a subtask right to complete it or left to delete it, hold and drag to reorder. Tasks show their notes instead. OPTIONS has the name and recurring settings. On the name at the top: swipe down to save and return to STACK, swipe right to save and add it to STACK, swipe left to save and go back. Android's back gesture leaves without saving. Searching for something opens this same screen.
+**The activity's screen** works like STACK: subtasks pile up from the bottom, the entry box sits above the name at the bottom, swipe a subtask right to complete it or left to delete it, hold and drag to reorder. Tasks show their notes instead. OPTIONS at the top has the name and recurring settings. Swipe **left** on the name to save and go back; swipe **right** to save and add it to STACK. Android's back gesture leaves without saving. Searching for something opens this same screen.
 
 **SCHEDULE** shows today's calendar (your main calendar plus Paradigm). **CALENDAR** at the top opens the Google Calendar app to edit events. REFRESH reloads it.
+
+**RECOVERY** lists earlier versions of your Drive backup (newest first). INSPECT shows what a version holds; RESTORE THIS VERSION replaces everything in Paradigm with it (and your glasses on their next sync), or DOWNLOAD saves it as a file you can IMPORT later. Inspecting marks that version *Keep Forever* in Drive, which Google requires before downloading it and which also stops it being auto-deleted. Google keeps old versions for about 30 days.
 
 **Where things land on STACK:** things added from the STACK screen (typed in, or from search) go to the bottom (highest priority). Things added from a backlog go to the top (lowest priority). Due recurring items drop to the bottom. The bottom of every backlog is its highest priority too.
 

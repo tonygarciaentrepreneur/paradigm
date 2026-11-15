@@ -35,8 +35,8 @@ button { font: inherit; color: inherit; }
 .hidden { display: none !important; }
 
 #app { position: fixed; inset: 0; overflow: hidden; }
-#track { position: absolute; top: 0; left: 0; height: 100%; width: 500%; display: flex; transform: translateX(-60%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
-.panel { position: relative; width: 20%; height: 100%; display: flex; flex-direction: column; padding-top: var(--top); padding-bottom: var(--bot); }
+#track { position: absolute; top: 0; left: 0; height: 100%; width: 700%; display: flex; transform: translateX(-42.857%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
+.panel { position: relative; width: 14.2857%; height: 100%; display: flex; flex-direction: column; padding-top: var(--top); padding-bottom: var(--bot); }
 
 .title { flex: none; padding: 14px 12px 18px; text-align: center; touch-action: pan-y; }
 .title h1 { margin: 0; font-family: "OCR-A", var(--font); font-size: clamp(20px, 7vw, 30px); font-weight: 400; letter-spacing: .24em; padding-left: .24em; white-space: nowrap; text-shadow: 0 0 10px rgba(0, 255, 65, .55); }
@@ -315,6 +315,14 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .activity .bar { min-height: 46px; padding-top: 6px; }
 .actinput { padding-bottom: 12px; }
 
+/* RECOVERY */
+.recrow { gap: 10px; }
+.recrow .name { font-size: 15px; }
+.recrow .btn.small { flex: none; margin: 0; }
+#p-recovery .list { flex: none; overflow: visible; padding: 4px 0 12px; }
+.rec-summary { white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--dim); padding: 12px; font: inherit; font-size: 14px; line-height: 1.45; margin: 0 0 12px; -webkit-user-select: text; user-select: text; }
+.settings h3 { margin: 0 0 8px; font-size: 13px; font-weight: 400; color: var(--g2); letter-spacing: .18em; }
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -359,6 +367,16 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
       <div class="allday-strip" id="sched-allday"></div>
       <div class="dayscroll" id="sched-scroll"><div class="grid" id="sched-grid" style="margin-top:12px;margin-bottom:24px"></div></div>
       <header class="title" id="t-schedule"><h1>SCHEDULE</h1></header>
+    </section>
+
+    <section class="panel" id="p-settings">
+      <div class="settings" id="settings-body"></div>
+      <header class="title" id="t-settings"><h1>SETTINGS</h1></header>
+    </section>
+
+    <section class="panel" id="p-recovery">
+      <div class="settings" id="recovery-body"></div>
+      <header class="title" id="t-recovery"><h1>RECOVERY</h1></header>
     </section>
   </div>
 
@@ -3388,20 +3406,25 @@ async function syncPush() {
   if (!syncConfigured()) return;
   const data = syncPayload();
   if (data === syncLastSent) return;
+  const retry = () => { setSyncStatus('offline'); clearTimeout(syncTimer); syncTimer = setTimeout(syncPush, 5000); };
+  // Always look at the server first. If we can't, wait and try again: never write blind.
+  let cur;
+  try { cur = await syncFetch(); } catch (e) { retry(); return; }
+  if (cur && cur.rev > syncRev) {
+    // The server has changes this device hasn't seen yet (the other device wrote since our last sync,
+    // or this device just woke up with an old copy). Never write over them: take the server's version.
+    if (cur.data === data) { syncRev = cur.rev; syncLastSent = data; saveSyncMeta(); return; }
+    syncReceive(cur);
+    if (typeof onSyncConflict === 'function') onSyncConflict();
+    return;
+  }
+  const rec = { rev: Math.max(syncRev, cur ? cur.rev : 0) + 1, by: syncDevice, at: Date.now(), data };
   try {
-    // Number this write after whatever is on the server, so the newest change always wins
-    // and both devices end up with the same data.
-    let base = syncRev;
-    try { const cur = await syncFetch(); if (cur && cur.rev > base) base = cur.rev; } catch (e) { /* offline: the PUT below will fail and retry */ }
-    const rec = { rev: base + 1, by: syncDevice, at: Date.now(), data };
     const r = await fetch(syncUrl(), { method: 'PUT', body: JSON.stringify(rec) });
     if (!r.ok) throw new Error('sync ' + r.status);
     syncRev = rec.rev; syncLastSent = data; saveSyncMeta();
     if (syncStatus !== 'live') setSyncStatus(syncES ? 'live' : 'connecting');
-  } catch (e) {
-    setSyncStatus('offline');
-    clearTimeout(syncTimer); syncTimer = setTimeout(syncPush, 5000);   // retry until it goes through
-  }
+  } catch (e) { retry(); }
 }
 
 /* Applies a record from the other device if it's newer than what we have. */
@@ -3434,8 +3457,9 @@ async function syncStart() {
   setSyncStatus('connecting');
   try {
     const rec = await syncFetch();
-    if (rec && rec.rev > syncRev) syncReceive(rec);
-    else if (!rec || syncPayload() !== syncLastSent || rec.rev < syncRev) { syncLastSent = ''; await syncPush(); }
+    if (rec && rec.rev > syncRev) syncReceive(rec);                     // newer on the server: take it
+    else if (rec && rec.data === syncPayload()) { syncLastSent = rec.data; if (rec.rev > syncRev) { syncRev = rec.rev; saveSyncMeta(); } }  // already the same
+    else { syncLastSent = ''; await syncPush(); }                       // ours has changes the server hasn't got yet
   } catch (e) { setSyncStatus('offline'); }
   try {
     syncES = new EventSource(syncUrl());
@@ -3574,19 +3598,18 @@ function eventWhen(ev) {
 }
 
 /* The activity's own screen (formerly EDIT). Laid out like STACK: subtasks pile up from the bottom,
-   with the entry box at the bottom. Its title sits at the top:
-   swipe down on it = save and return to STACK; swipe right = save and add to STACK;
-   swipe left = save and go back. Android back discards. */
+   the entry box sits above the name at the bottom.
+   Swipe left on the name = save and go back; swipe right = save and add to STACK. Android back discards. */
 function openEditor(item, isNew) {
   const orig = clone(item);
   const d = clone(item);
   const hasSubs = d.type === 'list' || d.type === 'project';
   const el = screenEl('editor activity', `
-    <header class="title act-title top"><h1></h1></header>
     <div class="bar"><span class="label">${TYPES[d.type]}</span><button class="btn quiet optbtn">OPTIONS</button></div>
     <div class="optpanel hidden"><input class="namein" type="text" autocomplete="off" aria-label="Name"><div class="optcontent"></div></div>
     <div class="actmain"></div>
-    ${hasSubs ? '<div class="inputbar actinput"><input class="subin" type="text" placeholder="Add a subtask" enterkeyhint="done" autocomplete="off"></div>' : ''}`);
+    ${hasSubs ? '<div class="inputbar actinput"><input class="subin" type="text" placeholder="Add a subtask" enterkeyhint="done" autocomplete="off"></div>' : ''}
+    <header class="title act-title"><h1></h1></header>`);
   const title = $('.act-title h1', el), optpanel = $('.optpanel', el), optcontent = $('.optcontent', el), main = $('.actmain', el);
   const nameIn = $('.namein', el);
   nameIn.value = d.name;
@@ -3596,7 +3619,7 @@ function openEditor(item, isNew) {
   const optBtn = $('.optbtn', el);
   optBtn.addEventListener('click', () => { optpanel.classList.toggle('hidden'); optBtn.classList.toggle('on', !optpanel.classList.contains('hidden')); });
   if (d.type === 'event' || isNew) { optpanel.classList.remove('hidden'); optBtn.classList.add('on'); }
-  gesture($('.act-title', el), { moveEl: false, onSwipeDown: () => leave(false, true), onSwipeRight: () => leave(true), onSwipeLeft: () => leave(false) });
+  gesture($('.act-title', el), { moveEl: false, onSwipeRight: () => leave(true), onSwipeLeft: () => leave(false) });
 
   let subsList = null;
   function render() {
@@ -3677,8 +3700,8 @@ function openEditor(item, isNew) {
     if (d.type === 'project') listProject(d.id);
     save();
   }
-  /* toStack: swipe right on the title (add to STACK). home: swipe down (save, back to STACK). Otherwise swipe left (save, go back). */
-  function leave(toStack, home) {
+  /* toStack: swipe right on the name (save and add to STACK). Otherwise swipe left (save and go back). */
+  function leave(toStack) {
     if (!validName()) return;
     if (d.type === 'event') return saveEvent();
     commit(); clearMainInput();
@@ -3688,7 +3711,7 @@ function openEditor(item, isNew) {
     else if (placeInBacklog(d.id)) msg = `Saved to ${BACKLOG_TITLE[d.type]}`;
     else if (isNew && d.type === 'project') msg = 'Saved to PROJECT BACKLOG';
     save();
-    if (isNew || toStack || home) closeAll(() => { goPanel('stack'); toast(msg); });
+    if (isNew || toStack) closeAll(() => { goPanel('stack'); toast(msg); });
     else closeTop(() => { renderAll(); toast(msg); });
   }
   function del() {
@@ -3776,7 +3799,7 @@ function openProjectSubs(id) {
         save(); render();
       },
       armable: () => true,
-      openEdit: sid => { const sub = item.subtasks.find(x => x.id === sid); if (sub) openSchedulePicker(`${item.name} › ${sub.name}`); },
+      openEdit: () => openEditor(state.items[id], false),   // FOCUS + swipe right opens the project's screen
       armDelete: sid => {
         const sub = item.subtasks.find(x => x.id === sid);
         withUndo(`Deleted ${sub ? sub.name : 'subtask'}`, () => {
@@ -4050,11 +4073,147 @@ function openSchedulePicker(name) {
   } });
 }
 
+/* Paradigm: RECOVERY. Lists earlier versions of the Drive backup (paradigm-backup.json) so one can be
+   restored straight into Paradigm, or downloaded and IMPORTed later.
+   It only reads from Drive, except one change Google requires before downloading an older version:
+   marking it "Keep Forever", which also stops Google auto-deleting that version. */
+'use strict';
+
+let recFileId = '', recRevs = [], recInspected = null, recBusy = false;
+
+function recFmtSize(b) { b = Number(b || 0); return b >= 1024 ? (b / 1024).toFixed(1) + ' KB' : b + ' B'; }
+function recFmtWhen(iso) { try { return new Date(iso).toLocaleString(); } catch (e) { return iso; } }
+function recErr(e) {
+  if (e && e.status === 401) return 'Google sign-in expired. Tap LOAD VERSIONS again.';
+  if (e && e.status === 403) return 'Google refused this. Make sure you signed in with the same Google account Paradigm backs up to.';
+  return (e && e.message) || 'Something went wrong.';
+}
+
+function renderRecovery() {
+  const body = $('#recovery-body'); if (!body) return;
+  body.innerHTML = `
+    <div class="sect"><h3>Drive backup versions</h3>
+      <p>Google keeps earlier versions of your Paradigm backup. Load them to see what each one holds, then restore the one from before things went wrong.</p>
+      <p class="status rec-status"></p>
+      <button class="btn wide" id="rec-load">${recRevs.length ? 'RELOAD VERSIONS' : 'LOAD VERSIONS'}</button>
+    </div>
+    <div class="list rec-list"></div>
+    <div class="sect rec-inspect hidden"><h3 class="rec-title"></h3><pre class="rec-summary"></pre>
+      <div class="btnrow"><button class="btn primary" id="rec-restore">RESTORE THIS VERSION</button><button class="btn" id="rec-download">DOWNLOAD</button></div>
+      <p>Restoring replaces everything on this phone (and your glasses, once synced). Download first if you want a copy of what's here now: SETTINGS → File backup → EXPORT.</p>
+    </div>`;
+  $('#rec-load').addEventListener('click', recLoad);
+  $('#rec-restore').addEventListener('click', recRestore);
+  $('#rec-download').addEventListener('click', recDownload);
+  if (!state.settings.clientId) recStatus('Connect Google in SETTINGS first.');
+  recPaintList();
+  recPaintInspect();
+}
+function recStatus(msg) { const s = $('#recovery-body .rec-status'); if (s) s.textContent = msg || ''; }
+
+async function recLoad() {
+  const tp = getToken(true);   // first, so the tap may sign in
+  if (recBusy) return;
+  recBusy = true; recStatus('Signing in…');
+  try {
+    const tok = await tp;
+    if (!tok) { recStatus(state.settings.clientId ? 'Could not sign in to Google.' : 'Connect Google in SETTINGS first.'); return; }
+    recStatus('Finding your backup…');
+    state.settings.driveFileId = '';
+    recFileId = await driveFileId(tok);
+    if (!recFileId) { recStatus('No backup found in your Drive.'); return; }
+    recStatus('Listing versions…');
+    const r = await gfetch(tok, 'GET', `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(recFileId)}/revisions?pageSize=200&fields=revisions(id,modifiedTime,size,keepForever)`);
+    recRevs = (r.revisions || []).sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime));
+    recStatus(recRevs.length ? `${recRevs.length} version${recRevs.length > 1 ? 's' : ''}, newest at the top. The top one is the current backup.` : 'The backup has no saved versions.');
+    recPaintList();
+  } catch (e) { recStatus(recErr(e)); }
+  finally { recBusy = false; }
+}
+
+function recPaintList() {
+  const list = $('#recovery-body .rec-list'); if (!list) return;
+  list.innerHTML = '';
+  recRevs.forEach((rev, i) => {
+    const row = document.createElement('div');
+    row.className = 'block recrow' + (recInspected && recInspected.rev.id === rev.id ? ' sel' : '');
+    row.innerHTML = `<span class="name">${esc(recFmtWhen(rev.modifiedTime))}</span><span class="meta">${i === 0 ? 'CURRENT · ' : ''}${rev.keepForever ? 'KEPT · ' : ''}${recFmtSize(rev.size)}</span>`;
+    const b = document.createElement('button'); b.className = 'btn small'; b.textContent = 'INSPECT';
+    b.addEventListener('click', () => recInspect(rev, b));
+    row.appendChild(b);
+    list.appendChild(row);
+  });
+}
+
+async function recInspect(rev, btn) {
+  const tp = getToken(true);
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const tok = await tp; if (!tok) throw Object.assign(new Error('auth'), { status: 401 });
+    const base = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(recFileId)}/revisions/${encodeURIComponent(rev.id)}`;
+    // Google only lets you download an older version once it's marked Keep Forever.
+    if (!rev.keepForever) { await gfetch(tok, 'PATCH', base, { keepForever: true }); rev.keepForever = true; }
+    const r = await fetch(base + '?alt=media', { headers: { Authorization: 'Bearer ' + tok } });
+    if (!r.ok) throw Object.assign(new Error('http ' + r.status), { status: r.status });
+    const text = await r.text();
+    const data = JSON.parse(text);
+    if (!data.items) throw new Error('This version is not a Paradigm backup.');
+    recInspected = { rev, text, data };
+    recPaintList(); recPaintInspect();
+    const box = $('#recovery-body .rec-inspect'); if (box) box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  } catch (e) { toast(`Could not read this version. ${recErr(e)}`); }
+  finally { btn.disabled = false; btn.textContent = 'INSPECT'; }
+}
+
+function recSummary(data) {
+  const items = data.items || {}, blocks = data.blocks || {}, stack = data.stack || [], bl = data.backlogs || {};
+  const names = [];
+  for (const bid of stack.slice(0, 8)) {
+    const b = blocks[bid], it = b && items[b.itemId]; if (!it) continue;
+    if (b.subId) { const sub = (it.subtasks || []).find(x => x.id === b.subId); names.push(`${it.name} › ${sub ? sub.name : '?'}`); }
+    else names.push(it.name);
+  }
+  return [
+    'Saved: ' + (data.exportedAt ? new Date(data.exportedAt).toLocaleString() : 'unknown'),
+    'Items: ' + Object.keys(items).length,
+    'On STACK: ' + stack.length,
+    `Backlogs: ${(bl.task || []).length} tasks, ${(bl.list || []).length} lists, ${(bl.project || []).length} projects`,
+    'Waiting for the calendar: ' + (data.calQueue || []).length,
+    '',
+    'Bottom of STACK (highest priority first):',
+    ...(names.length ? names.map(n => '  • ' + n) : ['  (empty)'])
+  ].join('\n');
+}
+function recPaintInspect() {
+  const box = $('#recovery-body .rec-inspect'); if (!box) return;
+  box.classList.toggle('hidden', !recInspected);
+  if (!recInspected) return;
+  $('.rec-title', box).textContent = 'Version from ' + recFmtWhen(recInspected.rev.modifiedTime);
+  $('.rec-summary', box).textContent = recSummary(recInspected.data);
+}
+function recRestore() {
+  if (!recInspected) return;
+  confirmBox(`Replace everything in Paradigm with the version from ${recFmtWhen(recInspected.rev.modifiedTime)}?`, 'RESTORE', () => {
+    applyImport(clone(recInspected.data));
+    toast('Restored. Your glasses update on their next sync');
+    goPanel('stack');
+  });
+}
+function recDownload() {
+  if (!recInspected) return;
+  const d = new Date(recInspected.rev.modifiedTime);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([recInspected.text], { type: 'application/json' }));
+  a.download = `paradigm-version-${dateStr(d)}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.7.1';
-const PANELS = ['project', 'list', 'task', 'stack', 'schedule'];
+const VERSION = '1.8.2';
+const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
 function goPanel(name, instant) {
@@ -4066,6 +4225,8 @@ function goPanel(name, instant) {
   hideSuggest();
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   if (name === 'schedule') refreshSchedule(false);
+  if (name === 'settings') renderSettings();
+  if (name === 'recovery') renderRecovery();
 }
 
 /* ---------- blocks ---------- */
@@ -4082,25 +4243,25 @@ function blockEl(bid) {
   return el;
 }
 
-/* FOCUS: hold a block and let go (it turns solid green, and the bottom label reads FOCUS).
-   Then: swipe it right to schedule it, left to delete it, or swipe up on FOCUS to open its screen. */
+/* FOCUS: hold a block and let go (it turns solid green, and the bottom label reads FOCUS). Then:
+   swipe the block right = open its screen, swipe it left = delete it,
+   swipe left on the FOCUS label (toward SCHEDULE) = plan where it fits on today's schedule. */
 function blockEditable(bid) { return !!state.blocks[bid]; }
 function editBlock(bid) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false); }
-function scheduleBlock(bid) { if (state.blocks[bid]) openSchedulePicker(blockName(bid)); }
+function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName(bid)}`, () => deleteBlockItem(bid)); }
 const PANEL_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
 function onArmChange(el) {
   for (const k of Object.keys(PANEL_TITLE)) $(`#t-${k} h1`).textContent = PANEL_TITLE[k];
   const p = el && el.closest('.panel');
   if (p && PANEL_TITLE[p.id.slice(2)]) $(`#t-${p.id.slice(2)} h1`).textContent = 'FOCUS';
 }
-/* Swipe up on a bottom label: FOCUS opens the selected activity's screen; plain STACK opens SETTINGS. */
-function swipeUpTitle(panelKey) {
-  const a = armed && armed.isConnected && armed.closest(`#p-${panelKey}`) ? armed : null;
-  if (a) { const key = a.dataset.key; disarm(); if (panelKey === 'project') openEditor(state.items[key], false); else editBlock(key); return; }
-  if (panelKey === 'stack') openSettings();
+function armedIn(panelKey) { return armed && armed.isConnected && armed.closest(`#p-${panelKey}`) ? armed : null; }
+function scheduleArmed(panelKey) {
+  const a = armedIn(panelKey); if (!a) return false;
+  const key = a.dataset.key; disarm();
+  openSchedulePicker(panelKey === 'project' ? state.items[key].name : blockName(key));
+  return true;
 }
-function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName(bid)}`, () => deleteBlockItem(bid)); }
-
 function renderAll() {
   if (!state) return;
   renderStack(); renderBacklogs(); renderSettings(); onArmChange(null);
@@ -4115,7 +4276,7 @@ function renderStack() {
     reverse: true,
     onReorder: keys => { state.stack = keys; save(); },
     armable: blockEditable,
-    openEdit: scheduleBlock,
+    openEdit: editBlock,
     armDelete: deleteBlock,
     swipeRight: bid => { const name = blockName(bid); withUndo(`Completed ${name}`, () => completeBlock(bid)); },
     swipeLeft: bid => {
@@ -4143,7 +4304,7 @@ function renderBacklogs() {
     reverse: true,
     onReorder: keys => { state.backlogs.project = keys; save(); },
     armable: () => true,
-    openEdit: id => openSchedulePicker(state.items[id].name),
+    openEdit: id => openEditor(state.items[id], false),
     armDelete: id => withUndo(`Deleted ${state.items[id].name}`, () => deleteItem(id)),
     swipeRight: id => openProjectSubs(id)
   });
@@ -4156,7 +4317,7 @@ function renderBacklogs() {
       reverse: true,
       onReorder: keys => { state.backlogs[k] = keys; save(); },
       armable: blockEditable,
-      openEdit: scheduleBlock,
+      openEdit: editBlock,
       armDelete: deleteBlock,
       swipeRight: bid => {
         detach(bid); state.stack.push(bid); save(); renderAll();
@@ -4305,6 +4466,7 @@ function checkDue() {
 /* ---------- glasses: sync hooks, calendar queue, pairing ---------- */
 function saveSyncMeta() { state.settings.syncRev = syncRev; save({ noSync: true, noBackup: true }); }
 function onSyncStatus() { renderSettings(); }
+function onSyncConflict() { toast('Updated from your glasses. Redo your last change if it’s missing'); }
 let calQueueToasted = 0;
 /* The glasses can't sign in to Google, so their completions wait here until the phone logs them. */
 async function processCalQueue(interactive) {
@@ -4385,7 +4547,7 @@ async function refreshSchedule(interactive) {
   if (!tok) {
     note.textContent = state.settings.clientId
       ? (cache ? `As of ${msToClock(cache.at)}. Tap REFRESH to update.` : 'Tap REFRESH to load today from Google Calendar.')
-      : 'Connect Google in SETTINGS (swipe up on STACK) to see your day here.';
+      : 'Connect Google in SETTINGS (the next screen over) to see your day here.';
     return;
   }
   note.textContent = 'Loading…';
@@ -4398,17 +4560,15 @@ async function refreshSchedule(interactive) {
   if (!cache || JSON.stringify(cache.events) !== JSON.stringify(list)) { state.dayCache = { date, at: Date.now(), events: list }; save({ noBackup: true }); }
 }
 
-/* ---------- SETTINGS: swipe up on STACK; swipe down on the SETTINGS title (top) to return ---------- */
-function openSettings() {
-  const el = screenEl('settingsscreen', `<header class="title top" id="t-settings"><h1>SETTINGS</h1></header><div class="settings" id="settings-body"></div>`);
-  gesture($('#t-settings', el), { moveEl: false, onSwipeDown: () => closeAll(() => goPanel('stack')) });
-  openScreen(el);
-  renderSettings();
-}
-
 /* ---------- boot ---------- */
-function navTitle(id, right, left, up) {
-  gesture($(id), { moveEl: false, onSwipeRight: right ? () => goPanel(right) : null, onSwipeLeft: left ? () => goPanel(left) : null, onSwipeUp: up || null });
+/* Swipes on a bottom label move between screens. With a block in FOCUS on that screen,
+   swiping left (toward SCHEDULE) plans it on today's schedule instead. */
+function navTitle(id, right, left, panelKey) {
+  gesture($(id), {
+    moveEl: false,
+    onSwipeRight: right ? () => goPanel(right) : null,
+    onSwipeLeft: () => { if (panelKey && scheduleArmed(panelKey)) return; if (left) goPanel(left); }
+  });
 }
 async function boot() {
   const t0 = Date.now();
@@ -4416,12 +4576,15 @@ async function boot() {
   try { await loadState(); }
   catch (e) { state = freshState(); toast('Storage is unavailable. Changes will not be kept.'); }
 
-  // Panels, left to right: PROJECT BACKLOG, LIST BACKLOG, TASK BACKLOG, STACK, SCHEDULE. SETTINGS is swipe up on STACK.
-  navTitle('#t-project', null, 'stack', () => swipeUpTitle('project'));   // end of the row: swiping right does nothing
-  navTitle('#t-list', 'project', 'stack', () => swipeUpTitle('list'));
-  navTitle('#t-task', 'list', 'stack', () => swipeUpTitle('task'));
-  navTitle('#t-stack', 'task', 'schedule', () => swipeUpTitle('stack'));
-  navTitle('#t-schedule', 'stack', null);                                  // end of the row the other way
+  // Panels, left to right: PROJECT BACKLOG, LIST BACKLOG, TASK BACKLOG, STACK, SCHEDULE, SETTINGS, RECOVERY.
+  navTitle('#t-project', null, 'stack', 'project');   // end of the row: swiping right does nothing
+  navTitle('#t-list', 'project', 'stack', 'list');
+  navTitle('#t-task', 'list', 'stack', 'task');
+  navTitle('#t-stack', 'task', 'schedule', 'stack');
+  navTitle('#t-schedule', 'stack', 'settings');
+  // Like the backlogs: swipe right goes one screen further out, swipe left jumps straight back to STACK.
+  navTitle('#t-settings', 'recovery', 'stack');
+  navTitle('#t-recovery', null, 'stack');             // end of the row: swiping right does nothing
   $('#b-refresh').addEventListener('click', () => refreshSchedule(true));
   setInterval(() => { if (panel === 'schedule' && !document.hidden) refreshSchedule(false); }, 5 * 60000);
 

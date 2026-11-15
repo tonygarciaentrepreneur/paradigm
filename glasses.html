@@ -424,20 +424,25 @@ async function syncPush() {
   if (!syncConfigured()) return;
   const data = syncPayload();
   if (data === syncLastSent) return;
+  const retry = () => { setSyncStatus('offline'); clearTimeout(syncTimer); syncTimer = setTimeout(syncPush, 5000); };
+  // Always look at the server first. If we can't, wait and try again: never write blind.
+  let cur;
+  try { cur = await syncFetch(); } catch (e) { retry(); return; }
+  if (cur && cur.rev > syncRev) {
+    // The server has changes this device hasn't seen yet (the other device wrote since our last sync,
+    // or this device just woke up with an old copy). Never write over them: take the server's version.
+    if (cur.data === data) { syncRev = cur.rev; syncLastSent = data; saveSyncMeta(); return; }
+    syncReceive(cur);
+    if (typeof onSyncConflict === 'function') onSyncConflict();
+    return;
+  }
+  const rec = { rev: Math.max(syncRev, cur ? cur.rev : 0) + 1, by: syncDevice, at: Date.now(), data };
   try {
-    // Number this write after whatever is on the server, so the newest change always wins
-    // and both devices end up with the same data.
-    let base = syncRev;
-    try { const cur = await syncFetch(); if (cur && cur.rev > base) base = cur.rev; } catch (e) { /* offline: the PUT below will fail and retry */ }
-    const rec = { rev: base + 1, by: syncDevice, at: Date.now(), data };
     const r = await fetch(syncUrl(), { method: 'PUT', body: JSON.stringify(rec) });
     if (!r.ok) throw new Error('sync ' + r.status);
     syncRev = rec.rev; syncLastSent = data; saveSyncMeta();
     if (syncStatus !== 'live') setSyncStatus(syncES ? 'live' : 'connecting');
-  } catch (e) {
-    setSyncStatus('offline');
-    clearTimeout(syncTimer); syncTimer = setTimeout(syncPush, 5000);   // retry until it goes through
-  }
+  } catch (e) { retry(); }
 }
 
 /* Applies a record from the other device if it's newer than what we have. */
@@ -470,8 +475,9 @@ async function syncStart() {
   setSyncStatus('connecting');
   try {
     const rec = await syncFetch();
-    if (rec && rec.rev > syncRev) syncReceive(rec);
-    else if (!rec || syncPayload() !== syncLastSent || rec.rev < syncRev) { syncLastSent = ''; await syncPush(); }
+    if (rec && rec.rev > syncRev) syncReceive(rec);                     // newer on the server: take it
+    else if (rec && rec.data === syncPayload()) { syncLastSent = rec.data; if (rec.rev > syncRev) { syncRev = rec.rev; saveSyncMeta(); } }  // already the same
+    else { syncLastSent = ''; await syncPush(); }                       // ours has changes the server hasn't got yet
   } catch (e) { setSyncStatus('offline'); }
   try {
     syncES = new EventSource(syncUrl());
@@ -533,6 +539,7 @@ function flush() {
   } catch (e) { /* storage full or unavailable: sync still holds the data */ }
 }
 function saveSyncMeta() { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 200); }
+function onSyncConflict() { toast('Updated from your phone. Redo your last change if it’s missing'); }
 function onSyncStatus(s) {
   const el = $('#status'); if (!el) return;
   el.textContent = { live: '● SYNCED', connecting: '○ CONNECTING', offline: '○ OFFLINE', off: '' }[s] || '';
