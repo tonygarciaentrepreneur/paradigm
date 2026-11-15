@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paradigm — Recover a Drive backup</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px 16px 48px; background: #101010; color: #e8e8e8;
+         font-family: "Share Tech Mono", ui-monospace, Menlo, Consolas, monospace; line-height: 1.5; }
+  h1 { font-size: 20px; letter-spacing: 2px; color: #00ff41; margin: 0 0 4px; }
+  h2 { font-size: 16px; letter-spacing: 1px; color: #00ff41; margin: 24px 0 8px; }
+  p { margin: 8px 0; font-size: 14px; }
+  .sub { color: #bdbdbd; }
+  .mono { font-family: inherit; color: #fff; }
+  .hidden { display: none !important; }
+  input[type="text"] { width: 100%; padding: 10px; margin: 8px 0; background: #1c1c1c; color: #fff;
+    border: 1px solid #444; border-radius: 6px; font: inherit; font-size: 13px; }
+  button, .btn { display: inline-block; padding: 11px 16px; margin: 6px 6px 6px 0; background: #00ff41;
+    color: #101010; border: none; border-radius: 6px; font: inherit; font-size: 14px; font-weight: bold;
+    letter-spacing: 1px; cursor: pointer; text-decoration: none; }
+  button.quiet { background: #2a2a2a; color: #e8e8e8; border: 1px solid #555; }
+  button:disabled { opacity: .5; cursor: default; }
+  .status { color: #9fd8ff; min-height: 1.2em; }
+  .err { color: #ff6b6b; }
+  .rev { border: 1px solid #333; border-radius: 8px; padding: 12px; margin: 10px 0; background: #171717; }
+  .rev .when { font-size: 15px; color: #fff; }
+  .rev .meta { font-size: 13px; color: #bdbdbd; }
+  .rev .tag { display: inline-block; font-size: 11px; letter-spacing: 1px; color: #00ff41;
+    border: 1px solid #00ff41; border-radius: 4px; padding: 1px 6px; margin-left: 8px; }
+  pre { white-space: pre-wrap; word-break: break-word; background: #171717; border: 1px solid #333;
+    border-radius: 8px; padding: 12px; font: inherit; font-size: 13px; }
+  .foot { margin-top: 32px; font-size: 12px; color: #888; }
+</style>
+</head>
+<body>
+<h1>PARADIGM RECOVERY</h1>
+<p class="sub">Lists older versions of your Drive backup (<span class="mono">paradigm-backup.json</span>) so you
+can download one and IMPORT it in Paradigm. This page only reads from Drive. The one change it makes is
+marking a version "Keep Forever" when you inspect it — Google requires that before a download, and it also
+stops that version being auto-deleted.</p>
+<p class="sub">Open this page from your GitHub Pages address
+(<span class="mono">tonygarciaentrepreneur.github.io/paradigm/recover.html</span>), in the same browser as
+Paradigm. It does not work as a downloaded file.</p>
+
+<div id="setup">
+  <p id="idstatus" class="status">Looking for your Paradigm setup…</p>
+  <div id="cidwrap" class="hidden">
+    <p class="sub">Paste the OAuth client ID from Paradigm (SETTINGS → Google → Client ID):</p>
+    <input type="text" id="cid" placeholder="…apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+  </div>
+  <button id="connect">CONNECT GOOGLE</button>
+  <p id="authstatus" class="status"></p>
+</div>
+
+<div id="revs" class="hidden">
+  <h2>Versions</h2>
+  <p id="fileinfo" class="meta"></p>
+  <p class="sub">Newest first. The top one is the current backup — the one Paradigm's RESTORE would give you.
+  Inspect one from before the data went wrong (Nov 11).</p>
+  <div id="list"></div>
+</div>
+
+<div id="inspect" class="hidden">
+  <h2 id="inspect-title">Version</h2>
+  <pre id="summary"></pre>
+  <button id="download">DOWNLOAD THIS VERSION</button>
+  <p class="sub">Then in Paradigm: SETTINGS → File backup → IMPORT → pick the downloaded file.
+  It replaces everything on the phone, then syncs to your glasses.</p>
+</div>
+
+<p id="err" class="err"></p>
+<p class="foot">Reads only the Paradigm backup in your Drive app folder. Your Google token stays in this browser.</p>
+
+<script>
+'use strict';
+/* Paradigm Drive-revision recovery. Same OAuth client + scope as the app, read-only except
+   marking an inspected revision Keep Forever (required by Google before a download). */
+const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
+const BACKUP_NAME = 'paradigm-backup.json';
+const DRIVE = 'https://www.googleapis.com/drive/v3';
+
+const $ = s => document.querySelector(s);
+let clientId = '', tokenClient = null, tokenClientFor = '';
+let accessToken = '', tokenExp = 0, tokenWaiters = [], tokenPending = false, consentRetried = false;
+let fileId = '', revisions = [], inspected = null;
+
+function showErr(msg) { $('#err').textContent = msg || ''; }
+function setStatus(msg) { $('#authstatus').textContent = msg || ''; }
+
+/* ---------- read the app's own stored client ID (same origin, same IndexedDB) ---------- */
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('paradigm', 1);
+    r.onupgradeneeded = () => { try { r.result.createObjectStore('kv'); } catch (e) {} };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function loadClientId() {
+  try {
+    const db = await idbOpen();
+    const state = await new Promise((res, rej) => {
+      const q = db.transaction('kv').objectStore('kv').get('state');
+      q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+    });
+    if (state && state.settings && state.settings.clientId) {
+      clientId = state.settings.clientId;
+      $('#idstatus').textContent = 'Found your Paradigm setup.';
+      $('#cid').value = clientId;
+      return;
+    }
+  } catch (e) { /* fall through to manual paste */ }
+  $('#idstatus').textContent = 'Could not read the Paradigm setup from this browser.';
+  $('#cidwrap').classList.remove('hidden');
+}
+
+/* ---------- Google sign-in (same token-client flow as the app) ---------- */
+const gisReady = () => !!(window.google && google.accounts && google.accounts.oauth2);
+function tokenValid() { return !!accessToken && Date.now() < tokenExp - 60000; }
+function settleTokens(tok) {
+  tokenPending = false;
+  const w = tokenWaiters; tokenWaiters = [];
+  w.forEach(f => f(tok));
+}
+function ensureTokenClient() {
+  const id = (clientId || $('#cid').value || '').trim();
+  if (!id || !gisReady()) return null;
+  clientId = id;
+  if (tokenClient && tokenClientFor === id) return tokenClient;
+  tokenClientFor = id;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: id, scope: SCOPES,
+    callback: resp => {
+      if (resp && resp.access_token) {
+        accessToken = resp.access_token;
+        tokenExp = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+        settleTokens(accessToken);
+      } else settleTokens(null);
+    },
+    error_callback: () => settleTokens(null)
+  });
+  return tokenClient;
+}
+function getToken() {
+  if (tokenValid()) return Promise.resolve(accessToken);
+  const tc = ensureTokenClient();
+  if (!tc) return Promise.resolve(null);
+  return new Promise(res => {
+    tokenWaiters.push(res);
+    if (tokenPending) return;
+    tokenPending = true;
+    try { tc.requestAccessToken({ prompt: '' }); }
+    catch (e) { settleTokens(null); }
+  });
+}
+
+async function gfetch(method, url, body) {
+  const h = { Authorization: 'Bearer ' + accessToken };
+  let payload;
+  if (body !== undefined && body !== null) { payload = JSON.stringify(body); h['Content-Type'] = 'application/json'; }
+  const r = await fetch(url, { method, headers: h, body: payload });
+  if (r.status === 401) { accessToken = ''; tokenExp = 0; throw Object.assign(new Error('auth'), { status: 401 }); }
+  if (!r.ok) throw Object.assign(new Error('http ' + r.status), { status: r.status });
+  if (r.status === 204) return null;
+  const ct = r.headers.get('content-type') || '';
+  return ct.includes('json') ? r.json() : r.text();
+}
+
+/* ---------- Drive: find file, list revisions, inspect, download ---------- */
+async function findBackupFile() {
+  const q = encodeURIComponent(`name='${BACKUP_NAME}'`);
+  const r = await gfetch('GET', `${DRIVE}/files?spaces=appDataFolder&q=${q}&fields=files(id,modifiedTime,size)`);
+  if (!r.files || !r.files.length) throw new Error('No backup file found in your Drive app folder.');
+  return r.files[0];
+}
+async function listRevisions() {
+  const r = await gfetch('GET',
+    `${DRIVE}/files/${encodeURIComponent(fileId)}/revisions?pageSize=100&fields=revisions(id,modifiedTime,size,keepForever)`);
+  return (r.revisions || []).sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime));
+}
+function fmtSize(b) {
+  b = Number(b || 0);
+  return b >= 1024 ? (b / 1024).toFixed(1) + ' KB' : b + ' B';
+}
+function fmtWhen(iso) { try { return new Date(iso).toLocaleString(); } catch (e) { return iso; } }
+
+function renderRevisions() {
+  $('#revs').classList.remove('hidden');
+  const list = $('#list');
+  list.innerHTML = '';
+  revisions.forEach((rev, i) => {
+    const div = document.createElement('div');
+    div.className = 'rev';
+    div.innerHTML = `<div class="when">${fmtWhen(rev.modifiedTime)}${i === 0 ? '<span class="tag">CURRENT</span>' : ''}${rev.keepForever ? '<span class="tag">KEPT</span>' : ''}</div>
+      <div class="meta">${fmtSize(rev.size)} · revision ${rev.id}</div>`;
+    const btn = document.createElement('button');
+    btn.className = 'quiet';
+    btn.textContent = 'INSPECT';
+    btn.addEventListener('click', () => inspectRevision(rev, btn));
+    div.appendChild(btn);
+    list.appendChild(div);
+  });
+}
+
+function summarize(data) {
+  const items = data.items || {};
+  const blocks = data.blocks || {};
+  const stack = data.stack || [];
+  const backlogs = data.backlogs || {};
+  const names = [];
+  for (const bid of stack.slice(0, 8)) {
+    const b = blocks[bid];
+    const it = b && items[b.itemId];
+    if (!it) continue;
+    if (b.subId) {
+      const sub = (it.subtasks || []).find(s => s.id === b.subId);
+      names.push((it.name || '?') + ' › ' + (sub ? sub.name : '?'));
+    } else names.push(it.name || '?');
+  }
+  const lines = [
+    'Exported: ' + (data.exportedAt ? new Date(data.exportedAt).toLocaleString() : 'unknown'),
+    'Items: ' + Object.keys(items).length,
+    'On STACK: ' + stack.length,
+    'Backlogs — tasks: ' + (backlogs.task || []).length +
+      ', lists: ' + (backlogs.list || []).length +
+      ', projects: ' + (backlogs.project || []).length,
+    'Completions waiting for calendar: ' + (data.calQueue || []).length,
+    '',
+    'Top of STACK:'
+  ];
+  if (names.length) names.forEach(n => lines.push('  • ' + n));
+  else lines.push('  (empty)');
+  return lines.join('\n');
+}
+
+async function inspectRevision(rev, btn) {
+  showErr('');
+  btn.disabled = true;
+  btn.textContent = 'LOADING…';
+  try {
+    // Google only lets you download a blob revision marked Keep Forever.
+    if (!rev.keepForever) {
+      await gfetch('PATCH', `${DRIVE}/files/${encodeURIComponent(fileId)}/revisions/${encodeURIComponent(rev.id)}`, { keepForever: true });
+      rev.keepForever = true;
+    }
+    const text = await gfetch('GET', `${DRIVE}/files/${encodeURIComponent(fileId)}/revisions/${encodeURIComponent(rev.id)}?alt=media`);
+    const data = JSON.parse(typeof text === 'string' ? text : JSON.stringify(text));
+    if (!data.items) throw new Error('This version is not a Paradigm backup.');
+    inspected = { rev, text: typeof text === 'string' ? text : JSON.stringify(text), data };
+    $('#inspect-title').textContent = 'Version from ' + fmtWhen(rev.modifiedTime);
+    $('#summary').textContent = summarize(data);
+    $('#inspect').classList.remove('hidden');
+    $('#inspect').scrollIntoView();
+    renderRevisions(); // refresh KEPT tags
+  } catch (e) {
+    if (e.status === 401) showErr('Google sign-in expired. Tap CONNECT GOOGLE again.');
+    else if (e.status === 403) showErr('Google refused this (403). The backup may belong to a different Google account than the one you signed in with.');
+    else showErr('Could not read this version: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'INSPECT';
+  }
+}
+
+$('#download').addEventListener('click', () => {
+  if (!inspected) return;
+  const d = new Date(inspected.rev.modifiedTime);
+  const pad = n => String(n).padStart(2, '0');
+  const fname = `paradigm-revision-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+  const blob = new Blob([inspected.text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+});
+
+$('#connect').addEventListener('click', async () => {
+  showErr('');
+  consentRetried = false;
+  if (!gisReady()) { showErr('Google sign-in did not load. Check your connection and reload the page.'); return; }
+  const id = (clientId || $('#cid').value || '').trim();
+  if (!id) { $('#cidwrap').classList.remove('hidden'); showErr('Paste your client ID first (Paradigm → SETTINGS → Google → Client ID).'); return; }
+  clientId = id;
+  setStatus('Signing in…');
+  let tok = await getToken();
+  if (!tok && !consentRetried) {
+    // First silent attempt failed (no grant yet for this page) — retry with the consent screen.
+    consentRetried = true;
+    tokenClient = null;
+    const tc = ensureTokenClient();
+    tok = await new Promise(res => {
+      tokenWaiters.push(res);
+      tokenPending = true;
+      try { tc.requestAccessToken({ prompt: 'consent' }); }
+      catch (e) { settleTokens(null); }
+    });
+  }
+  if (!tok) { setStatus(''); showErr('Could not sign in to Google.'); return; }
+  try {
+    setStatus('Finding your backup…');
+    const f = await findBackupFile();
+    fileId = f.id;
+    $('#fileinfo').textContent = `Backup file found, last written ${fmtWhen(f.modifiedTime)} (${fmtSize(f.size)}).`;
+    setStatus('Listing versions…');
+    revisions = await listRevisions();
+    if (!revisions.length) { setStatus(''); showErr('The backup file has no saved versions.'); return; }
+    setStatus(`Signed in. ${revisions.length} version${revisions.length > 1 ? 's' : ''} found.`);
+    renderRevisions();
+  } catch (e) {
+    setStatus('');
+    if (e.status === 401) showErr('Google sign-in expired. Tap CONNECT GOOGLE again.');
+    else if (e.status === 403) showErr('Google refused this (403). Make sure you signed in with the same Google account Paradigm uses.');
+    else showErr(e.message);
+  }
+});
+
+loadClientId();
+</script>
+</body>
+</html>
