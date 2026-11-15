@@ -4212,7 +4212,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.8.2';
+const VERSION = '1.8.3';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
@@ -4582,9 +4582,9 @@ async function boot() {
   navTitle('#t-task', 'list', 'stack', 'task');
   navTitle('#t-stack', 'task', 'schedule', 'stack');
   navTitle('#t-schedule', 'stack', 'settings');
-  // Like the backlogs: swipe right goes one screen further out, swipe left jumps straight back to STACK.
-  navTitle('#t-settings', 'recovery', 'stack');
-  navTitle('#t-recovery', null, 'stack');             // end of the row: swiping right does nothing
+  // Mirror of the backlogs: on this side swipe left goes one screen further out, swipe right jumps straight back to STACK.
+  navTitle('#t-settings', 'stack', 'recovery');
+  navTitle('#t-recovery', 'stack', null);             // end of the row: swiping left does nothing
   $('#b-refresh').addEventListener('click', () => refreshSchedule(true));
   setInterval(() => { if (panel === 'schedule' && !document.hidden) refreshSchedule(false); }, 5 * 60000);
 

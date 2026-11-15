@@ -103,8 +103,8 @@ Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STA
 | STACK name | TASK BACKLOG | SCHEDULE | |
 | Backlog names | Next backlog out (stops at PROJECT BACKLOG) | Straight back to STACK | |
 | SCHEDULE name | STACK | SETTINGS | |
-| SETTINGS name | RECOVERY | Straight back to STACK | |
-| RECOVERY name | (end of row) | Straight back to STACK | |
+| SETTINGS name | Straight back to STACK | RECOVERY | |
+| RECOVERY name | Straight back to STACK | (end of row) | |
 | STACK block | Complete (it leaves STACK; nothing goes on the calendar) | Send to its backlog (project subtasks return to their project) | Reorder |
 | Task or list in a backlog | Add to top of STACK | | Reorder |
 | Project in PROJECT BACKLOG | Open its subtasks | | Reorder |
