@@ -323,6 +323,9 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .rec-summary { white-space: pre-wrap; overflow-wrap: anywhere; border: 1px solid var(--dim); padding: 12px; font: inherit; font-size: 14px; line-height: 1.45; margin: 0 0 12px; -webkit-user-select: text; user-select: text; }
 .settings h3 { margin: 0 0 8px; font-size: 13px; font-weight: 400; color: var(--g2); letter-spacing: .18em; }
 
+/* Today's calendar → STACK prompt (when Google needs a tap to sign in again) */
+#calbar { flex: none; margin: 10px 14px 0; padding: 11px 14px; background: var(--bg); border: 2px dashed var(--g); color: var(--g); font: inherit; font-size: 14px; letter-spacing: .1em; cursor: pointer; }
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -349,6 +352,7 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
     </section>
 
     <section class="panel" id="p-stack">
+      <button id="calbar" class="hidden">ADD TODAY’S CALENDAR TO STACK</button>
       <div class="list stack" id="stack-list"></div>
       <p class="empty" id="stack-empty">Type below to add something.</p>
       <div class="stackfoot">
@@ -445,6 +449,7 @@ function freshState() {
     lastDueCheck: todayStr(),
     calQueue: [],   // schedules made on the glasses, waiting for the phone to add them to Google Calendar
     dayCache: null, // today's calendar as last loaded by the phone, for the glasses' SCHEDULE screen
+    calImportDate: '', // the day today's calendar events were last added to STACK
     settings: { clientId: '', connected: false, paradigmCalId: '', driveFileId: '', lastBackup: 0 },
     auth: { token: '', exp: 0 }
   };
@@ -1005,7 +1010,7 @@ async function calDayEvents(date) {
   for (const c of cals) {
     try {
       const r = await gfetch(tok, 'GET', `${CAL}/calendars/${encodeURIComponent(c)}/events?${q}`);
-      (r.items || []).forEach(e => out.push(e));
+      (r.items || []).forEach(e => { e._cal = c; out.push(e); });   // remember which calendar it came from
     } catch (e) { /* show what we can */ }
   }
   return out;
@@ -3382,7 +3387,7 @@ var qrcode = function() {
    The higher rev wins. Each device listens for the other's writes (server-sent events). */
 'use strict';
 
-const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue', 'dayCache'];
+const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue', 'dayCache', 'calImportDate'];
 let syncCfg = null;            // { db, key }
 let syncDevice = 'phone';
 let syncRev = 0, syncLastSent = '', syncTimer = null, syncES = null, syncPoll = null;
@@ -4212,7 +4217,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.9.0';
+const VERSION = '1.10.0';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
@@ -4239,6 +4244,7 @@ function blockEl(bid) {
   if (it.type === 'list' && !b.subId && it.subtasks.length) meta += `<span class="meta">${it.subtasks.filter(s => s.done).length}/${it.subtasks.length}</span>`;
   if (b.elapsed) meta += `<span class="meta">${fmtShort(b.elapsed)}</span>`;
   if (it.recurring && !b.subId) meta += '<span class="mark" aria-label="Recurring">↻</span>';
+  if (it.cal && it.cal.date === todayStr() && !b.subId) meta = `<span class="meta">${minToClock(it.cal.startMin)}</span>` + meta;
   el.innerHTML = `<span class="name">${l.proj ? `<span class="proj">${esc(l.proj)} ›</span> ` : ''}${esc(l.name)}</span>${meta}`;
   return el;
 }
@@ -4410,7 +4416,7 @@ function renderSettings() {
     if (!gisReady()) return toast('Google sign-in did not load. Check your connection and reopen the app.');
     getToken(true, true).then(tok => {
       toast(tok ? 'Connected to Google' : 'Could not connect. Check the client ID and that you are a test user.');
-      if (tok) driveBackup();
+      if (tok) { driveBackup(); importTodayCalendar(false); }
       renderSettings();
     });
   });
@@ -4525,6 +4531,51 @@ function openPairing() {
   openScreen(el);
 }
 
+/* ---------- today's calendar onto STACK, once a day ----------
+   The first time Paradigm opens on the phone each day, today's timed events go to the bottom of STACK
+   in time order (first event at the very bottom). Skips all-day events, events you declined, and the
+   Paradigm calendar's own events (those are activities already in Paradigm). A repeating event reuses
+   its block instead of piling up copies. If Google needs a tap to sign in again, a bar on STACK asks. */
+function showCalBar(show) { const b = $('#calbar'); if (b) b.classList.toggle('hidden', !show); }
+let calImporting = false;
+async function importTodayCalendar(interactive) {
+  const today = todayStr();
+  if (state.calImportDate === today || !state.settings.clientId) { showCalBar(false); return; }
+  const tp = getToken(interactive);   // first, so a tap on the bar may sign in
+  if (calImporting) return;
+  calImporting = true;
+  try {
+    const tok = await tp;
+    if (!tok) { showCalBar(true); return; }
+    const evs = await calDayEvents(today);
+    if (!evs) { showCalBar(true); if (interactive) toast('Could not reach Google Calendar'); return; }
+    if (state.calImportDate === today) return;   // the other device got there first
+    const t0 = parseDate(today).getTime();
+    const declined = e => (e.attendees || []).some(a => a.self && a.responseStatus === 'declined');
+    const seen = new Set();
+    const timed = evs
+      .filter(e => e._cal !== state.settings.paradigmCalId && e.status !== 'cancelled' && e.start && e.start.dateTime && !declined(e))
+      .map(e => ({ id: e.id, title: (e.summary || '(busy)').trim(), startMin: Math.max(0, Math.round((new Date(e.start.dateTime) - t0) / MIN)), endMin: Math.min(1440, Math.round((new Date(e.end.dateTime) - t0) / MIN)) }))
+      .filter(e => !seen.has(e.id) && seen.add(e.id))
+      .sort((a, b) => a.startMin - b.startMin);
+    let added = 0;
+    // Insert the latest first so the earliest ends up at the very bottom.
+    for (const ev of timed.slice().reverse()) {
+      let it = itemByName(ev.title), name = ev.title;
+      if (it && it.type !== 'task') { name = `${ev.title} (calendar)`; it = itemByName(name); }
+      if (!it) { it = newItem('task', name); state.items[it.id] = it; }
+      it.cal = { id: ev.id, date: today, startMin: ev.startMin, endMin: ev.endMin };
+      let bid = findBlock(it.id, null);
+      if (bid) detach(bid); else { bid = uid(); state.blocks[bid] = { bid, itemId: it.id, subId: null, elapsed: 0 }; }
+      state.stack.unshift(bid);
+      added++;
+    }
+    state.calImportDate = today;
+    save(); renderAll(); showCalBar(false);
+    if (added || interactive) toast(added ? `Added ${added} event${added > 1 ? 's' : ''} from today’s calendar to STACK` : 'Nothing on today’s calendar');
+  } finally { calImporting = false; }
+}
+
 /* ---------- SCHEDULE: a live copy of today's calendar ---------- */
 function calendarAppUrl(date) {
   const d = parseDate(date);
@@ -4586,6 +4637,7 @@ async function boot() {
   navTitle('#t-settings', 'stack', 'recovery');
   navTitle('#t-recovery', 'stack', null);             // end of the row: swiping left does nothing
   $('#b-refresh').addEventListener('click', () => refreshSchedule(true));
+  $('#calbar').addEventListener('click', () => importTodayCalendar(true));
   setInterval(() => { if (panel === 'schedule' && !document.hidden) refreshSchedule(false); }, 5 * 60000);
 
   const inp = $('#main-input'), sug = $('#suggest'), ps = $('#p-stack');
@@ -4613,10 +4665,11 @@ async function boot() {
   syncStart();
   processCalQueue(false);
 
-  setInterval(checkDue, 15000);
+  setInterval(() => { checkDue(); if (state.calImportDate !== todayStr()) importTodayCalendar(false); }, 15000);
+  importTodayCalendar(false);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) flush();
-    else { checkDue(); if (syncConfigured()) syncFetch().then(syncReceive).catch(() => {}); }
+    else { checkDue(); importTodayCalendar(false); if (syncConfigured()) syncFetch().then(syncReceive).catch(() => {}); }
   });
   window.addEventListener('pagehide', flush);
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
