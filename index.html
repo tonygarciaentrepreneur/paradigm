@@ -326,6 +326,18 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 /* Today's calendar → STACK prompt (when Google needs a tap to sign in again) */
 #calbar { flex: none; margin: 10px 14px 0; padding: 11px 14px; background: var(--bg); border: 2px dashed var(--g); color: var(--g); font: inherit; font-size: 14px; letter-spacing: .1em; cursor: pointer; }
 
+/* SCHEDULE: CALENDAR sits just above the name, where STACK has its entry box */
+.schedfoot { flex: none; padding: 10px 14px 0; }
+.schedfoot .btn { display: block; }
+
+/* Activity screen: entry box and OPTIONS share a row just above the name; OPTIONS opens upward */
+.actrow { flex: none; display: flex; gap: 8px; padding: 10px 14px 0; }
+.actrow .subin { flex: 1; min-width: 0; }
+.actrow .optbtn { flex: none; padding: 0 14px; font-size: 13px; }
+.activity .optpanel { border-bottom: 0; border-top: 1px solid var(--faint); padding-top: 10px; max-height: 55vh; }
+.activity .optnotes { min-height: 120px; height: 22vh; }
+.notesline { flex: none; margin: 10px 16px 0; padding: 8px 10px; border: 1px solid var(--dim); color: var(--g2); font-size: 14px; line-height: 1.4; white-space: pre-wrap; max-height: 22vh; overflow-y: auto; }
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -365,11 +377,11 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
     </section>
 
     <section class="panel" id="p-schedule">
-      <div class="schedtop"><a class="btn wide" id="b-calendar" target="_blank" rel="noopener">CALENDAR</a></div>
       <div class="dayhead"><span class="d" id="sched-date"></span><button class="btn quiet small" id="b-refresh">REFRESH</button></div>
       <p class="schednote" id="sched-note"></p>
       <div class="allday-strip" id="sched-allday"></div>
       <div class="dayscroll" id="sched-scroll"><div class="grid" id="sched-grid" style="margin-top:12px;margin-bottom:24px"></div></div>
+      <div class="schedfoot"><a class="btn wide" id="b-calendar" target="_blank" rel="noopener">CALENDAR</a></div>
       <header class="title" id="t-schedule"><h1>SCHEDULE</h1></header>
     </section>
 
@@ -470,6 +482,7 @@ function normalize(s) {
   s.v = 4;
   for (const k of Object.keys(f)) if (s[k] === undefined) s[k] = f[k];
   s.settings = Object.assign(f.settings, s.settings || {});
+  for (const it of Object.values(s.items || {})) if (it.type === 'task' && !Array.isArray(it.subtasks)) it.subtasks = [];   // v1.11: tasks hold subtasks
   s.auth = Object.assign(f.auth, s.auth || {});
   return s;
 }
@@ -562,7 +575,7 @@ function blockName(bid) { const l = blockLabel(bid); return l.proj ? `${l.proj} 
 
 function newItem(type, name) {
   const it = { id: uid(), type, name: name.trim(), created: Date.now() };
-  if (type === 'task') Object.assign(it, { notes: '', recurring: false, schedule: { freq: 'none' } });
+  if (type === 'task') Object.assign(it, { notes: '', subtasks: [], recurring: false, schedule: { freq: 'none' } });
   if (type === 'list') Object.assign(it, { subtasks: [], recurring: false, recSubtasks: false, schedule: { freq: 'none' } });
   if (type === 'project') Object.assign(it, { subtasks: [], recurring: false });
   if (type === 'event') Object.assign(it, { event: null });
@@ -581,6 +594,33 @@ function placeInBacklog(itemId) {
   state.blocks[bid] = { bid, itemId, subId: null, elapsed: 0 };
   state.backlogs[it.type].push(bid);
   return true;
+}
+/* Changing what an item is:
+   task -> list when it gets its first subtask (OPTIONS keeps it a list from then on);
+   task or list -> project (OPTIONS → Project): it leaves STACK and its backlog and lives in PROJECT BACKLOG;
+   project -> list (or task, with no subtasks) when Project is unchecked. */
+function convertItem(id, toType) {
+  const it = state.items[id]; if (!it || it.type === toType) return;
+  const from = it.type;
+  if (toType === 'project') {
+    const bid = findBlock(id, null); if (bid) removeBlock(bid);
+    it.type = 'project'; it.subtasks = it.subtasks || [];
+    listProject(id);
+    return;
+  }
+  if (from === 'project') {
+    for (const bid of Object.keys(state.blocks)) if (state.blocks[bid].itemId === id && state.blocks[bid].subId) removeBlock(bid);
+    state.backlogs.project = state.backlogs.project.filter(x => x !== id);
+  }
+  it.type = toType;
+  Object.assign(it, { subtasks: it.subtasks || [], recurring: !!it.recurring, schedule: it.schedule || { freq: 'none' } });
+  if (toType === 'list' && it.recSubtasks === undefined) it.recSubtasks = false;
+  // A block sitting in the task backlog follows it to the list backlog (same spot), and back.
+  const bid = findBlock(id, null);
+  if (bid) for (const k of ['task', 'list']) {
+    const i = state.backlogs[k].indexOf(bid);
+    if (i >= 0 && k !== toType) { state.backlogs[k].splice(i, 1); state.backlogs[toType].splice(Math.min(i, state.backlogs[toType].length), 0, bid); }
+  }
 }
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
@@ -664,6 +704,7 @@ function completeBlock(bid) {
     if (!it.recurring) it.subtasks = it.subtasks.filter(x => x.id !== b.subId);
   } else if (it.type === 'task') {
     if (!it.recurring) delete state.items[it.id];
+    else (it.subtasks || []).forEach(s => { s.done = false; });   // a recurring task's subtasks come back
   } else if (it.type === 'list') {
     if (!it.recurring) delete state.items[it.id];
     else if (it.recSubtasks) it.subtasks.forEach(s => { s.done = false; });
@@ -3608,12 +3649,13 @@ function eventWhen(ev) {
 function openEditor(item, isNew) {
   const orig = clone(item);
   const d = clone(item);
-  const hasSubs = d.type === 'list' || d.type === 'project';
+  if (d.type === 'task' && !Array.isArray(d.subtasks)) d.subtasks = [];
+  const hasSubs = d.type !== 'event';   // tasks, lists and projects all hold subtasks
+  // Like STACK: the list piles up from the bottom; the entry box and OPTIONS sit just above the name.
   const el = screenEl('editor activity', `
-    <div class="bar"><span class="label">${TYPES[d.type]}</span><button class="btn quiet optbtn">OPTIONS</button></div>
-    <div class="optpanel hidden"><input class="namein" type="text" autocomplete="off" aria-label="Name"><div class="optcontent"></div></div>
     <div class="actmain"></div>
-    ${hasSubs ? '<div class="inputbar actinput"><input class="subin" type="text" placeholder="Add a subtask" enterkeyhint="done" autocomplete="off"></div>' : ''}
+    <div class="optpanel hidden"><input class="namein" type="text" autocomplete="off" aria-label="Name"><div class="optcontent"></div></div>
+    <div class="actrow">${hasSubs ? '<input class="subin" type="text" placeholder="Add a subtask" enterkeyhint="done" autocomplete="off">' : ''}<button class="btn quiet optbtn">OPTIONS</button></div>
     <header class="title act-title"><h1></h1></header>`);
   const title = $('.act-title h1', el), optpanel = $('.optpanel', el), optcontent = $('.optcontent', el), main = $('.actmain', el);
   const nameIn = $('.namein', el);
@@ -3629,18 +3671,26 @@ function openEditor(item, isNew) {
   let subsList = null;
   function render() {
     optcontent.innerHTML = '';
+    if (d.type === 'task' || d.type === 'list' || d.type === 'project') {
+      // Project, like Recurring: a checkbox. A project lives in PROJECT BACKLOG; its subtasks go to STACK one by one.
+      const pr = document.createElement('div'); pr.className = 'sect'; optcontent.appendChild(pr);
+      pr.append(checkBtn('Project', d.type === 'project', () => {
+        if (d.type === 'project') {
+          d.type = d.subtasks.length ? 'list' : 'task';
+          Object.assign(d, { recurring: !!d.recurring, schedule: d.schedule || { freq: 'none' } });
+          if (d.type === 'list' && d.recSubtasks === undefined) d.recSubtasks = false;
+        } else d.type = 'project';
+        render();
+      }));
+    }
     if (d.type === 'task' || d.type === 'list') { const r = document.createElement('div'); r.className = 'sect'; optcontent.appendChild(r); recurringUI(d, r); }
     if (d.type === 'project') {
       const r = document.createElement('div'); r.className = 'sect'; optcontent.appendChild(r);
       r.append(checkBtn('Recurring project', !!d.recurring, () => { d.recurring = !d.recurring; render(); }));
     }
     main.innerHTML = '';
-    if (d.type === 'task') {
-      main.innerHTML = '<textarea class="notes" placeholder="Notes"></textarea>';
-      const ta = $('textarea', main); ta.value = d.notes || ''; ta.addEventListener('input', () => { d.notes = ta.value; });
-    }
     if (hasSubs) {
-      main.innerHTML = '<div class="list rev"></div><p class="empty hidden">No subtasks. Add one below.</p>';
+      main.innerHTML = `<div class="list rev"></div><p class="empty hidden">${d.type === 'task' ? 'Add a subtask below to make this a list.' : 'No subtasks. Add one below.'}</p>`;
       subsList = $('.list', main);
       renderSubs();
     }
@@ -3657,7 +3707,11 @@ function openEditor(item, isNew) {
     e.preventDefault();
     const v = si.value.trim(); if (!v) return;
     d.subtasks.push({ id: uid(), name: v, done: false });
-    si.value = ''; renderSubs();
+    si.value = '';
+    if (d.type === 'task') {   // its first subtask makes a task a list
+      d.type = 'list'; if (d.recSubtasks === undefined) d.recSubtasks = false;
+      render(); toast('Now a list');
+    } else renderSubs();
   });
 
   /* Subtasks: swipe right completes (it leaves the list), swipe left deletes, hold and drag reorders. */
@@ -3697,6 +3751,9 @@ function openEditor(item, isNew) {
     d.name = n; return true;
   }
   function commit() {
+    if (orig.type !== d.type && state.items[d.id]) {   // Project checkbox changed: move it between STACK/backlog and PROJECT BACKLOG
+      const target = d.type; d.type = orig.type; state.items[d.id] = d; convertItem(d.id, target);
+    }
     if (d.type === 'project') {
       const keep = new Set(d.subtasks.map(s => s.id));
       for (const bid of Object.keys(state.blocks)) { const b = state.blocks[bid]; if (b.itemId === d.id && b.subId && !keep.has(b.subId)) removeBlock(bid); }
@@ -3711,7 +3768,8 @@ function openEditor(item, isNew) {
     if (d.type === 'event') return saveEvent();
     commit(); clearMainInput();
     let msg = 'Saved';
-    if (toStack && d.type === 'project') msg = 'Projects live in PROJECT BACKLOG. Add their subtasks to STACK from there';
+    if (d.type === 'project' && orig.type !== 'project') msg = 'Now a project: it’s in PROJECT BACKLOG';
+    else if (toStack && d.type === 'project') msg = 'Projects live in PROJECT BACKLOG. Add their subtasks to STACK from there';
     else if (toStack) msg = addToStack(d.id, null, 'bottom') || 'Added to STACK';
     else if (placeInBacklog(d.id)) msg = `Saved to ${BACKLOG_TITLE[d.type]}`;
     else if (isNew && d.type === 'project') msg = 'Saved to PROJECT BACKLOG';
@@ -4217,7 +4275,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.10.0';
+const VERSION = '1.11.0';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
@@ -4241,7 +4299,7 @@ function blockEl(bid) {
   el.className = 'block';
   el.dataset.key = bid;
   let meta = '';
-  if (it.type === 'list' && !b.subId && it.subtasks.length) meta += `<span class="meta">${it.subtasks.filter(s => s.done).length}/${it.subtasks.length}</span>`;
+  if ((it.type === 'list' || it.type === 'task') && !b.subId && (it.subtasks || []).length) meta += `<span class="meta">${it.subtasks.filter(s => s.done).length}/${it.subtasks.length}</span>`;
   if (b.elapsed) meta += `<span class="meta">${fmtShort(b.elapsed)}</span>`;
   if (it.recurring && !b.subId) meta += '<span class="mark" aria-label="Recurring">↻</span>';
   if (it.cal && it.cal.date === todayStr() && !b.subId) meta = `<span class="meta">${minToClock(it.cal.startMin)}</span>` + meta;
@@ -4256,11 +4314,8 @@ function blockEditable(bid) { return !!state.blocks[bid]; }
 function editBlock(bid) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false); }
 function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName(bid)}`, () => deleteBlockItem(bid)); }
 const PANEL_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
-function onArmChange(el) {
-  for (const k of Object.keys(PANEL_TITLE)) $(`#t-${k} h1`).textContent = PANEL_TITLE[k];
-  const p = el && el.closest('.panel');
-  if (p && PANEL_TITLE[p.id.slice(2)]) $(`#t-${p.id.slice(2)} h1`).textContent = 'FOCUS';
-}
+/* Highlighting a block no longer changes the screen name (it stays STACK, or the backlog's name). */
+function onArmChange() {}
 function armedIn(panelKey) { return armed && armed.isConnected && armed.closest(`#p-${panelKey}`) ? armed : null; }
 function scheduleArmed(panelKey) {
   const a = armedIn(panelKey); if (!a) return false;
@@ -4282,9 +4337,9 @@ function renderStack() {
     reverse: true,
     onReorder: keys => { state.stack = keys; save(); },
     armable: blockEditable,
-    openEdit: editBlock,
-    armDelete: deleteBlock,
-    swipeRight: bid => { const name = blockName(bid); withUndo(`Completed ${name}`, () => completeBlock(bid)); },
+    openEdit: bid => { const name = blockName(bid); withUndo(`Completed ${name}`, () => completeBlock(bid)); },   // highlighted → right: complete
+    armDelete: deleteBlock,                                                                                     // highlighted → left: delete
+    swipeRight: bid => editBlock(bid),                                                                          // plain right: its notes and subtasks
     swipeLeft: bid => {
       const b = state.blocks[bid];
       const msg = b.subId ? `Returned to ${state.items[b.itemId].name}` : `Sent to ${BACKLOG_TITLE[blockKind(bid)]}`;
@@ -4348,13 +4403,23 @@ function showSuggest() {
   sug.innerHTML = html;
   sug.classList.remove('hidden');
 }
+/* Everything new starts as a task at the bottom of STACK. Swipe it right to add subtasks or notes;
+   OPTIONS there can make it recurring or turn it into a project. */
+function createTask(name) {
+  const it = newItem('task', name);
+  state.items[it.id] = it;
+  addToStack(it.id, null, 'bottom');
+  save(); clearMainInput(); renderAll();
+  const bid = findBlock(it.id, null);
+  requestAnimationFrame(() => { const e = $(`#stack-list [data-key="${bid}"]`); if (e) { e.classList.add('flash'); setTimeout(() => e.classList.remove('flash'), 1000); } });
+}
 function submitInput() {
   const inp = $('#main-input'), v = inp.value.trim();
   if (!v) return;
   const ex = itemByName(v);
   inp.blur(); hideSuggest();
   if (ex) { inp.value = ''; openEditor(ex, false); }
-  else openChooser(v);
+  else createTask(v);
 }
 
 /* ---------- SETTINGS ---------- */
@@ -4648,7 +4713,7 @@ async function boot() {
   sug.addEventListener('mousedown', e => e.preventDefault());
   sug.addEventListener('click', e => {
     const r = e.target.closest('.sug'); if (!r) return;
-    if (r.dataset.new) { const v = inp.value.trim(); inp.blur(); hideSuggest(); openChooser(v); }
+    if (r.dataset.new) { const v = inp.value.trim(); inp.blur(); hideSuggest(); createTask(v); }
     else { const it = state.items[r.dataset.id]; inp.value = ''; inp.blur(); hideSuggest(); if (it) openEditor(it, false); }
   });
 

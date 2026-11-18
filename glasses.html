@@ -237,6 +237,7 @@ function normalize(s) {
   s.v = 4;
   for (const k of Object.keys(f)) if (s[k] === undefined) s[k] = f[k];
   s.settings = Object.assign(f.settings, s.settings || {});
+  for (const it of Object.values(s.items || {})) if (it.type === 'task' && !Array.isArray(it.subtasks)) it.subtasks = [];   // v1.11: tasks hold subtasks
   s.auth = Object.assign(f.auth, s.auth || {});
   return s;
 }
@@ -329,7 +330,7 @@ function blockName(bid) { const l = blockLabel(bid); return l.proj ? `${l.proj} 
 
 function newItem(type, name) {
   const it = { id: uid(), type, name: name.trim(), created: Date.now() };
-  if (type === 'task') Object.assign(it, { notes: '', recurring: false, schedule: { freq: 'none' } });
+  if (type === 'task') Object.assign(it, { notes: '', subtasks: [], recurring: false, schedule: { freq: 'none' } });
   if (type === 'list') Object.assign(it, { subtasks: [], recurring: false, recSubtasks: false, schedule: { freq: 'none' } });
   if (type === 'project') Object.assign(it, { subtasks: [], recurring: false });
   if (type === 'event') Object.assign(it, { event: null });
@@ -348,6 +349,33 @@ function placeInBacklog(itemId) {
   state.blocks[bid] = { bid, itemId, subId: null, elapsed: 0 };
   state.backlogs[it.type].push(bid);
   return true;
+}
+/* Changing what an item is:
+   task -> list when it gets its first subtask (OPTIONS keeps it a list from then on);
+   task or list -> project (OPTIONS → Project): it leaves STACK and its backlog and lives in PROJECT BACKLOG;
+   project -> list (or task, with no subtasks) when Project is unchecked. */
+function convertItem(id, toType) {
+  const it = state.items[id]; if (!it || it.type === toType) return;
+  const from = it.type;
+  if (toType === 'project') {
+    const bid = findBlock(id, null); if (bid) removeBlock(bid);
+    it.type = 'project'; it.subtasks = it.subtasks || [];
+    listProject(id);
+    return;
+  }
+  if (from === 'project') {
+    for (const bid of Object.keys(state.blocks)) if (state.blocks[bid].itemId === id && state.blocks[bid].subId) removeBlock(bid);
+    state.backlogs.project = state.backlogs.project.filter(x => x !== id);
+  }
+  it.type = toType;
+  Object.assign(it, { subtasks: it.subtasks || [], recurring: !!it.recurring, schedule: it.schedule || { freq: 'none' } });
+  if (toType === 'list' && it.recSubtasks === undefined) it.recSubtasks = false;
+  // A block sitting in the task backlog follows it to the list backlog (same spot), and back.
+  const bid = findBlock(id, null);
+  if (bid) for (const k of ['task', 'list']) {
+    const i = state.backlogs[k].indexOf(bid);
+    if (i >= 0 && k !== toType) { state.backlogs[k].splice(i, 1); state.backlogs[toType].splice(Math.min(i, state.backlogs[toType].length), 0, bid); }
+  }
 }
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
@@ -431,6 +459,7 @@ function completeBlock(bid) {
     if (!it.recurring) it.subtasks = it.subtasks.filter(x => x.id !== b.subId);
   } else if (it.type === 'task') {
     if (!it.recurring) delete state.items[it.id];
+    else (it.subtasks || []).forEach(s => { s.done = false; });   // a recurring task's subtasks come back
   } else if (it.type === 'list') {
     if (!it.recurring) delete state.items[it.id];
     else if (it.recSubtasks) it.subtasks.forEach(s => { s.done = false; });
@@ -552,14 +581,14 @@ function syncStop() {
    Same data as the phone (synced) and, as far as arrows + Enter allow, the same gestures.
    It never creates or renames anything: that stays on the phone.
 
-   Blocks:      → complete (STACK) or add to STACK (backlogs) · ← send to backlog (STACK) · Enter = FOCUS
-   FOCUS:       the phone's hold. ↑ ↓ move the block · → open its screen · ← delete · Enter = go to the label
-   FOCUS label: ← plan it on today's schedule · ↑ back to the block · Back leaves FOCUS
+   Blocks:      → open its screen (STACK) or add to STACK (backlogs) · ← send to backlog (STACK) · Enter = highlight
+   Highlighted: the phone's hold. ↑ ↓ move the block · → complete (STACK) or open its screen (backlogs) · ← delete
+                Enter = go to the screen name, where ← plans it on today's schedule · ↑ back to the block · Back un-highlights
    Screen name: ← / → move between screens (toward STACK jumps straight there) · Enter = STACK
    Back undoes the last complete / send / delete / add for a few seconds, like the phone's UNDO. */
 'use strict';
 
-const GLASSES_VERSION = '1.10.0';
+const GLASSES_VERSION = '1.11.0';
 const $ = (s, r) => (r || document).querySelector(s);
 const LS_KEY = 'paradigm.glasses.v1';
 const SCREENS = ['project', 'list', 'task', 'stack', 'schedule', 'settings'];
@@ -688,7 +717,7 @@ function focusBlock(key) { const el = $(`#list [data-key="${CSS.escape(key)}"]`)
 function updateHint() {
   const h = $('#hint');
   if (!focused || overlayLayer) { h.classList.add('hidden'); return; }
-  h.textContent = document.activeElement === $('#navtitle') ? '← plan on today’s schedule · ↑ back to it' : '↑ ↓ move · → open · ← delete · Enter: label';
+  h.textContent = document.activeElement === $('#navtitle') ? '← plan on today’s schedule · ↑ back to it' : `↑ ↓ move · → ${screen === 'stack' ? 'complete' : 'open'} · ← delete · Enter: label`;
   h.classList.remove('hidden');
 }
 
@@ -699,7 +728,7 @@ function render() {
   if (focused && !((listFor(screen) || []).includes(focused))) exitFocus();
   $('#unpaired').classList.toggle('hidden', !!(syncCfg && syncCfg.key));
   const [L, R] = NAV[screen];
-  $('#navtitle .t').textContent = focused ? 'FOCUS' : SCREEN_TITLE[screen];
+  $('#navtitle .t').textContent = SCREEN_TITLE[screen];
   $('#navtitle .l').style.visibility = L || focused ? 'visible' : 'hidden';
   $('#navtitle .r').style.visibility = R ? 'visible' : 'hidden';
   $('#navtitle').classList.toggle('focusmode', !!focused);
@@ -761,7 +790,12 @@ function blockKey(e, key) {
   const k = e.key;
   if (focused === key) {
     if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); reorder(key, k === 'ArrowUp' ? 1 : -1); return; }
-    if (k === 'ArrowRight') { e.preventDefault(); exitFocus(); render(); openActivity(key); return; }
+    if (k === 'ArrowRight') {
+      e.preventDefault(); exitFocus();
+      if (screen === 'stack') { const name = blockName(key); focusNext(key); withUndo(`Completed ${name}`, () => completeBlock(key)); }
+      else { render(); openActivity(key); }
+      return;
+    }
     if (k === 'ArrowLeft') {
       e.preventDefault();
       const name = keyName(key), proj = screen === 'project';
@@ -775,10 +809,9 @@ function blockKey(e, key) {
   if (focused) { exitFocus(); render(); }
   const right = k === 'ArrowRight';
   if (screen === 'stack') {
-    const name = blockName(key);
+    if (right) { openActivity(key); return; }
     focusNext(key);
-    if (right) withUndo(`Completed ${name}`, () => completeBlock(key));
-    else { const sub = !!state.blocks[key].subId, k2 = blockKind(key); withUndo(sub ? 'Returned to project' : `Sent to ${BACKLOG_TITLE[k2]}`, () => sendToBacklog(key)); }
+    { const sub = !!state.blocks[key].subId, k2 = blockKind(key); withUndo(sub ? 'Returned to project' : `Sent to ${BACKLOG_TITLE[k2]}`, () => sendToBacklog(key)); }
   } else if (right) {
     if (screen === 'project') openActivity(key);
     else { focusNext(key); withUndo('Added to top of STACK', () => { detach(key); state.stack.push(key); }); }
@@ -885,9 +918,9 @@ function openActivity(key) {
   const id = info.it.id;
   // Always read the current copy: a sync from the phone can replace it while this screen is open.
   const cur = () => state.items[id];
-  const kind = info.kind === 'subtask' || info.kind === 'project' ? 'project' : info.it.type;
+  const kind = info.kind === 'subtask' || info.kind === 'project' ? 'project' : 'list';   // tasks show subtasks too (none yet)
   openOverlay(ov => {
-    const k = document.createElement('div'); k.className = 'okind'; k.textContent = kind.toUpperCase(); ov.appendChild(k);
+    const k = document.createElement('div'); k.className = 'okind'; k.textContent = (info.kind === 'subtask' ? 'project' : info.it.type).toUpperCase(); ov.appendChild(k);
     let label;
     const toTop = () => { const f = ov.querySelector('.olist button, .notes'); if (f) f.focus(); };
     const addToStackFromHere = () => {
@@ -897,16 +930,6 @@ function openActivity(key) {
       if (msg) { toast(msg); return; }
       closeOverlay(); withUndo(`Added ${it.name} to STACK`, () => {});
     };
-    if (kind === 'task') {
-      const it = cur();
-      const n = document.createElement('div'); n.className = 'notes'; n.tabIndex = 0;
-      n.textContent = (it.notes || '').trim() || 'No notes. Add them on your phone.';
-      n.addEventListener('keydown', e => { if (e.key === 'ArrowDown' && n.scrollTop + n.clientHeight >= n.scrollHeight - 2) { e.preventDefault(); label.focus(); } });
-      ov.appendChild(n);
-      label = bottomLabel(ov, it.name, closeOverlay, addToStackFromHere, toTop);
-      n.focus();
-      return;
-    }
     const list = document.createElement('div'); list.className = 'olist'; ov.appendChild(list);
     label = bottomLabel(ov, cur().name, closeOverlay, addToStackFromHere, toTop);
     let moving = null;
@@ -914,7 +937,7 @@ function openActivity(key) {
       const it = cur(); if (!it) { closeOverlay(); toast('That was removed on your phone'); return; }
       list.innerHTML = '';
       const open = openSubtasks(it);
-      if (!open.length) { list.innerHTML = `<p class="note">${kind === 'project' && !it.subtasks.length ? 'No subtasks yet. Add some on your phone.' : 'All subtasks done.'}</p>`; label.focus(); return; }
+      if (!open.length) { list.innerHTML = `<p class="note">${!(it.subtasks || []).length ? 'No subtasks yet. Add some on your phone.' : 'All subtasks done.'}</p>`; label.focus(); return; }
       open.forEach(s => {
         const b = document.createElement('button'); b.type = 'button';
         b.className = 'block' + (moving === s.id ? ' focused' : ''); b.dataset.id = s.id;

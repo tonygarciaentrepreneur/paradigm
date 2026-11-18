@@ -84,18 +84,18 @@ Screens: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STACK · SCHEDULE 
 | Where | → | ← | Enter |
 | --- | --- | --- | --- |
 | Screen name at the bottom | STACK → SCHEDULE → SETTINGS; from a backlog, straight back to STACK | STACK → TASK → LIST → PROJECT BACKLOG; from SCHEDULE or SETTINGS, straight back to STACK | Jump to STACK |
-| STACK block | Complete | Send to its backlog (project subtasks return to their project) | FOCUS |
-| Task or list in a backlog | Add to top of STACK | — | FOCUS |
-| Project in PROJECT BACKLOG | Open its subtasks | — | FOCUS |
+| STACK block | Open its screen (subtasks) | Send to its backlog (project subtasks return to their project) | Highlight |
+| Task or list in a backlog | Add to top of STACK | — | Highlight |
+| Project in PROJECT BACKLOG | Open its subtasks | — | Highlight |
 
-The cursor is a bright outline; a solid green block is in **FOCUS** (the phone's hold), and the name at the bottom reads FOCUS:
+The cursor is a bright outline; a solid green block is **highlighted** (the phone's hold; the screen name stays the same):
 - **↑ ↓** move the block (the phone's drag);
-- **→** opens its screen (subtasks, notes, or its project's subtasks);
+- **→** completes it on STACK, or opens its screen in a backlog;
 - **←** deletes it;
-- **Enter** moves to the FOCUS label, where **←** plans it on today's schedule (↑ ↓ move it, ← → change its length, Enter goes to the SCHEDULE label, then → adds it to your Paradigm calendar via your phone, ← cancels);
-- **Back** leaves FOCUS.
+- **Enter** moves to the screen name, where **←** plans it on today's schedule (↑ ↓ move it, ← → change its length, Enter goes to the SCHEDULE label, then → adds it to your Paradigm calendar via your phone, ← cancels);
+- **Back** un-highlights.
 
-**Activity screen** (like the phone's): subtasks pile up from the bottom, the name sits at the bottom. List subtask: → complete, ← delete, Enter then ↑ ↓ to reorder. Project subtask: → add to top of STACK; Enter for FOCUS, then ↑ ↓ reorder or ← delete. On the name: ← back, → add the activity to STACK.
+**Activity screen** (like the phone's): subtasks pile up from the bottom, the name sits at the bottom. List subtask: → complete, ← delete, Enter then ↑ ↓ to reorder. Project subtask: → add to top of STACK; Enter to highlight, then ↑ ↓ reorder or ← delete. On the name: ← back, → add the activity to STACK.
 
 **Undo:** for about 6 seconds after completing, sending to backlog, deleting or adding to STACK, Back undoes it.
 
@@ -114,22 +114,24 @@ Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STA
 | SCHEDULE name | STACK | SETTINGS | |
 | SETTINGS name | Straight back to STACK | RECOVERY | |
 | RECOVERY name | Straight back to STACK | (end of row) | |
-| STACK block | Complete (it leaves STACK; nothing goes on the calendar) | Send to its backlog (project subtasks return to their project) | Reorder |
+| STACK block | Open its screen (subtasks) | Send to its backlog (project subtasks return to their project) | Reorder |
 | Task or list in a backlog | Add to top of STACK | | Reorder |
 | Project in PROJECT BACKLOG | Open its subtasks | | Reorder |
 | Project subtask | Add to top of STACK | | Reorder |
 
-**FOCUS:** hold a block and let go. It turns solid green and the name at the bottom reads **FOCUS**. Then:
-- swipe the block **right** to open the activity's own screen;
-- swipe the block **left** to delete it (never touches the calendar);
-- swipe **left on FOCUS** (toward SCHEDULE) to plan where it fits today: drag the block to move it, drag the bar below it to change the length, then swipe right on **SCHEDULE** at the bottom to add it to your Paradigm calendar, or left to cancel. The activity stays where it was.
-Tap a green block, or anywhere else, to leave FOCUS. FOCUS works the same in the backlogs.
+**Highlight:** hold a block and let go. It turns solid green (the screen name stays the same). Then:
+- swipe the block **right** to complete it on STACK (it leaves STACK; nothing goes on the calendar), or to open its screen in a backlog;
+- swipe the block **left** to delete it;
+- with a block highlighted, swipe **left on STACK** to plan where it fits today: drag the block to move it, drag the bar below it to change the length, then swipe right on **SCHEDULE** at the bottom to add it to your Paradigm calendar, or left to cancel. The activity stays where it was.
+Tap anywhere else to un-highlight. Complete, delete and send-to-backlog show **UNDO** for 5 seconds.
 
-**The activity's screen** works like STACK: subtasks pile up from the bottom, the entry box sits above the name at the bottom, swipe a subtask right to complete it or left to delete it, hold and drag to reorder. Tasks show their notes instead. OPTIONS at the top has the name and recurring settings. Swipe **left** on the name to save and go back; swipe **right** to save and add it to STACK. Android's back gesture leaves without saving. Searching for something opens this same screen.
+**Adding things:** type in the box on STACK. Anything new is a task at the bottom of STACK. Typing the exact name of something that exists opens it instead.
+
+**An activity's screen** (swipe a STACK block right, or open it from search) works like STACK: subtasks pile up from the bottom, and the entry box and **OPTIONS** sit just above its name at the bottom. Adding the first subtask turns a task into a **list**. Swipe a subtask right to complete it or left to delete it; hold and drag to reorder. OPTIONS has the name, **Project** (turns it into a project, which lives in PROJECT BACKLOG; uncheck to turn it back) and recurring settings. Swipe **left** on the name to save and go back; swipe **right** to save and add it to STACK. Android's back gesture leaves without saving.
 
 **Today's calendar on STACK:** the first time Paradigm opens on your phone each day, today's timed events go to the bottom of STACK in time order (first event at the very bottom), each showing its start time. All-day events, events you declined, and the Paradigm calendar's own events (activities you scheduled, already in Paradigm) are skipped. An event that repeats, like a daily standup, reuses its block. If Google needs a tap to sign in again, an **ADD TODAY'S CALENDAR TO STACK** bar appears on STACK. The glasses can't read your calendar, so the import happens when Paradigm opens on the phone.
 
-**SCHEDULE** shows today's calendar (your main calendar plus Paradigm). **CALENDAR** at the top opens the Google Calendar app to edit events. REFRESH reloads it.
+**SCHEDULE** shows today's calendar (your main calendar plus Paradigm). **CALENDAR**, just above the SCHEDULE name, opens the Google Calendar app to edit events or add new ones. REFRESH reloads it.
 
 **RECOVERY** lists earlier versions of your Drive backup (newest first). INSPECT shows what a version holds; RESTORE THIS VERSION replaces everything in Paradigm with it (and your glasses on their next sync), or DOWNLOAD saves it as a file you can IMPORT later. Inspecting marks that version *Keep Forever* in Drive, which Google requires before downloading it and which also stops it being auto-deleted. Google keeps old versions for about 30 days.
 
@@ -137,7 +139,7 @@ Tap a green block, or anywhere else, to leave FOCUS. FOCUS works the same in the
 
 **Completing project subtasks** removes them from the project, unless the project is marked *Recurring project* (in OPTIONS); then they stay, ready to do again.
 
-A block only moves in directions that do something: plain blocks in a backlog can't be swiped left; hold one first (FOCUS) to delete it.
+A block only moves in directions that do something: plain blocks in a backlog can't be swiped left; highlight one first to delete it.
 
 Send-to-backlog, complete, and delete show **UNDO** for 5 seconds.
 
