@@ -133,9 +133,9 @@ nav { display: flex; justify-content: center; }
 .olabel:focus { border-color: var(--g); outline: 3px solid var(--hot); outline-offset: 3px; }
 /* v1.12: lists are two blocks tall (name at the bottom); a task stuck 3+ days on STACK is nudged */
 .block.tall { align-items: flex-end; }   /* height set per block from its open subtasks */
-.block.stale { border-style: dashed; animation: gstale 2.6s ease-in-out infinite; }
-.block.stale .nudge { color: var(--hot); }
-.block.focused.stale .nudge { color: var(--bg); }
+.block.static { border-style: dashed; animation: gstale 2.6s ease-in-out infinite; }
+.block.static .nudge { color: var(--hot); }
+.block.focused.static .nudge { color: var(--bg); }
 @keyframes gstale { 50% { box-shadow: 0 0 14px rgba(0, 255, 65, .45); } }
 #overlay.slidein { animation: gslide .28s cubic-bezier(.2, .8, .2, 1); }
 @keyframes gslide { from { transform: translateX(100%); } to { transform: translateX(0); } }
@@ -145,6 +145,12 @@ nav { display: flex; justify-content: center; }
 /* FOCUS: the other blocks vanish but keep their space, so the FOCUS block stays where it was */
 .block.unseen { visibility: hidden; }
 .hint { min-block-size: 1.3em; }
+
+/* Scheduling for another day */
+.oname { flex: none; cursor: default; }
+.dayrow { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; margin-block: 10px; }
+.dayrow .tval { text-align: center; font-size: 1.1em; }
+.opt.small:disabled { opacity: .3; }
 
 </style>
 </head>
@@ -431,8 +437,8 @@ function deleteBlockItem(bid) {
     removeBlock(bid);
   } else deleteItem(b.itemId);
 }
-/* How long a block has sat on STACK: stamped when it lands there, cleared when it leaves. */
-const STALE_DAYS = 3;
+/* How long a block has sat on STACK without progress: stamped when it lands there, cleared when it leaves. */
+const STATIC_DAYS = 1;
 function stampStack() {
   let changed = false;
   for (const bid of state.stack) { const b = state.blocks[bid]; if (b && !b.stackedAt) { b.stackedAt = Date.now(); changed = true; } }
@@ -440,12 +446,51 @@ function stampStack() {
   return changed;
 }
 function stackDays(bid) { const b = state.blocks[bid]; return b && b.stackedAt ? Math.floor((Date.now() - b.stackedAt) / DAY) : 0; }
-/* A plain task that has sat on STACK for more than STALE_DAYS: Paradigm nudges you to break it down. */
-function isStale(bid) {
-  const b = state.blocks[bid]; if (!b || b.subId || !state.stack.includes(bid)) return false;
-  const it = state.items[b.itemId];
-  return !!it && it.type === 'task' && Date.now() - (b.stackedAt || Date.now()) > STALE_DAYS * DAY;
+/* STATIC: a block on STACK with no progress for STATIC_DAYS (tasks, lists and project subtasks).
+   Progress (a subtask added or completed) restarts the clock; moving to a backlog or scheduling it clears it. */
+function isStatic(bid) {
+  const b = state.blocks[bid]; if (!b || !state.stack.includes(bid) || !state.items[b.itemId]) return false;
+  return Date.now() - (b.stackedAt || Date.now()) >= STATIC_DAYS * DAY;
 }
+function markProgress(itemId) {
+  for (const bid of state.stack) { const b = state.blocks[bid]; if (b && b.itemId === itemId && !b.subId) b.stackedAt = Date.now(); }
+}
+
+/* ---------- scheduling an item to another day ----------
+   It becomes an all-day event on the Paradigm calendar and leaves STACK / its backlog. Its subtasks and notes
+   travel with the event (readable checklist + a hidden copy) and come back when that day's calendar is pulled in.
+   A recurring item becomes a recurring event. A project subtask leaves its project and returns as its own task. */
+const RRULE_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+function rruleFor(it) {
+  const sch = it && it.recurring ? it.schedule : null;
+  if (!sch || sch.freq === 'none') return null;
+  if (sch.freq === 'daily') return 'FREQ=DAILY';
+  if (sch.freq === 'weekly') return 'FREQ=WEEKLY;BYDAY=' + (sch.days || []).map(d => RRULE_DAYS[d]).join(',');
+  if (sch.freq === 'monthly') return 'FREQ=MONTHLY;BYMONTHDAY=' + (sch.dom || 1);
+  if (sch.freq === 'annually') return `FREQ=YEARLY;BYMONTH=${(sch.month || 0) + 1};BYMONTHDAY=${sch.dom || 1}`;
+  return null;
+}
+/* Removes the item (or project subtask) and queues its all-day event. Returns the queue entry. */
+function scheduleBlockToDay(bid, date) {
+  const b = state.blocks[bid]; if (!b) return null;
+  const it = state.items[b.itemId]; if (!it) return null;
+  let entry;
+  if (b.subId) {
+    const sub = (it.subtasks || []).find(x => x.id === b.subId);
+    entry = { id: uid(), kind: 'allday', date, name: sub ? sub.name : '?', rrule: null, payload: { type: 'task', subtasks: [], notes: '' } };
+    it.subtasks = (it.subtasks || []).filter(x => x.id !== b.subId);
+    removeBlock(bid);
+  } else {
+    const open = (it.subtasks || []).filter(x => !x.done).map(x => x.name);
+    entry = { id: uid(), kind: 'allday', date, name: it.name, rrule: rruleFor(it),
+      payload: { type: open.length ? 'list' : 'task', subtasks: open, notes: it.notes || '' } };
+    deleteItem(it.id);
+  }
+  entry.at = Date.now();   // posted after the undo window (see processCalQueue)
+  state.calQueue.push(entry);
+  return entry;
+}
+
 /* Sends a block to the bottom (highest priority) of its backlog. Project subtasks return to their project. */
 function sendToBacklog(bid) {
   if (state.blocks[bid].subId) { removeBlock(bid); return; }
@@ -629,13 +674,13 @@ function syncStop() {
    It never creates or renames anything: that stays on the phone.
 
    Blocks: → complete (STACK; it's gone) or add to STACK (backlogs) · ← send to backlog (STACK) · Enter = FOCUS
-   FOCUS:  the phone's hold. The screen name reads FOCUS and the other blocks disappear.
-           → plan it on today's schedule · ← its subtask screen (the screen slides) · Back leaves FOCUS
+   FOCUS:  the phone's hold. The screen name reads FOCUS and the block is highlighted.
+           → schedule it for another day · ← its subtask screen (the screen slides) · Back leaves FOCUS
    Screen name: ← / → move between screens (toward STACK jumps straight there) · Enter = STACK
    Back undoes the last complete / send / delete / add for a few seconds, like the phone's UNDO. */
 'use strict';
 
-const GLASSES_VERSION = '1.13.1';
+const GLASSES_VERSION = '1.14.0';
 const $ = (s, r) => (r || document).querySelector(s);
 const LS_KEY = 'paradigm.glasses.v1';
 const SCREENS = ['project', 'list', 'task', 'stack', 'schedule', 'settings'];
@@ -765,7 +810,7 @@ function updateHint() {
   const h = $('#hint');
   // The hint's space is always kept, so showing it never shifts the stack (the FOCUS block stays put).
   if (!focused || overlayLayer) { h.style.visibility = 'hidden'; return; }
-  h.textContent = '→ schedule · ← subtasks · Back: leave FOCUS';
+  h.textContent = '→ schedule a day · ← subtasks · Back: leave FOCUS';
   h.style.visibility = 'visible';
 }
 
@@ -803,8 +848,7 @@ function renderList() {
     const rowItem = screen === 'project' ? state.items[key] : (state.blocks[key] && !state.blocks[key].subId ? state.items[state.blocks[key].itemId] : null);
     const rows = blockRows(rowItem);   // one row per open subtask, like the phone
     if (rows > 1) btn.style.minBlockSize = `calc(${rows} * 2.4em + ${rows - 1} * 6px)`;
-    btn.className = 'block' + (focused === key ? ' focused' : '') + (rows > 1 ? ' tall' : '') + (screen === 'stack' && isStale(key) ? ' stale' : '')
-      + (focused && key !== focused ? ' unseen' : '');   // FOCUS: the others disappear but keep their space
+    btn.className = 'block' + (focused === key ? ' focused' : '') + (rows > 1 ? ' tall' : '') + (screen === 'stack' && isStatic(key) ? ' static' : '');
     btn.dataset.key = key;
     let name, meta = '';
     if (screen === 'project') {
@@ -816,8 +860,8 @@ function renderList() {
       name = (l.proj ? `<span class="proj">${esc(l.proj)} ›</span> ` : '') + esc(l.name);
       if (info.kind === 'list' && info.it.subtasks.length) meta = `<span class="meta">${info.it.subtasks.filter(s => s.done).length}/${info.it.subtasks.length}</span>`;
       if (info.it.recurring && !info.b.subId) meta += '<span class="meta">↻</span>';
-      if (info.it.cal && info.it.cal.date === todayStr() && !info.b.subId) meta = `<span class="meta">${minToClock(info.it.cal.startMin)}</span>` + meta;
-      if (screen === 'stack' && isStale(key)) meta = `<span class="meta nudge">${stackDays(key)}d · break it down</span>` + meta;
+      if (info.it.cal && info.it.cal.date === todayStr() && info.it.cal.startMin != null && !info.b.subId) meta = `<span class="meta">${minToClock(info.it.cal.startMin)}</span>` + meta;
+      if (screen === 'stack' && isStatic(key)) meta = `<span class="meta nudge">static · ${Math.max(1, stackDays(key))}d</span>` + meta;
     }
     btn.innerHTML = `<span class="name">${name}</span>${meta}`;
     btn.addEventListener('keydown', e => blockKey(e, key));
@@ -845,7 +889,10 @@ function blockKey(e, key) {
   const k = e.key;
   if (focused === key) {
     e.preventDefault();
-    if (k === 'ArrowRight') { const name = keyName(key); exitFocus(); render(); openSchedule(name); }   // FOCUS → : scheduling flow
+    if (k === 'ArrowRight') {   // FOCUS → : schedule it for another day
+      if (screen === 'project') { toast('Projects can’t be scheduled. Schedule their subtasks from STACK'); return; }
+      exitFocus(); render(); openSchedule(key);
+    }
     else if (k === 'ArrowLeft') { exitFocus(); render(); openActivity(key, true); }                 // FOCUS ← : subtask screen
     return;
   }
@@ -1033,6 +1080,7 @@ function openActivity(key, slide) {
         if (it.recurring && it.recSubtasks) s.done = true; else it.subtasks = it.subtasks.filter(x => x.id !== s.id);
         toast(`Completed ${s.name}`);
       } else { it.subtasks = it.subtasks.filter(x => x.id !== s.id); toast(`Deleted ${s.name}`); }
+      if (k2 === 'ArrowRight') markProgress(it.id);              // a completed subtask restarts its STATIC clock
       if (maybeRevertToTask(it.id)) toast('Back to a task');   // nothing left: the list is a task again
       save(); paint(nx);
     };
@@ -1042,46 +1090,39 @@ function openActivity(key, slide) {
   });
 }
 
-/* Planning an activity on today's schedule (FOCUS label ←). It stays where it is.
-   Block: ↑ ↓ move 15 minutes · → longer · ← shorter · Enter = the SCHEDULE label.
-   Label: → add it (your phone puts it on the Paradigm calendar) · ← cancel · ↑ back to the block. */
-function openSchedule(name) {
-  const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
-  let start = Math.min(1410, Math.ceil(nowMin / 15) * 15), end = start + 30;
+/* Scheduling for another day (FOCUS →): ‹ › pick the day (tomorrow onward), Enter on ADD TO CALENDAR.
+   The item leaves Paradigm and becomes an all-day event that day (your phone adds it); it comes back that morning.
+   Back (within a few seconds) undoes it. On the SCHEDULE label, ← cancels. */
+function openSchedule(key) {
+  const name = keyName(key);
+  let date = addDays(todayStr(), 1);
   openOverlay(ov => {
     ov.classList.remove('slidein');
-    const box = document.createElement('div'); box.className = 'tl'; ov.appendChild(box);
-    const { grid } = paintTimeline(box, 'dim');
-    const blk = document.createElement('button'); blk.type = 'button'; blk.className = 'tl-sel';
-    grid.appendChild(blk);
-    const confirm = () => {
-      const t0 = parseDate(todayStr()).getTime();
-      state.calQueue.push({ id: uid(), kind: 'schedule', name, start: t0 + start * MIN, end: t0 + end * MIN });
-      save(); closeOverlay(); toast(`Scheduled ${name} for ${minToClock(start)}. Your phone adds it to the calendar`);
-    };
-    const add = document.createElement('button'); add.type = 'button'; add.className = 'opt addcal'; add.textContent = 'ADD TO CALENDAR';
-    add.addEventListener('click', confirm);
-    add.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { e.preventDefault(); blk.focus(); } });
-    ov.appendChild(add);
-    const label = bottomLabel(ov, 'SCHEDULE', closeOverlay, confirm, () => blk.focus());
-    const paint = () => {
-      blk.style.top = (start * PX_MIN) + 'px'; blk.style.height = ((end - start) * PX_MIN) + 'px';
-      blk.textContent = name;   // the block shows the task, like on STACK
-      const top = start * PX_MIN, bottom = end * PX_MIN;
-      if (top < box.scrollTop + 20 || bottom > box.scrollTop + box.clientHeight - 20) box.scrollTop = Math.max(0, top - box.clientHeight / 3);
-    };
-    blk.addEventListener('keydown', e => {
-      const len = end - start;
-      if (e.key === 'ArrowUp') { e.preventDefault(); start = Math.max(0, start - 15); end = start + len; }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); start = Math.min(1440 - len, start + 15); end = start + len; }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); end = Math.min(1440, end + 15); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); end = Math.max(start + 15, end - 15); }
-      else return;
-      paint();
+    const k = document.createElement('div'); k.className = 'okind'; k.textContent = 'SCHEDULE'; ov.appendChild(k);
+    const nm = document.createElement('div'); nm.className = 'block oname'; nm.innerHTML = `<span class="name">${esc(name)}</span>`; ov.appendChild(nm);
+    const row = document.createElement('div'); row.className = 'dayrow';
+    const prev = document.createElement('button'); prev.type = 'button'; prev.className = 'opt small'; prev.textContent = '‹'; prev.setAttribute('aria-label', 'Earlier day');
+    const val = document.createElement('span'); val.className = 'tval';
+    const next = document.createElement('button'); next.type = 'button'; next.className = 'opt small'; next.textContent = '›'; next.setAttribute('aria-label', 'Later day');
+    row.append(prev, val, next); ov.appendChild(row);
+    const paint = () => { val.textContent = parseDate(date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); prev.disabled = date <= addDays(todayStr(), 1); };
+    prev.addEventListener('click', () => { if (date > addDays(todayStr(), 1)) { date = addDays(date, -1); paint(); } });
+    next.addEventListener('click', () => { date = addDays(date, 1); paint(); });
+    // ← / → on the day row step the day too
+    row.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); if (date > addDays(todayStr(), 1)) { date = addDays(date, -1); paint(); } }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); date = addDays(date, 1); paint(); }
     });
-    blk.addEventListener('click', () => add.focus());   // Enter on the block: on to ADD TO CALENDAR
+    const add = document.createElement('button'); add.type = 'button'; add.className = 'opt addcal'; add.textContent = 'ADD TO CALENDAR';
+    add.addEventListener('click', () => {
+      const day = val.textContent;
+      closeOverlay(); focusNext(key);
+      withUndo(`Scheduled ${name} for ${day}`, () => { scheduleBlockToDay(key, date); });
+    });
+    ov.appendChild(add);
+    bottomLabel(ov, 'SCHEDULE', closeOverlay, () => add.focus(), () => next.focus());
     paint();
-    blk.focus();
+    next.focus();
   });
 }
 

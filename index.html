@@ -339,17 +339,16 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .notesline { flex: none; margin: 10px 16px 0; padding: 8px 10px; border: 1px solid var(--dim); color: var(--g2); font-size: 14px; line-height: 1.4; white-space: pre-wrap; max-height: 22vh; overflow-y: auto; }
 
 /* FOCUS: only the chosen block stays */
-.panel.focusmode .list .block:not(.armed) { visibility: hidden; pointer-events: none; }   /* hidden, but the FOCUS block keeps its place */
 .panel.focusmode .empty { display: none; }
 
 /* Lists are two blocks tall, name at the bottom */
 .block.tall { align-items: flex-end; }   /* height is set per block: one row per open subtask */
 
 /* A task stuck on STACK for more than 3 days: nudge to break it down */
-.block.stale { border-style: dashed; animation: stale 2.6s ease-in-out infinite; }
-.block.stale .nudge { color: var(--hot); font-size: 12px; letter-spacing: .04em; }
-.block.armed.stale .nudge { color: var(--bg); }
-@keyframes stale { 50% { box-shadow: 0 0 14px rgba(0, 255, 65, .45); border-color: var(--hot); } }
+.block.static { border-style: dashed; animation: static 2.6s ease-in-out infinite; }
+.block.static .nudge { color: var(--hot); font-size: 12px; letter-spacing: .04em; }
+.block.armed.static .nudge { color: var(--bg); }
+@keyframes static { 50% { box-shadow: 0 0 14px rgba(0, 255, 65, .45); border-color: var(--hot); } }
 
 /* Subtask screen: OPTIONS at the top right, notes until subtasks replace them */
 .acttop { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 6px; }
@@ -366,6 +365,15 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 /* The block being dragged is highlighted, like a held block */
 .block.ghost.armed { background: var(--g); color: var(--bg); text-shadow: none; }
 .block.ghost.armed .proj, .block.ghost.armed .meta, .block.ghost.armed .mark { color: var(--bg); }
+
+/* Day picker: months page left to right */
+.mpager { flex: 1 1 auto; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; touch-action: pan-x; overscroll-behavior: contain; }
+.mpager::-webkit-scrollbar { display: none; }
+.mpage { flex: 0 0 100%; scroll-snap-align: start; padding: 0 14px; display: flex; flex-direction: column; justify-content: flex-end; }
+.mpage h2 { font-weight: 400; font-size: 17px; letter-spacing: .2em; margin: 0 4px 12px; }
+.mpage .days button.past { color: var(--faint); border-color: transparent; }
+.mpage .days button.picked { background: var(--g); color: var(--bg); }
+.daypick .acttop .kind { color: var(--g); font-size: 15px; letter-spacing: .08em; }
 
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -691,8 +699,8 @@ function deleteBlockItem(bid) {
     removeBlock(bid);
   } else deleteItem(b.itemId);
 }
-/* How long a block has sat on STACK: stamped when it lands there, cleared when it leaves. */
-const STALE_DAYS = 3;
+/* How long a block has sat on STACK without progress: stamped when it lands there, cleared when it leaves. */
+const STATIC_DAYS = 1;
 function stampStack() {
   let changed = false;
   for (const bid of state.stack) { const b = state.blocks[bid]; if (b && !b.stackedAt) { b.stackedAt = Date.now(); changed = true; } }
@@ -700,12 +708,51 @@ function stampStack() {
   return changed;
 }
 function stackDays(bid) { const b = state.blocks[bid]; return b && b.stackedAt ? Math.floor((Date.now() - b.stackedAt) / DAY) : 0; }
-/* A plain task that has sat on STACK for more than STALE_DAYS: Paradigm nudges you to break it down. */
-function isStale(bid) {
-  const b = state.blocks[bid]; if (!b || b.subId || !state.stack.includes(bid)) return false;
-  const it = state.items[b.itemId];
-  return !!it && it.type === 'task' && Date.now() - (b.stackedAt || Date.now()) > STALE_DAYS * DAY;
+/* STATIC: a block on STACK with no progress for STATIC_DAYS (tasks, lists and project subtasks).
+   Progress (a subtask added or completed) restarts the clock; moving to a backlog or scheduling it clears it. */
+function isStatic(bid) {
+  const b = state.blocks[bid]; if (!b || !state.stack.includes(bid) || !state.items[b.itemId]) return false;
+  return Date.now() - (b.stackedAt || Date.now()) >= STATIC_DAYS * DAY;
 }
+function markProgress(itemId) {
+  for (const bid of state.stack) { const b = state.blocks[bid]; if (b && b.itemId === itemId && !b.subId) b.stackedAt = Date.now(); }
+}
+
+/* ---------- scheduling an item to another day ----------
+   It becomes an all-day event on the Paradigm calendar and leaves STACK / its backlog. Its subtasks and notes
+   travel with the event (readable checklist + a hidden copy) and come back when that day's calendar is pulled in.
+   A recurring item becomes a recurring event. A project subtask leaves its project and returns as its own task. */
+const RRULE_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+function rruleFor(it) {
+  const sch = it && it.recurring ? it.schedule : null;
+  if (!sch || sch.freq === 'none') return null;
+  if (sch.freq === 'daily') return 'FREQ=DAILY';
+  if (sch.freq === 'weekly') return 'FREQ=WEEKLY;BYDAY=' + (sch.days || []).map(d => RRULE_DAYS[d]).join(',');
+  if (sch.freq === 'monthly') return 'FREQ=MONTHLY;BYMONTHDAY=' + (sch.dom || 1);
+  if (sch.freq === 'annually') return `FREQ=YEARLY;BYMONTH=${(sch.month || 0) + 1};BYMONTHDAY=${sch.dom || 1}`;
+  return null;
+}
+/* Removes the item (or project subtask) and queues its all-day event. Returns the queue entry. */
+function scheduleBlockToDay(bid, date) {
+  const b = state.blocks[bid]; if (!b) return null;
+  const it = state.items[b.itemId]; if (!it) return null;
+  let entry;
+  if (b.subId) {
+    const sub = (it.subtasks || []).find(x => x.id === b.subId);
+    entry = { id: uid(), kind: 'allday', date, name: sub ? sub.name : '?', rrule: null, payload: { type: 'task', subtasks: [], notes: '' } };
+    it.subtasks = (it.subtasks || []).filter(x => x.id !== b.subId);
+    removeBlock(bid);
+  } else {
+    const open = (it.subtasks || []).filter(x => !x.done).map(x => x.name);
+    entry = { id: uid(), kind: 'allday', date, name: it.name, rrule: rruleFor(it),
+      payload: { type: open.length ? 'list' : 'task', subtasks: open, notes: it.notes || '' } };
+    deleteItem(it.id);
+  }
+  entry.at = Date.now();   // posted after the undo window (see processCalQueue)
+  state.calQueue.push(entry);
+  return entry;
+}
+
 /* Sends a block to the bottom (highest priority) of its backlog. Project subtasks return to their project. */
 function sendToBacklog(bid) {
   if (state.blocks[bid].subId) { removeBlock(bid); return; }
@@ -1106,6 +1153,59 @@ async function calAddParadigm(tok, ev, description) {
     await gfetch(tok, 'POST', `${CAL}/calendars/${encodeURIComponent(id)}/events`, body);
   }
 }
+/* ---------- all-day events scheduled from Paradigm ----------
+   The subtasks and notes ride along twice: as a readable checklist in the description, and as a hidden copy
+   (Google Calendar's private extended properties, split into chunks) that Paradigm reads back exactly. */
+function paradigmDescription(p) {
+  const lines = (p.subtasks || []).map(n => '☐ ' + n);
+  if ((p.notes || '').trim()) lines.push((lines.length ? '\n' : '') + p.notes.trim());
+  lines.push((lines.length ? '\n' : '') + '— Scheduled in Paradigm');
+  return lines.join('\n');
+}
+function packPayload(p) {
+  const j = JSON.stringify(p), out = {}, size = 900;
+  const n = Math.ceil(j.length / size) || 1;
+  for (let i = 0; i < n; i++) out['pdg' + i] = j.slice(i * size, (i + 1) * size);
+  out.pdgn = String(n);
+  return out;
+}
+function readPayload(e) {
+  const pr = e && e.extendedProperties && e.extendedProperties.private;
+  if (!pr || !pr.pdgn) return null;
+  let j = '';
+  for (let i = 0; i < Number(pr.pdgn); i++) j += pr['pdg' + i] || '';
+  try { return JSON.parse(j); } catch (err) { return null; }
+}
+async function calAddParadigmAllDay(tok, c) {
+  const body = {
+    summary: c.name,
+    description: paradigmDescription(c.payload || {}),
+    start: { date: c.date }, end: { date: addDays(c.date, 1) },
+    extendedProperties: { private: packPayload(c.payload || {}) }
+  };
+  if (c.rrule) body.recurrence = ['RRULE:' + c.rrule];
+  let id = await paradigmCalId(tok);
+  try { return (await gfetch(tok, 'POST', `${CAL}/calendars/${encodeURIComponent(id)}/events`, body)).id; }
+  catch (e) {
+    if (e.status !== 404) throw e;
+    state.settings.paradigmCalId = '';
+    id = await paradigmCalId(tok);
+    return (await gfetch(tok, 'POST', `${CAL}/calendars/${encodeURIComponent(id)}/events`, body)).id;
+  }
+}
+async function calDeleteParadigmEvent(tok, eventId) {
+  const id = await paradigmCalId(tok);
+  try { await gfetch(tok, 'DELETE', `${CAL}/calendars/${encodeURIComponent(id)}/events/${encodeURIComponent(eventId)}`); }
+  catch (e) { if (e.status !== 404 && e.status !== 410) throw e; }
+}
+/* Plain text from an event description (Google allows simple HTML there). */
+function descriptionText(html) {
+  if (!html) return '';
+  const t = String(html).replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li)>/gi, '\n');
+  const d = new DOMParser().parseFromString(t, 'text/html');
+  return (d.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 /* Existing events for a day, for the dimmed background in day views. Never prompts. */
 async function calDayEvents(date) {
   const tok = await getToken(false);
@@ -3738,7 +3838,7 @@ function openEditor(item, isNew, slide) {
   if (d.type === 'event' || isNew) { optpanel.classList.remove('hidden'); optBtn.classList.add('on'); }
   gesture($('.act-title', el), { moveEl: false, onSwipeRight: () => leave(true), onSwipeLeft: () => leave(false) });
 
-  let subsList = null;
+  let subsList = null, progressed = false;   // a subtask added or completed counts as progress (restarts STATIC)
   function render() {
     kindLabel.textContent = TYPES[d.type];
     optcontent.innerHTML = '';
@@ -3781,6 +3881,7 @@ function openEditor(item, isNew, slide) {
     e.preventDefault();
     const v = si.value.trim(); if (!v) return;
     d.subtasks.push({ id: uid(), name: v, done: false });
+    progressed = true;
     si.value = '';
     if (d.type === 'task') {   // its first subtask makes a task a list
       d.type = 'list'; if (d.recSubtasks === undefined) d.recSubtasks = false;
@@ -3811,6 +3912,7 @@ function openEditor(item, isNew, slide) {
   }
   function completeSub(k) {
     const s = d.subtasks.find(x => x.id === k); if (!s) return;
+    progressed = true;
     if (d.type === 'list' && d.recurring && d.recSubtasks) s.done = true;            // comes back when the list resets
     else if (d.type === 'project' && d.recurring) { toast(`${s.name} done. It stays in this recurring project`); renderSubs(); return; }
     else d.subtasks = d.subtasks.filter(x => x.id !== k);
@@ -3839,6 +3941,7 @@ function openEditor(item, isNew, slide) {
     }
     state.items[d.id] = d;
     if (d.type === 'project') listProject(d.id);
+    if (progressed) markProgress(d.id);
     save();
   }
   /* toStack: swipe right on the name (save and add to STACK). Otherwise swipe left (save and go back). */
@@ -4216,6 +4319,48 @@ function openSchedulePicker(name) {
   } });
 }
 
+/* ---------- scheduling an item to another day (FOCUS → swipe right) ----------
+   Months scroll left to right. Today and earlier can't be picked. ADD TO CALENDAR confirms;
+   swipe left on SCHEDULE (or Android back) cancels. */
+function openDayPicker(bid) {
+  const name = blockName(bid);
+  const el = screenEl('dayscreen daypick', `
+    <div class="acttop"><span class="label kind"></span></div>
+    <div class="mpager"></div>
+    <div class="schedfoot"><button class="btn wide addcal" disabled>ADD TO CALENDAR</button></div>
+    <header class="title sched-title"><h1>SCHEDULE</h1></header>`);
+  $('.kind', el).textContent = name;
+  const pager = $('.mpager', el), add = $('.addcal', el);
+  const first = addDays(todayStr(), 1), now = new Date();
+  let picked = null, html = '';
+  for (let i = 0; i <= 12; i++) {
+    const m = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+    let cells = '';
+    for (let k = 0; k < m.getDay(); k++) cells += '<span></span>';
+    for (let dd = 1; dd <= days; dd++) {
+      const ds = dateStr(new Date(m.getFullYear(), m.getMonth(), dd));
+      cells += `<button class="${ds < first ? 'past' : ''}" data-date="${ds}" ${ds < first ? 'disabled' : ''}>${dd}</button>`;
+    }
+    html += `<div class="mpage"><h2>${m.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase()}</h2><div class="dow">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(x => `<span>${x}</span>`).join('')}</div><div class="days">${cells}</div></div>`;
+  }
+  pager.innerHTML = html;
+  pager.addEventListener('click', e => {
+    const b = e.target.closest('[data-date]'); if (!b || b.disabled) return;
+    pager.querySelectorAll('.picked').forEach(x => x.classList.remove('picked'));
+    b.classList.add('picked'); picked = b.dataset.date; add.disabled = false;
+  });
+  add.addEventListener('click', () => {
+    if (!picked) return;
+    const tp = getToken(true);   // first, so the tap may sign in
+    closeTop(() => scheduleToDay(bid, picked, tp));
+  });
+  gesture($('.sched-title', el), { moveEl: false, onSwipeLeft: () => closeTop() });
+  openScreen(el);
+  // Start on next month when today is the last day of this one.
+  if (first.slice(0, 7) !== todayStr().slice(0, 7)) requestAnimationFrame(() => { pager.scrollLeft = pager.clientWidth; });
+}
+
 /* Paradigm: RECOVERY. Lists earlier versions of the Drive backup (paradigm-backup.json) so one can be
    restored straight into Paradigm, or downloaded and IMPORTed later.
    It only reads from Drive, except one change Google requires before downloading an older version:
@@ -4355,7 +4500,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.13.1';
+const VERSION = '1.14.0';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
@@ -4378,15 +4523,15 @@ function blockEl(bid) {
   const b = state.blocks[bid], it = state.items[b.itemId], l = blockLabel(bid);
   const el = document.createElement('div');
   const rows = b.subId ? 1 : blockRows(it);
-  el.className = 'block' + (rows > 1 ? ' tall' : '') + (isStale(bid) ? ' stale' : '');
+  el.className = 'block' + (rows > 1 ? ' tall' : '') + (isStatic(bid) ? ' static' : '');
   if (rows > 1) el.style.minHeight = `calc(${rows} * 54px + ${rows - 1} * 5px)`;   // taller with each open subtask
   el.dataset.key = bid;
   let meta = '';
-  if (isStale(bid)) meta += `<span class="meta nudge">${stackDays(bid)}d · break it down</span>`;
+  if (isStatic(bid)) meta += `<span class="meta nudge">static · ${Math.max(1, stackDays(bid))}d</span>`;
   if ((it.type === 'list' || it.type === 'task') && !b.subId && (it.subtasks || []).length) meta += `<span class="meta">${it.subtasks.filter(s => s.done).length}/${it.subtasks.length}</span>`;
   if (b.elapsed) meta += `<span class="meta">${fmtShort(b.elapsed)}</span>`;
   if (it.recurring && !b.subId) meta += '<span class="mark" aria-label="Recurring">↻</span>';
-  if (it.cal && it.cal.date === todayStr() && !b.subId) meta = `<span class="meta">${minToClock(it.cal.startMin)}</span>` + meta;
+  if (it.cal && it.cal.date === todayStr() && it.cal.startMin != null && !b.subId) meta = `<span class="meta">${minToClock(it.cal.startMin)}</span>` + meta;
   el.innerHTML = `<span class="name">${l.proj ? `<span class="proj">${esc(l.proj)} ›</span> ` : ''}${esc(l.name)}</span>${meta}`;
   return el;
 }
@@ -4396,7 +4541,7 @@ function blockEl(bid) {
    swipe left on the FOCUS label (toward SCHEDULE) = plan where it fits on today's schedule. */
 function blockEditable(bid) { return !!state.blocks[bid]; }
 function editBlock(bid, slide) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false, slide); }
-function scheduleBlock(bid) { if (state.blocks[bid]) openSchedulePicker(blockName(bid)); }
+function scheduleBlock(bid) { if (state.blocks[bid]) openDayPicker(bid); }
 function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName(bid)}`, () => deleteBlockItem(bid)); }
 const PANEL_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
 /* FOCUS: the screen name reads FOCUS and every other block disappears. Tap anywhere else to leave. */
@@ -4457,7 +4602,7 @@ function renderBacklogs() {
     reverse: true,
     onReorder: keys => { state.backlogs.project = keys; save(); },
     armable: () => true,
-    openEdit: id => openSchedulePicker(state.items[id].name),     // FOCUS → right: scheduling flow
+    openEdit: () => toast('Projects can’t be scheduled. Schedule their subtasks from STACK'),
     armDelete: id => openEditor(state.items[id], false, true),     // FOCUS → left: its subtask screen
     swipeRight: id => openProjectSubs(id)
   });
@@ -4631,27 +4776,58 @@ function saveSyncMeta() { state.settings.syncRev = syncRev; save({ noSync: true,
 function onSyncStatus() { renderSettings(); }
 function onSyncConflict() { toast('Updated from your glasses. Redo your last change if it’s missing'); }
 let calQueueToasted = 0;
-/* The glasses can't sign in to Google, so their completions wait here until the phone logs them. */
-async function processCalQueue(interactive) {
+const postedEvents = {};       // queue entry id -> Google event id (so UNDO can remove it)
+const undoneEntries = new Set();
+/* Posts queued calendar items: days scheduled here or on the glasses (all-day events), and older timed ones. */
+async function processCalQueue(interactive, quiet) {
   const n = (state.calQueue || []).length;
   if (!n) return;
   const tok = await getToken(interactive);
   if (!tok) {
     renderSettings();
-    if (!interactive && state.settings.clientId && n > calQueueToasted) {
+    if (!interactive && !quiet && state.settings.clientId && n > calQueueToasted) {
       calQueueToasted = n;
-      toast(`${n} completion${n > 1 ? 's' : ''} from your glasses need${n > 1 ? '' : 's'} Google Calendar`, { label: 'LOG', fn: () => processCalQueue(true) });
+      toast(`${n} scheduled item${n > 1 ? 's' : ''} need${n > 1 ? '' : 's'} Google Calendar`, { label: 'ADD', fn: () => processCalQueue(true) });
     }
     return;
   }
-  let done = 0;
+  let done = 0, wait = 0;
+  const HOLD = 8000;   // a scheduled day waits out both devices' undo windows before it reaches Google
   for (const c of state.calQueue.slice()) {
-    try { await calAddParadigm(tok, c, c.kind === 'schedule' ? 'Scheduled in Paradigm' : 'Completed in Paradigm'); state.calQueue = state.calQueue.filter(x => x.id !== c.id); done++; }
-    catch (e) { break; }
+    if (c.kind === 'allday' && c.at && Date.now() - c.at < HOLD) { wait = Math.max(wait, HOLD - (Date.now() - c.at)); continue; }
+    try {
+      if (c.kind === 'allday') {
+        const id = await calAddParadigmAllDay(tok, c);
+        postedEvents[c.id] = id;
+        if (undoneEntries.has(c.id)) { await calDeleteParadigmEvent(tok, id).catch(() => {}); }
+      } else await calAddParadigm(tok, c, c.kind === 'schedule' ? 'Scheduled in Paradigm' : 'Completed in Paradigm');
+      state.calQueue = state.calQueue.filter(x => x.id !== c.id); done++;
+    } catch (e) { break; }
   }
+  if (wait) setTimeout(() => processCalQueue(false, true), wait + 300);
   calQueueToasted = state.calQueue.length;
-  save(); renderSettings();
-  if (done) toast(`Logged ${done} completion${done > 1 ? 's' : ''} from your glasses to Google Calendar`);
+  if (done) save();
+  renderSettings();
+  if (done && !quiet) toast(`Added ${done} scheduled item${done > 1 ? 's' : ''} to your Paradigm calendar`);
+}
+/* FOCUS → right, then a day: the item becomes an all-day event that day and leaves Paradigm until then. */
+function scheduleToDay(bid, date, tp) {
+  const snap = JSON.stringify(state);
+  const entry = scheduleBlockToDay(bid, date); if (!entry) return;
+  save(); renderAll();
+  const day = parseDate(date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  toast(`Scheduled ${entry.name} for ${day}${entry.rrule ? ', repeating' : ''}`, { label: 'UNDO', fn: () => {
+    const auth = state.auth, settings = state.settings;
+    state = JSON.parse(snap); state.auth = auth; state.settings = settings;
+    save(); renderAll();
+    undoneEntries.add(entry.id);
+    const ev = postedEvents[entry.id];
+    if (ev) getToken(false).then(tok => tok && calDeleteParadigmEvent(tok, ev).catch(() => {}));
+  } });
+  tp.then(tok => {
+    if (tok) processCalQueue(false, true);
+    else setTimeout(() => toast('Scheduled. It goes on your calendar once Google is connected'), 5200);
+  });
 }
 function glassesUrl() {
   const u = new URL('glasses.html', location.href);
@@ -4713,24 +4889,38 @@ async function importTodayCalendar(interactive) {
     if (state.calImportDate === today) return;   // the other device got there first
     const t0 = parseDate(today).getTime();
     const declined = e => (e.attendees || []).some(a => a.self && a.responseStatus === 'declined');
-    const seen = new Set();
-    const timed = evs
-      .filter(e => e._cal !== state.settings.paradigmCalId && e.status !== 'cancelled' && e.start && e.start.dateTime && !declined(e))
-      .map(e => ({ id: e.id, title: (e.summary || '(busy)').trim(), startMin: Math.max(0, Math.round((new Date(e.start.dateTime) - t0) / MIN)), endMin: Math.min(1440, Math.round((new Date(e.end.dateTime) - t0) / MIN)) }))
-      .filter(e => !seen.has(e.id) && seen.add(e.id))
-      .sort((a, b) => a.startMin - b.startMin);
-    let added = 0;
-    // Insert the latest first so the earliest ends up at the very bottom.
-    for (const ev of timed.slice().reverse()) {
+    const isPara = e => e._cal === state.settings.paradigmCalId;
+    const seen = new Set(), fresh = e => !seen.has(e.id) && seen.add(e.id);
+    const ok = e => e.status !== 'cancelled' && e.start && !declined(e);
+    // Timed events from your calendars (not Paradigm's own timed ones), with their description as notes.
+    const timed = evs.filter(e => ok(e) && !isPara(e) && e.start.dateTime)
+      .map(e => ({ id: e.id, title: (e.summary || '(busy)').trim(), notes: descriptionText(e.description),
+        startMin: Math.max(0, Math.round((new Date(e.start.dateTime) - t0) / MIN)), endMin: Math.min(1440, Math.round((new Date(e.end.dateTime) - t0) / MIN)) }))
+      .filter(fresh).sort((a, b) => a.startMin - b.startMin);
+    // Days you scheduled from Paradigm: all-day events on the Paradigm calendar, brought back with their subtasks.
+    const allday = evs.filter(e => ok(e) && isPara(e) && e.start.date)
+      .map(e => ({ id: e.id, title: (e.summary || 'Untitled').trim(), payload: readPayload(e), notes: descriptionText(e.description) }))
+      .filter(fresh);
+    const bring = (ev, cal) => {
+      const p = ev.payload;
+      const wantList = !!(p && (p.subtasks || []).length);
       let it = itemByName(ev.title), name = ev.title;
-      if (it && it.type !== 'task') { name = `${ev.title} (calendar)`; it = itemByName(name); }
-      if (!it) { it = newItem('task', name); state.items[it.id] = it; }
-      it.cal = { id: ev.id, date: today, startMin: ev.startMin, endMin: ev.endMin };
+      if (it && it.type !== 'task' && it.type !== 'list') { name = `${ev.title} (calendar)`; it = itemByName(name); }
+      if (!it) {
+        it = newItem(wantList ? 'list' : 'task', name);
+        if (wantList) it.subtasks = p.subtasks.map(n => ({ id: uid(), name: n, done: false }));
+        it.notes = p ? (p.notes || '') : (ev.notes || '');
+        state.items[it.id] = it;
+      } else if (!it.notes && (p ? p.notes : ev.notes)) it.notes = p ? p.notes : ev.notes;
+      it.cal = cal;
       let bid = findBlock(it.id, null);
       if (bid) detach(bid); else { bid = uid(); state.blocks[bid] = { bid, itemId: it.id, subId: null, elapsed: 0 }; }
       state.stack.unshift(bid);
-      added++;
-    }
+    };
+    let added = 0;
+    // Bottom of STACK, top to bottom: the all-day ones, then the timed ones with the earliest at the very bottom.
+    for (const ev of allday) { bring(ev, { id: ev.id, date: today }); added++; }
+    for (const ev of timed.slice().reverse()) { bring(ev, { id: ev.id, date: today, startMin: ev.startMin, endMin: ev.endMin }); added++; }
     state.calImportDate = today;
     save(); renderAll(); showCalBar(false);
     if (added || interactive) toast(added ? `Added ${added} event${added > 1 ? 's' : ''} from today’s calendar to STACK` : 'Nothing on today’s calendar');
