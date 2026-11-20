@@ -118,7 +118,7 @@ Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STA
 | Project subtask | Add to top of STACK | | Reorder |
 
 **FOCUS:** hold a block and let go. It turns green and the screen name reads **FOCUS** (the other blocks stay visible). Then:
-- swipe the block **right** to schedule it for another day: months scroll left to right, pick a day (tomorrow onward) and tap **ADD TO CALENDAR**. Swipe left on SCHEDULE to cancel. It becomes an **all-day event** on your Paradigm calendar and leaves Paradigm until that day, when it comes back with its subtasks and notes. A recurring item becomes a recurring event. A project subtask leaves its project and comes back as its own task. UNDO for 5 seconds (nothing reaches the calendar until about 8 seconds have passed).
+- swipe the block **right** to schedule it for another day: months scroll left to right, pick a day (tomorrow onward) and tap **ADD TO CALENDAR**. Swipe right on SCHEDULE to go back to STACK. It becomes an **all-day event** on your Paradigm calendar and leaves Paradigm until that day, when it comes back with its subtasks and notes. A recurring item becomes a recurring event. A project subtask leaves its project and comes back as its own task. UNDO for 5 seconds (nothing reaches the calendar until about 8 seconds have passed).
 - swipe the block **left**: the whole screen slides over to its subtask screen.
 Tap the green block again to leave FOCUS. Backlogs work the same way (projects themselves can't be scheduled).
 

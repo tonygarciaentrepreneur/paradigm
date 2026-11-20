@@ -835,8 +835,9 @@ function gesture(el, o) {
   let st = null;
   const hasH = () => !!(o.onSwipeLeft || o.onSwipeRight);
   const hasV = () => !!(o.onSwipeUp || o.onSwipeDown);
-  // moveEl: false (nothing moves), an element, or a function picking one at swipe time.
-  const mover = () => o.moveEl === false ? null : typeof o.moveEl === 'function' ? o.moveEl() : (o.moveEl || el);
+  // moveEl: false (nothing moves), an element, or a function(direction) picking one at swipe time.
+  let lastDir = 0, moved = null;
+  const mover = dir => o.moveEl === false ? null : typeof o.moveEl === 'function' ? o.moveEl(dir) : (o.moveEl || el);
 
   el.addEventListener('touchstart', e => {
     if (e.touches.length > 1) { cancel(); return; }
@@ -875,22 +876,31 @@ function gesture(el, o) {
       let x = dx;
       if (x < 0 && o.allowLeft && !o.allowLeft()) x = 0;
       if (x > 0 && o.allowRight && !o.allowRight()) x = 0;
-      const m = mover(); if (m) { m.style.transition = 'none'; m.style.transform = `translateX(${x}px)`; }
+      lastDir = Math.sign(dx);
+      const m = mover(lastDir);
+      if (moved && moved !== m) { moved.style.transition = 'none'; moved.style.transform = ''; }   // direction flipped mid-swipe
+      moved = m;
+      if (m) { m.style.transition = 'none'; m.style.transform = `translateX(${x}px)`; }
     } else if (st.mode === 'v') {
       if (e.cancelable) e.preventDefault();
     }
   }, { passive: false });
 
   function snapBack() {
-    const m = mover(); if (!m) return;
+    const m = moved || mover(lastDir); moved = null; if (!m) return;
     m.style.transition = 'transform .18s ease-out'; m.style.transform = '';
   }
   function fly(dir, cb) {
-    const m = mover();
+    const m = mover(dir); moved = null;
     if (!m || o.noFly) { if (m) { m.style.transition = ''; m.style.transform = ''; } cb(); return; }
+    // Something sliding in on top (o.holdAfter) needs time to cover the screen before what flew out comes back.
+    const hold = typeof o.holdAfter === 'function' ? o.holdAfter(dir) : 0;
     m.style.transition = 'transform .15s ease-in';
     m.style.transform = `translateX(${dir * window.innerWidth}px)`;
-    setTimeout(() => { cb(); requestAnimationFrame(() => { if (m.isConnected) { m.style.transition = 'none'; m.style.transform = ''; } }); }, 150);
+    setTimeout(() => {
+      cb();
+      setTimeout(() => requestAnimationFrame(() => { if (m.isConnected) { m.style.transition = 'none'; m.style.transform = ''; } }), hold);
+    }, 150);
   }
   function cancel() {
     if (!st) return;
@@ -1007,8 +1017,9 @@ function wireList(listEl, opts) {
     let drag = null, hold = null;
     gesture(el, {
       enabled: opts.enabled,
-      // In FOCUS the block stays put and the whole screen slides, like moving between screens.
-      moveEl: () => (isArmed(el) && el.closest('.panel, .screen')) || el,
+      // FOCUS: swiping left slides the whole screen (to its subtask screen); swiping right moves only the block (to scheduling).
+      moveEl: dir => (isArmed(el) && dir < 0 && el.closest('.panel, .screen')) || el,
+      holdAfter: dir => (isArmed(el) && dir < 0 ? 450 : 0),
       onSwipeRight: (opts.swipeRight || canArm) ? () => {
         if (isArmed(el)) { disarm(); opts.openEdit(key); return; }
         if (opts.swipeRight) opts.swipeRight(key);
@@ -4321,7 +4332,7 @@ function openSchedulePicker(name) {
 
 /* ---------- scheduling an item to another day (FOCUS → swipe right) ----------
    Months scroll left to right. Today and earlier can't be picked. ADD TO CALENDAR confirms;
-   swipe left on SCHEDULE (or Android back) cancels. */
+   swipe right on SCHEDULE (or Android back) returns to STACK. */
 function openDayPicker(bid) {
   const name = blockName(bid);
   const el = screenEl('dayscreen daypick', `
@@ -4355,7 +4366,7 @@ function openDayPicker(bid) {
     const tp = getToken(true);   // first, so the tap may sign in
     closeTop(() => scheduleToDay(bid, picked, tp));
   });
-  gesture($('.sched-title', el), { moveEl: false, onSwipeLeft: () => closeTop() });
+  gesture($('.sched-title', el), { moveEl: false, onSwipeRight: () => closeTop() });   // swipe right: back to STACK (like the SCHEDULE screen)
   openScreen(el);
   // Start on next month when today is the last day of this one.
   if (first.slice(0, 7) !== todayStr().slice(0, 7)) requestAnimationFrame(() => { pager.scrollLeft = pager.clientWidth; });
@@ -4500,7 +4511,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.14.0';
+const VERSION = '1.14.1';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
