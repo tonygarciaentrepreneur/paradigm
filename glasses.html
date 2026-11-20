@@ -142,6 +142,10 @@ nav { display: flex; justify-content: center; }
 .opt.addcal { flex: none; }
 .tl-sel { display: flex; align-items: flex-end; font-size: 0.75em; }
 
+/* FOCUS: the other blocks vanish but keep their space, so the FOCUS block stays where it was */
+.block.unseen { visibility: hidden; }
+.hint { min-block-size: 1.3em; }
+
 </style>
 </head>
 <body>
@@ -158,7 +162,7 @@ nav { display: flex; justify-content: center; }
     <div id="settings" class="gset hidden"></div>
     <p id="empty" class="note hidden"></p>
   </main>
-  <p id="hint" class="hint hidden" aria-live="polite"></p>
+  <p id="hint" class="hint" aria-live="polite" style="visibility:hidden">&nbsp;</p>
   <nav>
     <button type="button" id="navtitle"><span class="l" aria-hidden="true">‹</span><span class="t">STACK</span><span class="r" aria-hidden="true">›</span></button>
   </nav>
@@ -387,6 +391,18 @@ function convertItem(id, toType) {
     if (i >= 0 && k !== toType) { state.backlogs[k].splice(i, 1); state.backlogs[toType].splice(Math.min(i, state.backlogs[toType].length), 0, bid); }
   }
 }
+/* A list with nothing left to do turns back into a task (and moves back to TASK BACKLOG if it's there).
+   A recurring list with recurring subtasks keeps its checked-off subtasks for next time, so it stays a list. */
+function listIsEmpty(it) {
+  return it && it.type === 'list' && !(it.subtasks || []).some(s => !s.done) && !(it.recurring && it.recSubtasks && (it.subtasks || []).length);
+}
+function maybeRevertToTask(id) {
+  const it = state.items[id];
+  if (!listIsEmpty(it)) return false;
+  it.subtasks = [];
+  convertItem(id, 'task');
+  return true;
+}
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
 /* Adds an item (or project subtask) to STACK. where: 'top' (lowest priority, from a backlog)
@@ -491,7 +507,7 @@ function completeBlock(bid) {
     else it.subtasks = [];
   }
   removeBlock(bid);
-  if (state.items[b.itemId]) placeInBacklog(b.itemId);   // recurring items go back to their backlog
+  if (state.items[b.itemId]) { maybeRevertToTask(b.itemId); placeInBacklog(b.itemId); }   // recurring items go back to their backlog
   save();
   return res;
 }
@@ -613,7 +629,7 @@ function syncStop() {
    Back undoes the last complete / send / delete / add for a few seconds, like the phone's UNDO. */
 'use strict';
 
-const GLASSES_VERSION = '1.12.0';
+const GLASSES_VERSION = '1.12.2';
 const $ = (s, r) => (r || document).querySelector(s);
 const LS_KEY = 'paradigm.glasses.v1';
 const SCREENS = ['project', 'list', 'task', 'stack', 'schedule', 'settings'];
@@ -741,9 +757,10 @@ function exitFocus() { retire(focusLayer); focusLayer = null; focused = null; }
 function focusBlock(key) { const el = $(`#list [data-key="${CSS.escape(key)}"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }
 function updateHint() {
   const h = $('#hint');
-  if (!focused || overlayLayer) { h.classList.add('hidden'); return; }
+  // The hint's space is always kept, so showing it never shifts the stack (the FOCUS block stays put).
+  if (!focused || overlayLayer) { h.style.visibility = 'hidden'; return; }
   h.textContent = '→ schedule · ← subtasks · Back: leave FOCUS';
-  h.classList.remove('hidden');
+  h.style.visibility = 'visible';
 }
 
 /* ---------- main screens ---------- */
@@ -774,11 +791,12 @@ function renderList() {
   list.innerHTML = '';
   const keys = listFor(screen) || [];
   keys.forEach(key => {
-    if (focused && key !== focused) return;   // FOCUS: the other blocks disappear
+
     const btn = document.createElement('button');
     btn.type = 'button';
     const isList = screen !== 'project' && state.blocks[key] && !state.blocks[key].subId && (state.items[state.blocks[key].itemId] || {}).type === 'list';
-    btn.className = 'block' + (focused === key ? ' focused' : '') + (isList ? ' tall' : '') + (screen === 'stack' && isStale(key) ? ' stale' : '');
+    btn.className = 'block' + (focused === key ? ' focused' : '') + (isList ? ' tall' : '') + (screen === 'stack' && isStale(key) ? ' stale' : '')
+      + (focused && key !== focused ? ' unseen' : '');   // FOCUS: the others disappear but keep their space
     btn.dataset.key = key;
     let name, meta = '';
     if (screen === 'project') {
@@ -1007,6 +1025,7 @@ function openActivity(key, slide) {
         if (it.recurring && it.recSubtasks) s.done = true; else it.subtasks = it.subtasks.filter(x => x.id !== s.id);
         toast(`Completed ${s.name}`);
       } else { it.subtasks = it.subtasks.filter(x => x.id !== s.id); toast(`Deleted ${s.name}`); }
+      if (maybeRevertToTask(it.id)) toast('Back to a task');   // nothing left: the list is a task again
       save(); paint(nx);
     };
     paint(null);

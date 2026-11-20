@@ -117,14 +117,14 @@ Screens, left to right: **PROJECT BACKLOG · LIST BACKLOG · TASK BACKLOG · STA
 | Project in PROJECT BACKLOG | Open its subtasks | | Reorder |
 | Project subtask | Add to top of STACK | | Reorder |
 
-**FOCUS:** hold a block and let go. The screen name reads **FOCUS** and every other block disappears. Then:
+**FOCUS:** hold a block and let go. The screen name reads **FOCUS** and every other block disappears (the FOCUS block stays in its place). Then:
 - swipe the block **right** to schedule it today: move the block (it shows the task), drag the bar below it to change its length, then tap **ADD TO CALENDAR** (or swipe right on SCHEDULE) to add it to your Paradigm calendar; swipe left on SCHEDULE to cancel. It stays on STACK;
 - swipe the block **left**: the whole screen slides over to its subtask screen.
 Tap the green block again to leave FOCUS (tapping elsewhere keeps it). Backlogs work the same way. Complete and send-to-backlog show **UNDO** for 5 seconds. While you hold and drag a block to reorder it, it shows highlighted.
 
 **Adding things:** type in the box on STACK. Anything new is a task at the bottom of STACK. Typing the exact name of something that exists opens it instead.
 
-**A subtask screen** (FOCUS then swipe left, or open it from search) works like STACK: subtasks pile up from the bottom and the entry box sits above the name at the bottom. A task shows a notes box; adding its first subtask turns it into a **list** and the subtasks replace the notes. Swipe a subtask right to complete it or left to delete it; hold and drag to reorder. **OPTIONS** (top right) has the name, **Project** (moves it to PROJECT BACKLOG; uncheck to turn it back), and recurring settings. Swipe **left** on the name to save and go back; swipe **right** to save and add it to STACK. Android's back gesture leaves without saving.
+**A subtask screen** (FOCUS then swipe left, or open it from search) works like STACK: subtasks pile up from the bottom and the entry box sits above the name at the bottom. A task shows a notes box; adding its first subtask turns it into a **list** and the subtasks replace the notes. When a list's last subtask is completed or deleted it turns back into a task (a recurring list with recurring subtasks stays a list, keeping them for next time). Swipe a subtask right to complete it or left to delete it; hold and drag to reorder. **OPTIONS** (top right) has the name, **Project** (moves it to PROJECT BACKLOG; uncheck to turn it back), and recurring settings. Swipe **left** on the name to save and go back; swipe **right** to save and add it to STACK. Android's back gesture leaves without saving.
 
 **Lists** are drawn two blocks tall. **A task that has sat on STACK for more than 3 days** gets a pulsing dashed border and a "break it down" tag: open its subtask screen and split it into steps.
 

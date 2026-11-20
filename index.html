@@ -339,7 +339,7 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .notesline { flex: none; margin: 10px 16px 0; padding: 8px 10px; border: 1px solid var(--dim); color: var(--g2); font-size: 14px; line-height: 1.4; white-space: pre-wrap; max-height: 22vh; overflow-y: auto; }
 
 /* FOCUS: only the chosen block stays */
-.panel.focusmode .list .block:not(.armed) { display: none; }
+.panel.focusmode .list .block:not(.armed) { visibility: hidden; pointer-events: none; }   /* hidden, but the FOCUS block keeps its place */
 .panel.focusmode .empty { display: none; }
 
 /* Lists are two blocks tall, name at the bottom */
@@ -651,6 +651,18 @@ function convertItem(id, toType) {
     if (i >= 0 && k !== toType) { state.backlogs[k].splice(i, 1); state.backlogs[toType].splice(Math.min(i, state.backlogs[toType].length), 0, bid); }
   }
 }
+/* A list with nothing left to do turns back into a task (and moves back to TASK BACKLOG if it's there).
+   A recurring list with recurring subtasks keeps its checked-off subtasks for next time, so it stays a list. */
+function listIsEmpty(it) {
+  return it && it.type === 'list' && !(it.subtasks || []).some(s => !s.done) && !(it.recurring && it.recSubtasks && (it.subtasks || []).length);
+}
+function maybeRevertToTask(id) {
+  const it = state.items[id];
+  if (!listIsEmpty(it)) return false;
+  it.subtasks = [];
+  convertItem(id, 'task');
+  return true;
+}
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
 /* Adds an item (or project subtask) to STACK. where: 'top' (lowest priority, from a backlog)
@@ -755,7 +767,7 @@ function completeBlock(bid) {
     else it.subtasks = [];
   }
   removeBlock(bid);
-  if (state.items[b.itemId]) placeInBacklog(b.itemId);   // recurring items go back to their backlog
+  if (state.items[b.itemId]) { maybeRevertToTask(b.itemId); placeInBacklog(b.itemId); }   // recurring items go back to their backlog
   save();
   return res;
 }
@@ -3788,7 +3800,7 @@ function openEditor(item, isNew, slide) {
       reverse: true,
       onReorder: keys => { const done = d.subtasks.filter(s => s.done); d.subtasks = keys.map(k => d.subtasks.find(s => s.id === k)).concat(done); renderSubs(); },
       swipeRight: k => completeSub(k),
-      swipeLeft: k => { d.subtasks = d.subtasks.filter(s => s.id !== k); renderSubs(); }
+      swipeLeft: k => { d.subtasks = d.subtasks.filter(s => s.id !== k); afterSubChange(); }
     });
   }
   function completeSub(k) {
@@ -3796,7 +3808,12 @@ function openEditor(item, isNew, slide) {
     if (d.type === 'list' && d.recurring && d.recSubtasks) s.done = true;            // comes back when the list resets
     else if (d.type === 'project' && d.recurring) { toast(`${s.name} done. It stays in this recurring project`); renderSubs(); return; }
     else d.subtasks = d.subtasks.filter(x => x.id !== k);
-    renderSubs();
+    afterSubChange();
+  }
+  /* The last subtask gone: a list turns back into a task (it's saved that way when you leave). */
+  function afterSubChange() {
+    if (listIsEmpty(d)) { d.subtasks = []; d.type = 'task'; render(); toast('Back to a task'); }
+    else renderSubs();
   }
 
   function validName() {
@@ -4332,7 +4349,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.12.1';
+const VERSION = '1.12.2';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
