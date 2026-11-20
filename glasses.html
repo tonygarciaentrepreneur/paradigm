@@ -132,7 +132,7 @@ nav { display: flex; justify-content: center; }
 .olabel .l, .olabel .r { color: var(--dim); }
 .olabel:focus { border-color: var(--g); outline: 3px solid var(--hot); outline-offset: 3px; }
 /* v1.12: lists are two blocks tall (name at the bottom); a task stuck 3+ days on STACK is nudged */
-.block.tall { min-block-size: 4.9em; align-items: flex-end; }
+.block.tall { align-items: flex-end; }   /* height set per block from its open subtasks */
 .block.stale { border-style: dashed; animation: gstale 2.6s ease-in-out infinite; }
 .block.stale .nudge { color: var(--hot); }
 .block.focused.stale .nudge { color: var(--bg); }
@@ -403,6 +403,12 @@ function maybeRevertToTask(id) {
   convertItem(id, 'task');
   return true;
 }
+/* Block height in rows, like stacked Tetris rows: one row per open subtask (at least one), up to MAX_ROWS. */
+const MAX_ROWS = 5;
+function blockRows(it) {
+  if (!it || (it.type !== 'list' && it.type !== 'project')) return 1;
+  return Math.max(1, Math.min(MAX_ROWS, (it.subtasks || []).filter(s => !s.done).length));
+}
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
 /* Adds an item (or project subtask) to STACK. where: 'top' (lowest priority, from a backlog)
@@ -629,7 +635,7 @@ function syncStop() {
    Back undoes the last complete / send / delete / add for a few seconds, like the phone's UNDO. */
 'use strict';
 
-const GLASSES_VERSION = '1.12.2';
+const GLASSES_VERSION = '1.13.1';
 const $ = (s, r) => (r || document).querySelector(s);
 const LS_KEY = 'paradigm.glasses.v1';
 const SCREENS = ['project', 'list', 'task', 'stack', 'schedule', 'settings'];
@@ -794,8 +800,10 @@ function renderList() {
 
     const btn = document.createElement('button');
     btn.type = 'button';
-    const isList = screen !== 'project' && state.blocks[key] && !state.blocks[key].subId && (state.items[state.blocks[key].itemId] || {}).type === 'list';
-    btn.className = 'block' + (focused === key ? ' focused' : '') + (isList ? ' tall' : '') + (screen === 'stack' && isStale(key) ? ' stale' : '')
+    const rowItem = screen === 'project' ? state.items[key] : (state.blocks[key] && !state.blocks[key].subId ? state.items[state.blocks[key].itemId] : null);
+    const rows = blockRows(rowItem);   // one row per open subtask, like the phone
+    if (rows > 1) btn.style.minBlockSize = `calc(${rows} * 2.4em + ${rows - 1} * 6px)`;
+    btn.className = 'block' + (focused === key ? ' focused' : '') + (rows > 1 ? ' tall' : '') + (screen === 'stack' && isStale(key) ? ' stale' : '')
       + (focused && key !== focused ? ' unseen' : '');   // FOCUS: the others disappear but keep their space
     btn.dataset.key = key;
     let name, meta = '';

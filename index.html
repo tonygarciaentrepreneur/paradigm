@@ -343,7 +343,7 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .panel.focusmode .empty { display: none; }
 
 /* Lists are two blocks tall, name at the bottom */
-.block.tall { min-height: 113px; align-items: flex-end; }
+.block.tall { align-items: flex-end; }   /* height is set per block: one row per open subtask */
 
 /* A task stuck on STACK for more than 3 days: nudge to break it down */
 .block.stale { border-style: dashed; animation: stale 2.6s ease-in-out infinite; }
@@ -662,6 +662,12 @@ function maybeRevertToTask(id) {
   it.subtasks = [];
   convertItem(id, 'task');
   return true;
+}
+/* Block height in rows, like stacked Tetris rows: one row per open subtask (at least one), up to MAX_ROWS. */
+const MAX_ROWS = 5;
+function blockRows(it) {
+  if (!it || (it.type !== 'list' && it.type !== 'project')) return 1;
+  return Math.max(1, Math.min(MAX_ROWS, (it.subtasks || []).filter(s => !s.done).length));
 }
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
@@ -4349,7 +4355,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.12.2';
+const VERSION = '1.13.1';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
@@ -4371,7 +4377,9 @@ function goPanel(name, instant) {
 function blockEl(bid) {
   const b = state.blocks[bid], it = state.items[b.itemId], l = blockLabel(bid);
   const el = document.createElement('div');
-  el.className = 'block' + (it.type === 'list' && !b.subId ? ' tall' : '') + (isStale(bid) ? ' stale' : '');
+  const rows = b.subId ? 1 : blockRows(it);
+  el.className = 'block' + (rows > 1 ? ' tall' : '') + (isStale(bid) ? ' stale' : '');
+  if (rows > 1) el.style.minHeight = `calc(${rows} * 54px + ${rows - 1} * 5px)`;   // taller with each open subtask
   el.dataset.key = bid;
   let meta = '';
   if (isStale(bid)) meta += `<span class="meta nudge">${stackDays(bid)}d · break it down</span>`;
@@ -4436,6 +4444,8 @@ function projectEl(id) {
   const it = state.items[id], n = it.subtasks.length, d = it.subtasks.filter(s => s.done).length;
   const el = document.createElement('div');
   el.className = 'block'; el.dataset.key = id;
+  const rows = blockRows(it);
+  if (rows > 1) { el.classList.add('tall'); el.style.minHeight = `calc(${rows} * 54px + ${rows - 1} * 5px)`; }
   el.innerHTML = `<span class="name">${esc(it.name)}</span>${n ? `<span class="meta">${d}/${n}</span>` : ''}<span class="mark" aria-hidden="true">›</span>`;
   return el;
 }
