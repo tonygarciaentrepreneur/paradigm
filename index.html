@@ -324,7 +324,7 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .settings h3 { margin: 0 0 8px; font-size: 13px; font-weight: 400; color: var(--g2); letter-spacing: .18em; }
 
 /* Today's calendar → STACK prompt (when Google needs a tap to sign in again) */
-#calbar { flex: none; margin: 10px 14px 0; padding: 11px 14px; background: var(--bg); border: 2px dashed var(--g); color: var(--g); font: inherit; font-size: 14px; letter-spacing: .1em; cursor: pointer; }
+#calbar { display: block; width: 100%; margin: 0; padding: 13px 14px; background: var(--bg); border: 2px dashed var(--g); color: var(--g); font: inherit; font-size: 14px; letter-spacing: .1em; cursor: pointer; }
 
 /* SCHEDULE: CALENDAR sits just above the name, where STACK has its entry box */
 .schedfoot { flex: none; padding: 10px 14px 0; }
@@ -337,6 +337,35 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .activity .optpanel { border-bottom: 0; border-top: 1px solid var(--faint); padding-top: 10px; max-height: 55vh; }
 .activity .optnotes { min-height: 120px; height: 22vh; }
 .notesline { flex: none; margin: 10px 16px 0; padding: 8px 10px; border: 1px solid var(--dim); color: var(--g2); font-size: 14px; line-height: 1.4; white-space: pre-wrap; max-height: 22vh; overflow-y: auto; }
+
+/* FOCUS: only the chosen block stays */
+.panel.focusmode .list .block:not(.armed) { display: none; }
+.panel.focusmode .empty { display: none; }
+
+/* Lists are two blocks tall, name at the bottom */
+.block.tall { min-height: 113px; align-items: flex-end; }
+
+/* A task stuck on STACK for more than 3 days: nudge to break it down */
+.block.stale { border-style: dashed; animation: stale 2.6s ease-in-out infinite; }
+.block.stale .nudge { color: var(--hot); font-size: 12px; letter-spacing: .04em; }
+.block.armed.stale .nudge { color: var(--bg); }
+@keyframes stale { 50% { box-shadow: 0 0 14px rgba(0, 255, 65, .45); border-color: var(--hot); } }
+
+/* Subtask screen: OPTIONS at the top right, notes until subtasks replace them */
+.acttop { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 6px; }
+.acttop .label { font-size: 13px; color: var(--g2); letter-spacing: .2em; }
+.activity .optpanel { border-top: 0; border-bottom: 1px solid var(--faint); max-height: 50vh; }
+.actnotes { flex: 1; min-height: 0; margin: 6px 14px 0; width: auto; resize: none; line-height: 1.45; }
+.screen.slidein { animation: slidein .28s cubic-bezier(.2, .8, .2, 1); }
+@keyframes slidein { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+/* Scheduling flow: block shows the task; ADD TO CALENDAR sits above SCHEDULE */
+.schedpick .selblk { font-size: 15px; display: flex; align-items: flex-end; padding-bottom: 6px; }
+.schedpick .dayhead { padding-top: 14px; }
+
+/* The block being dragged is highlighted, like a held block */
+.block.ghost.armed { background: var(--g); color: var(--bg); text-shadow: none; }
+.block.ghost.armed .proj, .block.ghost.armed .meta, .block.ghost.armed .mark { color: var(--bg); }
 
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -364,13 +393,13 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
     </section>
 
     <section class="panel" id="p-stack">
-      <button id="calbar" class="hidden">ADD TODAY’S CALENDAR TO STACK</button>
       <div class="list stack" id="stack-list"></div>
       <p class="empty" id="stack-empty">Type below to add something.</p>
       <div class="stackfoot">
         <div id="suggest" class="hidden"></div>
         <div class="inputbar">
           <input id="main-input" type="text" autocomplete="off" autocapitalize="sentences" enterkeyhint="go" placeholder="Search or add">
+          <button id="calbar" class="hidden">ADD TODAY’S CALENDAR TO STACK</button>
         </div>
       </div>
       <header class="title" id="t-stack" data-keeparm><h1>STACK</h1></header>
@@ -644,6 +673,21 @@ function deleteBlockItem(bid) {
     removeBlock(bid);
   } else deleteItem(b.itemId);
 }
+/* How long a block has sat on STACK: stamped when it lands there, cleared when it leaves. */
+const STALE_DAYS = 3;
+function stampStack() {
+  let changed = false;
+  for (const bid of state.stack) { const b = state.blocks[bid]; if (b && !b.stackedAt) { b.stackedAt = Date.now(); changed = true; } }
+  for (const [bid, b] of Object.entries(state.blocks)) if (b.stackedAt && !state.stack.includes(bid)) { delete b.stackedAt; changed = true; }
+  return changed;
+}
+function stackDays(bid) { const b = state.blocks[bid]; return b && b.stackedAt ? Math.floor((Date.now() - b.stackedAt) / DAY) : 0; }
+/* A plain task that has sat on STACK for more than STALE_DAYS: Paradigm nudges you to break it down. */
+function isStale(bid) {
+  const b = state.blocks[bid]; if (!b || b.subId || !state.stack.includes(bid)) return false;
+  const it = state.items[b.itemId];
+  return !!it && it.type === 'task' && Date.now() - (b.stackedAt || Date.now()) > STALE_DAYS * DAY;
+}
 /* Sends a block to the bottom (highest priority) of its backlog. Project subtasks return to their project. */
 function sendToBacklog(bid) {
   if (state.blocks[bid].subId) { removeBlock(bid); return; }
@@ -726,7 +770,8 @@ function gesture(el, o) {
   let st = null;
   const hasH = () => !!(o.onSwipeLeft || o.onSwipeRight);
   const hasV = () => !!(o.onSwipeUp || o.onSwipeDown);
-  const mover = () => o.moveEl === false ? null : (o.moveEl || el);
+  // moveEl: false (nothing moves), an element, or a function picking one at swipe time.
+  const mover = () => o.moveEl === false ? null : typeof o.moveEl === 'function' ? o.moveEl() : (o.moveEl || el);
 
   el.addEventListener('touchstart', e => {
     if (e.touches.length > 1) { cancel(); return; }
@@ -825,7 +870,7 @@ let dragCtx = null;
 function beginDrag({ listEl, srcEl, x, y, reverse, external }) {
   const r = srcEl.getBoundingClientRect();
   const ghost = srcEl.cloneNode(true);
-  ghost.classList.add('ghost');
+  ghost.classList.add('ghost', 'armed');   // the block being moved shows highlighted
   ghost.classList.remove('ph');
   ghost.style.width = r.width + 'px';
   ghost.style.left = r.left + 'px';
@@ -881,7 +926,9 @@ function arm(el) { disarm(); armed = el; el.classList.add('armed'); if (typeof o
 function disarm() { if (armed) { armed.classList.remove('armed'); armed = null; if (typeof onArmChange === 'function') onArmChange(null); } }
 function isArmed(el) { return armed === el && el.isConnected; }
 document.addEventListener('touchstart', e => {
-  if (armed && !(armed.isConnected && armed.contains(e.target)) && !(e.target.closest && e.target.closest('[data-keeparm]'))) disarm();
+  if (!armed || (armed.isConnected && armed.contains(e.target))) return;
+  if (e.target.closest && (e.target.closest('[data-keeparm]') || e.target.closest('.panel.focusmode'))) return;   // FOCUS ends by tapping the block itself
+  disarm();
 }, { capture: true, passive: true });
 
 /* Wires a rendered list: each child .block with data-key gets swipe/hold/tap per opts.
@@ -895,6 +942,8 @@ function wireList(listEl, opts) {
     let drag = null, hold = null;
     gesture(el, {
       enabled: opts.enabled,
+      // In FOCUS the block stays put and the whole screen slides, like moving between screens.
+      moveEl: () => (isArmed(el) && el.closest('.panel, .screen')) || el,
       onSwipeRight: (opts.swipeRight || canArm) ? () => {
         if (isArmed(el)) { disarm(); opts.openEdit(key); return; }
         if (opts.swipeRight) opts.swipeRight(key);
@@ -3646,17 +3695,20 @@ function eventWhen(ev) {
 /* The activity's own screen (formerly EDIT). Laid out like STACK: subtasks pile up from the bottom,
    the entry box sits above the name at the bottom.
    Swipe left on the name = save and go back; swipe right = save and add to STACK. Android back discards. */
-function openEditor(item, isNew) {
+function openEditor(item, isNew, slide) {
   const orig = clone(item);
   const d = clone(item);
   if (d.type === 'task' && !Array.isArray(d.subtasks)) d.subtasks = [];
   const hasSubs = d.type !== 'event';   // tasks, lists and projects all hold subtasks
-  // Like STACK: the list piles up from the bottom; the entry box and OPTIONS sit just above the name.
-  const el = screenEl('editor activity', `
-    <div class="actmain"></div>
+  // Like STACK: the list piles up from the bottom, the entry box sits above the name at the bottom.
+  // OPTIONS is at the top right (where REFRESH is on SCHEDULE).
+  const el = screenEl('editor activity' + (slide ? ' slidein' : ''), `
+    <div class="acttop"><span class="label kind"></span><button class="btn quiet small optbtn">OPTIONS</button></div>
     <div class="optpanel hidden"><input class="namein" type="text" autocomplete="off" aria-label="Name"><div class="optcontent"></div></div>
-    <div class="actrow">${hasSubs ? '<input class="subin" type="text" placeholder="Add a subtask" enterkeyhint="done" autocomplete="off">' : ''}<button class="btn quiet optbtn">OPTIONS</button></div>
+    <div class="actmain"></div>
+    ${hasSubs ? '<div class="inputbar actinput"><input class="subin" type="text" placeholder="Add a subtask" enterkeyhint="done" autocomplete="off"></div>' : ''}
     <header class="title act-title"><h1></h1></header>`);
+  const kindLabel = $('.kind', el);
   const title = $('.act-title h1', el), optpanel = $('.optpanel', el), optcontent = $('.optcontent', el), main = $('.actmain', el);
   const nameIn = $('.namein', el);
   nameIn.value = d.name;
@@ -3670,6 +3722,7 @@ function openEditor(item, isNew) {
 
   let subsList = null;
   function render() {
+    kindLabel.textContent = TYPES[d.type];
     optcontent.innerHTML = '';
     if (d.type === 'task' || d.type === 'list' || d.type === 'project') {
       // Project, like Recurring: a checkbox. A project lives in PROJECT BACKLOG; its subtasks go to STACK one by one.
@@ -3690,7 +3743,10 @@ function openEditor(item, isNew) {
     }
     main.innerHTML = '';
     if (hasSubs) {
-      main.innerHTML = `<div class="list rev"></div><p class="empty hidden">${d.type === 'task' ? 'Add a subtask below to make this a list.' : 'No subtasks. Add one below.'}</p>`;
+      if (d.type === 'task') {   // a task has notes; its first subtask makes it a list and the subtasks replace the notes
+        main.innerHTML = '<textarea class="notes actnotes" placeholder="Notes"></textarea><div class="list rev hidden"></div><p class="empty hidden"></p>';
+        const ta = $('textarea', main); ta.value = d.notes || ''; ta.addEventListener('input', () => { d.notes = ta.value; });
+      } else main.innerHTML = '<div class="list rev"></div><p class="empty hidden">No subtasks. Add one below.</p>';
       subsList = $('.list', main);
       renderSubs();
     }
@@ -3727,7 +3783,7 @@ function openEditor(item, isNew) {
       b.innerHTML = `<span class="name">${esc(s.name)}</span>${extra}`;
       subsList.appendChild(b);
     });
-    $('.empty', main).classList.toggle('hidden', !!open.length);
+    $('.empty', main).classList.toggle('hidden', !!open.length || d.type === 'task');
     wireList(subsList, {
       reverse: true,
       onReorder: keys => { const done = d.subtasks.filter(s => s.done); d.subtasks = keys.map(k => d.subtasks.find(s => s.id === k)).concat(done); renderSubs(); },
@@ -4009,14 +4065,13 @@ function openDay({ mode, date, name, sel, onSave }) {
   const isSched = mode === 'schedule';
   const step = isSched ? 15 : 30, slots = 1440 / step, slotH = SLOT_H * step / 30;
   const el = screenEl('dayscreen' + (isSched ? ' schedpick' : ''), `
-    <div class="bar">${isSched ? '' : '<button class="back" aria-label="Back">‹</button>'}<span class="label"></span></div>
+    ${isSched ? '' : '<div class="bar"><button class="back" aria-label="Back">‹</button><span class="label"></span></div>'}
     <div class="dayhead"><span class="d"></span>${isSched ? '' : '<button class="check allday" style="width:auto"><span class="box"></span><span>All day</span></button>'}</div>
     <div class="allday-strip"></div>
     <div class="dayscroll"><div class="grid" style="margin-top:12px;margin-bottom:24px"></div></div>
-    ${isSched ? '<div class="selinfo schedinfo"></div><header class="title sched-title"><h1>SCHEDULE</h1></header>'
+    ${isSched ? '<div class="schedfoot"><button class="btn wide addcal">ADD TO CALENDAR</button></div><header class="title sched-title"><h1>SCHEDULE</h1></header>'
               : '<div class="foot"><div class="selinfo"></div><button class="btn primary wide go">SAVE</button></div>'}`);
-  $('.label', el).textContent = name;
-  if (!isSched) backBtn(el);
+  if (!isSched) { $('.label', el).textContent = name; backBtn(el); }
   const grid = $('.grid', el), scroller = $('.dayscroll', el), info = $('.selinfo', el), go = $('.go', el), strip = $('.allday-strip', el);
   grid.innerHTML = dayGridHTML();
   const blk = document.createElement('div'); blk.className = 'selblk hidden'; grid.appendChild(blk);
@@ -4058,6 +4113,7 @@ function openDay({ mode, date, name, sel, onSave }) {
       sel.startMin = st; sel.endMin = st + len; draw();
     }, { passive: false });
     blk.addEventListener('touchend', () => { grab = null; });
+    $('.addcal', el).addEventListener('click', () => onSave({ date, allDay: false, startMin: sel.startMin, endMin: sel.endMin }));
     gesture($('.sched-title', el), {
       moveEl: false,
       onSwipeRight: () => onSave({ date, allDay: false, startMin: sel.startMin, endMin: sel.endMin }),
@@ -4089,15 +4145,16 @@ function openDay({ mode, date, name, sel, onSave }) {
     grid.classList.toggle('off', !!(sel && sel.allDay));
     if (!sel || sel.allDay) {
       blk.classList.add('hidden');
-      info.textContent = sel && sel.allDay ? 'All day' : 'Hold and drag to pick a time';
+      if (info) info.textContent = sel && sel.allDay ? 'All day' : 'Hold and drag to pick a time';
       if (go) go.disabled = !sel; return;
     }
     blk.classList.remove('hidden');
     blk.style.top = (sel.startMin / 30 * SLOT_H) + 'px';
     blk.style.height = ((sel.endMin - sel.startMin) / 30 * SLOT_H) + 'px';
     const range = `${minToClock(sel.startMin)} to ${minToClock(sel.endMin % 1440)}`;
-    if (blk.firstChild && blk.firstChild.nodeType === 3) blk.firstChild.textContent = range; else blk.insertBefore(document.createTextNode(range), blk.firstChild);
-    info.textContent = isSched ? `${range}, ${durText(sel.endMin - sel.startMin)}` : range;
+    const label = isSched ? name : range;   // scheduling: the block shows the task, like a block on STACK
+    if (blk.firstChild && blk.firstChild.nodeType === 3) blk.firstChild.textContent = label; else blk.insertBefore(document.createTextNode(label), blk.firstChild);
+    if (info) info.textContent = range;
     if (go) go.disabled = false;
   }
   function setDate(dt) {
@@ -4275,11 +4332,12 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.11.0';
+const VERSION = '1.12.1';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
 function goPanel(name, instant) {
+  disarm();   // leaving a screen ends FOCUS
   panel = name;
   const tr = $('#track');
   if (instant) tr.style.transition = 'none';
@@ -4296,9 +4354,10 @@ function goPanel(name, instant) {
 function blockEl(bid) {
   const b = state.blocks[bid], it = state.items[b.itemId], l = blockLabel(bid);
   const el = document.createElement('div');
-  el.className = 'block';
+  el.className = 'block' + (it.type === 'list' && !b.subId ? ' tall' : '') + (isStale(bid) ? ' stale' : '');
   el.dataset.key = bid;
   let meta = '';
+  if (isStale(bid)) meta += `<span class="meta nudge">${stackDays(bid)}d · break it down</span>`;
   if ((it.type === 'list' || it.type === 'task') && !b.subId && (it.subtasks || []).length) meta += `<span class="meta">${it.subtasks.filter(s => s.done).length}/${it.subtasks.length}</span>`;
   if (b.elapsed) meta += `<span class="meta">${fmtShort(b.elapsed)}</span>`;
   if (it.recurring && !b.subId) meta += '<span class="mark" aria-label="Recurring">↻</span>';
@@ -4311,11 +4370,16 @@ function blockEl(bid) {
    swipe the block right = open its screen, swipe it left = delete it,
    swipe left on the FOCUS label (toward SCHEDULE) = plan where it fits on today's schedule. */
 function blockEditable(bid) { return !!state.blocks[bid]; }
-function editBlock(bid) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false); }
+function editBlock(bid, slide) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false, slide); }
+function scheduleBlock(bid) { if (state.blocks[bid]) openSchedulePicker(blockName(bid)); }
 function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName(bid)}`, () => deleteBlockItem(bid)); }
 const PANEL_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
-/* Highlighting a block no longer changes the screen name (it stays STACK, or the backlog's name). */
-function onArmChange() {}
+/* FOCUS: the screen name reads FOCUS and every other block disappears. Tap anywhere else to leave. */
+function onArmChange(el) {
+  for (const k of Object.keys(PANEL_TITLE)) { $(`#t-${k} h1`).textContent = PANEL_TITLE[k]; $(`#p-${k}`).classList.remove('focusmode'); }
+  const p = el && el.closest('.panel');
+  if (p && PANEL_TITLE[p.id.slice(2)]) { $(`#t-${p.id.slice(2)} h1`).textContent = 'FOCUS'; p.classList.add('focusmode'); }
+}
 function armedIn(panelKey) { return armed && armed.isConnected && armed.closest(`#p-${panelKey}`) ? armed : null; }
 function scheduleArmed(panelKey) {
   const a = armedIn(panelKey); if (!a) return false;
@@ -4330,6 +4394,7 @@ function renderAll() {
 
 /* ---------- STACK (bottom = highest priority; new from the input lands at the bottom, from a backlog at the top) ---------- */
 function renderStack() {
+  if (stampStack()) save({ noBackup: true });
   const list = $('#stack-list');
   list.innerHTML = '';
   state.stack.forEach(bid => list.appendChild(blockEl(bid)));
@@ -4337,9 +4402,9 @@ function renderStack() {
     reverse: true,
     onReorder: keys => { state.stack = keys; save(); },
     armable: blockEditable,
-    openEdit: bid => { const name = blockName(bid); withUndo(`Completed ${name}`, () => completeBlock(bid)); },   // highlighted → right: complete
-    armDelete: deleteBlock,                                                                                     // highlighted → left: delete
-    swipeRight: bid => editBlock(bid),                                                                          // plain right: its notes and subtasks
+    openEdit: scheduleBlock,                                                                                    // FOCUS → right: scheduling flow
+    armDelete: bid => editBlock(bid, true),                                                                     // FOCUS → left: its subtask screen (slides in)
+    swipeRight: bid => { const name = blockName(bid); withUndo(`Completed ${name}`, () => completeBlock(bid)); },   // plain right: complete (it's gone)
     swipeLeft: bid => {
       const b = state.blocks[bid];
       const msg = b.subId ? `Returned to ${state.items[b.itemId].name}` : `Sent to ${BACKLOG_TITLE[blockKind(bid)]}`;
@@ -4365,8 +4430,8 @@ function renderBacklogs() {
     reverse: true,
     onReorder: keys => { state.backlogs.project = keys; save(); },
     armable: () => true,
-    openEdit: id => openEditor(state.items[id], false),
-    armDelete: id => withUndo(`Deleted ${state.items[id].name}`, () => deleteItem(id)),
+    openEdit: id => openSchedulePicker(state.items[id].name),     // FOCUS → right: scheduling flow
+    armDelete: id => openEditor(state.items[id], false, true),     // FOCUS → left: its subtask screen
     swipeRight: id => openProjectSubs(id)
   });
   $('#empty-project').classList.toggle('hidden', !!state.backlogs.project.length);
@@ -4378,8 +4443,8 @@ function renderBacklogs() {
       reverse: true,
       onReorder: keys => { state.backlogs[k] = keys; save(); },
       armable: blockEditable,
-      openEdit: editBlock,
-      armDelete: deleteBlock,
+      openEdit: scheduleBlock,
+      armDelete: bid => editBlock(bid, true),
       swipeRight: bid => {
         detach(bid); state.stack.push(bid); save(); renderAll();
         toast('Added to top of STACK');
@@ -4601,7 +4666,11 @@ function openPairing() {
    in time order (first event at the very bottom). Skips all-day events, events you declined, and the
    Paradigm calendar's own events (those are activities already in Paradigm). A repeating event reuses
    its block instead of piling up copies. If Google needs a tap to sign in again, a bar on STACK asks. */
-function showCalBar(show) { const b = $('#calbar'); if (b) b.classList.toggle('hidden', !show); }
+/* The import button takes the place of "Search or add" until today's calendar is in. */
+function showCalBar(show) {
+  const b = $('#calbar'), i = $('#main-input'); if (!b) return;
+  b.classList.toggle('hidden', !show); i.classList.toggle('hidden', !!show);
+}
 let calImporting = false;
 async function importTodayCalendar(interactive) {
   const today = todayStr();
@@ -4683,7 +4752,7 @@ function navTitle(id, right, left, panelKey) {
   gesture($(id), {
     moveEl: false,
     onSwipeRight: right ? () => goPanel(right) : null,
-    onSwipeLeft: () => { if (panelKey && scheduleArmed(panelKey)) return; if (left) goPanel(left); }
+    onSwipeLeft: left ? () => goPanel(left) : null
   });
 }
 async function boot() {

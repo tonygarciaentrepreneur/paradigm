@@ -131,6 +131,16 @@ nav { display: flex; justify-content: center; }
 .olabel .t { font-family: "OCR-A", var(--font); font-size: 1.05em; letter-spacing: .18em; text-shadow: 0 0 10px rgba(0, 255, 65, .55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .olabel .l, .olabel .r { color: var(--dim); }
 .olabel:focus { border-color: var(--g); outline: 3px solid var(--hot); outline-offset: 3px; }
+/* v1.12: lists are two blocks tall (name at the bottom); a task stuck 3+ days on STACK is nudged */
+.block.tall { min-block-size: 4.9em; align-items: flex-end; }
+.block.stale { border-style: dashed; animation: gstale 2.6s ease-in-out infinite; }
+.block.stale .nudge { color: var(--hot); }
+.block.focused.stale .nudge { color: var(--bg); }
+@keyframes gstale { 50% { box-shadow: 0 0 14px rgba(0, 255, 65, .45); } }
+#overlay.slidein { animation: gslide .28s cubic-bezier(.2, .8, .2, 1); }
+@keyframes gslide { from { transform: translateX(100%); } to { transform: translateX(0); } }
+.opt.addcal { flex: none; }
+.tl-sel { display: flex; align-items: flex-end; font-size: 0.75em; }
 
 </style>
 </head>
@@ -399,6 +409,21 @@ function deleteBlockItem(bid) {
     removeBlock(bid);
   } else deleteItem(b.itemId);
 }
+/* How long a block has sat on STACK: stamped when it lands there, cleared when it leaves. */
+const STALE_DAYS = 3;
+function stampStack() {
+  let changed = false;
+  for (const bid of state.stack) { const b = state.blocks[bid]; if (b && !b.stackedAt) { b.stackedAt = Date.now(); changed = true; } }
+  for (const [bid, b] of Object.entries(state.blocks)) if (b.stackedAt && !state.stack.includes(bid)) { delete b.stackedAt; changed = true; }
+  return changed;
+}
+function stackDays(bid) { const b = state.blocks[bid]; return b && b.stackedAt ? Math.floor((Date.now() - b.stackedAt) / DAY) : 0; }
+/* A plain task that has sat on STACK for more than STALE_DAYS: Paradigm nudges you to break it down. */
+function isStale(bid) {
+  const b = state.blocks[bid]; if (!b || b.subId || !state.stack.includes(bid)) return false;
+  const it = state.items[b.itemId];
+  return !!it && it.type === 'task' && Date.now() - (b.stackedAt || Date.now()) > STALE_DAYS * DAY;
+}
 /* Sends a block to the bottom (highest priority) of its backlog. Project subtasks return to their project. */
 function sendToBacklog(bid) {
   if (state.blocks[bid].subId) { removeBlock(bid); return; }
@@ -581,14 +606,14 @@ function syncStop() {
    Same data as the phone (synced) and, as far as arrows + Enter allow, the same gestures.
    It never creates or renames anything: that stays on the phone.
 
-   Blocks:      → open its screen (STACK) or add to STACK (backlogs) · ← send to backlog (STACK) · Enter = highlight
-   Highlighted: the phone's hold. ↑ ↓ move the block · → complete (STACK) or open its screen (backlogs) · ← delete
-                Enter = go to the screen name, where ← plans it on today's schedule · ↑ back to the block · Back un-highlights
+   Blocks: → complete (STACK; it's gone) or add to STACK (backlogs) · ← send to backlog (STACK) · Enter = FOCUS
+   FOCUS:  the phone's hold. The screen name reads FOCUS and the other blocks disappear.
+           → plan it on today's schedule · ← its subtask screen (the screen slides) · Back leaves FOCUS
    Screen name: ← / → move between screens (toward STACK jumps straight there) · Enter = STACK
    Back undoes the last complete / send / delete / add for a few seconds, like the phone's UNDO. */
 'use strict';
 
-const GLASSES_VERSION = '1.11.0';
+const GLASSES_VERSION = '1.12.0';
 const $ = (s, r) => (r || document).querySelector(s);
 const LS_KEY = 'paradigm.glasses.v1';
 const SCREENS = ['project', 'list', 'task', 'stack', 'schedule', 'settings'];
@@ -717,7 +742,7 @@ function focusBlock(key) { const el = $(`#list [data-key="${CSS.escape(key)}"]`)
 function updateHint() {
   const h = $('#hint');
   if (!focused || overlayLayer) { h.classList.add('hidden'); return; }
-  h.textContent = document.activeElement === $('#navtitle') ? '← plan on today’s schedule · ↑ back to it' : `↑ ↓ move · → ${screen === 'stack' ? 'complete' : 'open'} · ← delete · Enter: label`;
+  h.textContent = '→ schedule · ← subtasks · Back: leave FOCUS';
   h.classList.remove('hidden');
 }
 
@@ -728,7 +753,7 @@ function render() {
   if (focused && !((listFor(screen) || []).includes(focused))) exitFocus();
   $('#unpaired').classList.toggle('hidden', !!(syncCfg && syncCfg.key));
   const [L, R] = NAV[screen];
-  $('#navtitle .t').textContent = SCREEN_TITLE[screen];
+  $('#navtitle .t').textContent = focused ? 'FOCUS' : SCREEN_TITLE[screen];
   $('#navtitle .l').style.visibility = L || focused ? 'visible' : 'hidden';
   $('#navtitle .r').style.visibility = R ? 'visible' : 'hidden';
   $('#navtitle').classList.toggle('focusmode', !!focused);
@@ -744,13 +769,16 @@ function render() {
 }
 
 function renderList() {
+  if (screen === 'stack' && stampStack()) save({ noBackup: true });
   const list = $('#list');
   list.innerHTML = '';
   const keys = listFor(screen) || [];
   keys.forEach(key => {
+    if (focused && key !== focused) return;   // FOCUS: the other blocks disappear
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'block' + (focused === key ? ' focused' : '');
+    const isList = screen !== 'project' && state.blocks[key] && !state.blocks[key].subId && (state.items[state.blocks[key].itemId] || {}).type === 'list';
+    btn.className = 'block' + (focused === key ? ' focused' : '') + (isList ? ' tall' : '') + (screen === 'stack' && isStale(key) ? ' stale' : '');
     btn.dataset.key = key;
     let name, meta = '';
     if (screen === 'project') {
@@ -763,6 +791,7 @@ function renderList() {
       if (info.kind === 'list' && info.it.subtasks.length) meta = `<span class="meta">${info.it.subtasks.filter(s => s.done).length}/${info.it.subtasks.length}</span>`;
       if (info.it.recurring && !info.b.subId) meta += '<span class="meta">↻</span>';
       if (info.it.cal && info.it.cal.date === todayStr() && !info.b.subId) meta = `<span class="meta">${minToClock(info.it.cal.startMin)}</span>` + meta;
+      if (screen === 'stack' && isStale(key)) meta = `<span class="meta nudge">${stackDays(key)}d · break it down</span>` + meta;
     }
     btn.innerHTML = `<span class="name">${name}</span>${meta}`;
     btn.addEventListener('keydown', e => blockKey(e, key));
@@ -789,19 +818,9 @@ function blockKey(e, key) {
   if (overlayLayer) { e.preventDefault(); return; }   // a screen is on top: the STACK behind it ignores keys
   const k = e.key;
   if (focused === key) {
-    if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); reorder(key, k === 'ArrowUp' ? 1 : -1); return; }
-    if (k === 'ArrowRight') {
-      e.preventDefault(); exitFocus();
-      if (screen === 'stack') { const name = blockName(key); focusNext(key); withUndo(`Completed ${name}`, () => completeBlock(key)); }
-      else { render(); openActivity(key); }
-      return;
-    }
-    if (k === 'ArrowLeft') {
-      e.preventDefault();
-      const name = keyName(key), proj = screen === 'project';
-      exitFocus(); focusNext(key);
-      withUndo(`Deleted ${name}`, () => { if (proj) deleteItem(key); else deleteBlockItem(key); });
-    }
+    e.preventDefault();
+    if (k === 'ArrowRight') { const name = keyName(key); exitFocus(); render(); openSchedule(name); }   // FOCUS → : scheduling flow
+    else if (k === 'ArrowLeft') { exitFocus(); render(); openActivity(key, true); }                 // FOCUS ← : subtask screen
     return;
   }
   if (k !== 'ArrowRight' && k !== 'ArrowLeft') return;
@@ -809,8 +828,8 @@ function blockKey(e, key) {
   if (focused) { exitFocus(); render(); }
   const right = k === 'ArrowRight';
   if (screen === 'stack') {
-    if (right) { openActivity(key); return; }
     focusNext(key);
+    if (right) { const name = blockName(key); withUndo(`Completed ${name}`, () => completeBlock(key)); return; }
     { const sub = !!state.blocks[key].subId, k2 = blockKind(key); withUndo(sub ? 'Returned to project' : `Sent to ${BACKLOG_TITLE[k2]}`, () => sendToBacklog(key)); }
   } else if (right) {
     if (screen === 'project') openActivity(key);
@@ -819,7 +838,7 @@ function blockKey(e, key) {
 }
 function blockEnter(key) {
   if (overlayLayer) return;
-  if (focused === key) { onLabel = true; $('#navtitle').focus(); updateHint(); return; }   // Enter in FOCUS goes to the label
+  if (focused === key) return;
   if (focused) exitFocus();
   enterFocus(key);
 }
@@ -913,13 +932,14 @@ function bottomLabel(ov, text, onLeft, onRight, toTop) {
 /* The activity's screen: like the phone's, subtasks pile up from the bottom with its name at the bottom.
    Name: ← back, → add to STACK.  List subtask: → complete, ← delete, Enter = FOCUS (↑ ↓ move it, Enter to drop).
    Project subtask: → add to STACK, Enter = FOCUS (↑ ↓ move, ← delete).  Task: its notes. */
-function openActivity(key) {
+function openActivity(key, slide) {
   const info = blockInfo(key); if (!info) return;
   const id = info.it.id;
   // Always read the current copy: a sync from the phone can replace it while this screen is open.
   const cur = () => state.items[id];
   const kind = info.kind === 'subtask' || info.kind === 'project' ? 'project' : 'list';   // tasks show subtasks too (none yet)
   openOverlay(ov => {
+    ov.classList.toggle('slidein', !!slide);
     const k = document.createElement('div'); k.className = 'okind'; k.textContent = (info.kind === 'subtask' ? 'project' : info.it.type).toUpperCase(); ov.appendChild(k);
     let label;
     const toTop = () => { const f = ov.querySelector('.olist button, .notes'); if (f) f.focus(); };
@@ -937,7 +957,13 @@ function openActivity(key) {
       const it = cur(); if (!it) { closeOverlay(); toast('That was removed on your phone'); return; }
       list.innerHTML = '';
       const open = openSubtasks(it);
-      if (!open.length) { list.innerHTML = `<p class="note">${!(it.subtasks || []).length ? 'No subtasks yet. Add some on your phone.' : 'All subtasks done.'}</p>`; label.focus(); return; }
+      if (!open.length) {
+        if (it.type === 'task' && (it.notes || '').trim()) {
+          const n = document.createElement('div'); n.className = 'notes'; n.tabIndex = 0; n.textContent = it.notes.trim();
+          list.appendChild(n); n.focus(); return;
+        }
+        list.innerHTML = `<p class="note">${!(it.subtasks || []).length ? 'No subtasks yet. Add some on your phone.' : 'All subtasks done.'}</p>`; label.focus(); return;
+      }
       open.forEach(s => {
         const b = document.createElement('button'); b.type = 'button';
         b.className = 'block' + (moving === s.id ? ' focused' : ''); b.dataset.id = s.id;
@@ -996,22 +1022,24 @@ function openSchedule(name) {
   const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
   let start = Math.min(1410, Math.ceil(nowMin / 15) * 15), end = start + 30;
   openOverlay(ov => {
-    const k = document.createElement('div'); k.className = 'okind'; k.textContent = name; ov.appendChild(k);
+    ov.classList.remove('slidein');
     const box = document.createElement('div'); box.className = 'tl'; ov.appendChild(box);
     const { grid } = paintTimeline(box, 'dim');
     const blk = document.createElement('button'); blk.type = 'button'; blk.className = 'tl-sel';
     grid.appendChild(blk);
-    const info = document.createElement('p'); info.className = 'oinfo'; ov.appendChild(info);
-    const label = bottomLabel(ov, 'SCHEDULE', closeOverlay, () => {
+    const confirm = () => {
       const t0 = parseDate(todayStr()).getTime();
       state.calQueue.push({ id: uid(), kind: 'schedule', name, start: t0 + start * MIN, end: t0 + end * MIN });
       save(); closeOverlay(); toast(`Scheduled ${name} for ${minToClock(start)}. Your phone adds it to the calendar`);
-    }, () => blk.focus());
+    };
+    const add = document.createElement('button'); add.type = 'button'; add.className = 'opt addcal'; add.textContent = 'ADD TO CALENDAR';
+    add.addEventListener('click', confirm);
+    add.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { e.preventDefault(); blk.focus(); } });
+    ov.appendChild(add);
+    const label = bottomLabel(ov, 'SCHEDULE', closeOverlay, confirm, () => blk.focus());
     const paint = () => {
       blk.style.top = (start * PX_MIN) + 'px'; blk.style.height = ((end - start) * PX_MIN) + 'px';
-      blk.textContent = `${minToClock(start)} to ${minToClock(end % 1440)}`;
-      const m = end - start;
-      info.textContent = `${m >= 60 ? Math.floor(m / 60) + 'h' + (m % 60 ? ' ' + (m % 60) + 'm' : '') : m + ' min'} · ↑ ↓ move · ← → length · Enter: label`;
+      blk.textContent = name;   // the block shows the task, like on STACK
       const top = start * PX_MIN, bottom = end * PX_MIN;
       if (top < box.scrollTop + 20 || bottom > box.scrollTop + box.clientHeight - 20) box.scrollTop = Math.max(0, top - box.clientHeight / 3);
     };
@@ -1024,7 +1052,7 @@ function openSchedule(name) {
       else return;
       paint();
     });
-    blk.addEventListener('click', () => label.focus());
+    blk.addEventListener('click', () => add.focus());   // Enter on the block: on to ADD TO CALENDAR
     paint();
     blk.focus();
   });
@@ -1043,9 +1071,6 @@ async function boot() {
     if (e.key === 'ArrowUp' && focused) { e.preventDefault(); onLabel = false; focusBlock(focused); updateHint(); return; }
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault();
-    if (focused && e.key === 'ArrowLeft') {   // FOCUS label ←: plan it on today's schedule (like the phone)
-      const name = keyName(focused); exitFocus(); render(); openSchedule(name); return;
-    }
     if (focused) exitFocus();
     goScreen(NAV[screen][e.key === 'ArrowLeft' ? 0 : 1]) || render();
   });
