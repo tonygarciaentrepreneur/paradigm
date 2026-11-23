@@ -28,7 +28,7 @@ body { margin: 0; background: var(--bg); color: var(--g); font-family: var(--fon
 button { font: inherit; color: inherit; }
 .hidden { display: none !important; }
 
-#app { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; padding: var(--pad); gap: 8px; }
+#app { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; padding: var(--pad); gap: 6px; }
 #status { font-size: 0.6em; color: var(--dim); text-align: end; min-block-size: 1em; letter-spacing: .1em; }
 #status.live { color: var(--g2); }
 #main { min-block-size: 0; display: flex; flex-direction: column; position: relative; }
@@ -152,26 +152,43 @@ nav { display: flex; justify-content: center; }
 .dayrow .tval { text-align: center; font-size: 1.1em; }
 .opt.small:disabled { opacity: .3; }
 
+/* ===== 2.0 viewer ===== */
+.gscores { display: flex; justify-content: space-between; font-family: "OCR-A", var(--font); font-size: 0.6em; letter-spacing: .15em; color: var(--g2); }
+.gscores b { font-weight: 400; color: var(--g); font-size: 1.5em; margin-inline-start: 6px; }
+.garea { flex: 1 1 auto; min-block-size: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.gcap { flex: none; margin-block-start: auto; border-block-start: 2px dashed var(--g); display: flex; flex-direction: column; }
+.gcap .list { flex: 1; overflow: visible; padding: 4px 18px; }
+.block.sized { align-items: flex-end; }
+.block.active::before, .block.active::after { content: ""; position: absolute; top: 50%; transform: translateY(-50%); border: 7px solid transparent; }
+.block { position: relative; }
+.block.active::before { left: -16px; border-left: 9px solid var(--g); }
+.block.active::after { right: -16px; border-right: 9px solid var(--g); }
+.block.carry { border-color: #ff3b3b; color: #ff5a5a; }
+.block.carry .meta, .block.carry .proj { color: #ff8080; }
+.block.carry:focus { border-color: #ff8a8a; outline-color: #ff8a8a; }
+.block.carry.active::before { border-left-color: #ff3b3b; }
+.block.carry.active::after { border-right-color: #ff3b3b; }
+#navtitle { display: flex; justify-content: center; padding: 6px 14px; }
+#navtitle .t { font-family: "OCR-A", var(--font); font-size: 1.15em; letter-spacing: .2em; text-shadow: 0 0 10px rgba(0, 255, 65, .55); }
+.olabel { align-self: center; padding: 6px 14px; }
+.olabel .t { font-family: "OCR-A", var(--font); font-size: 1.05em; letter-spacing: .18em; }
+
 </style>
 </head>
 <body>
 <div id="splash"><img src="data:image/webp;base64,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" alt="Paradigm"></div>
 <div id="app">
   <div id="status" aria-live="polite"></div>
+  <div class="gscores"><span>MOMENTUM <b id="sc-m">8</b></span><span>TODAY <b id="sc-t">0</b></span></div>
   <main id="main">
     <div id="unpaired" class="hidden">
       <p>Not paired with your phone yet.</p>
       <p>On your phone, open Paradigm, go to SETTINGS, tap PAIR GLASSES, and look at the code with your glasses.</p>
     </div>
-    <div id="list" class="list"></div>
-    <div id="timeline" class="tl hidden" tabindex="0" aria-label="Today’s calendar"></div>
-    <div id="settings" class="gset hidden"></div>
-    <p id="empty" class="note hidden"></p>
+    <div class="garea"><div id="capbox" class="gcap"><div id="list" class="list"></div></div></div>
+    <p id="empty" class="note hidden">STACK is empty.</p>
   </main>
-  <p id="hint" class="hint" aria-live="polite" style="visibility:hidden">&nbsp;</p>
-  <nav>
-    <button type="button" id="navtitle"><span class="l" aria-hidden="true">‹</span><span class="t">STACK</span><span class="r" aria-hidden="true">›</span></button>
-  </nav>
+  <nav><div id="navtitle"><span class="t">STACK</span></div></nav>
 </div>
 <div id="overlay" class="hidden" role="dialog" aria-modal="true"></div>
 <div id="toast" class="hidden" role="status" aria-live="polite"></div>
@@ -237,6 +254,7 @@ function freshState() {
     calQueue: [],   // schedules made on the glasses, waiting for the phone to add them to Google Calendar
     dayCache: null, // today's calendar as last loaded by the phone, for the glasses' SCHEDULE screen
     calImportDate: '', // the day today's calendar events were last added to STACK
+    score: { momentum: 8, today: 0, date: todayStr() },   // MOMENTUM is also STACK's capacity, in rows
     settings: { clientId: '', connected: false, paradigmCalId: '', driveFileId: '', lastBackup: 0 },
     auth: { token: '', exp: 0 }
   };
@@ -254,11 +272,18 @@ function normalize(s) {
   if ((s.v || 1) < 3) { s.backlogs.project = []; s.v = 3; }
   // v4: no FOCUS timer. Anything mid-session goes back to the bottom of STACK.
   if (s.running) { s.stack = [s.running.bid].concat((s.stack || []).filter(b => b !== s.running.bid)); s.running = null; }
-  s.v = 4;
+  // v5 (2.0): sizes, MOMENTUM/TODAY, no recurring inside Paradigm (repeats live in Google Calendar).
+  for (const it of Object.values(s.items || {})) {
+    if (it.type !== 'event' && !(it.size >= 1 && it.size <= 4)) it.size = 1;
+    if (it.recurring) { it.recurring = false; it.recSubtasks = false; }
+    if (it.type === 'project') (it.subtasks || []).forEach(x => { if (!(x.size >= 1 && x.size <= 4)) x.size = 1; });
+  }
+  s.v = 5;
   for (const k of Object.keys(f)) if (s[k] === undefined) s[k] = f[k];
   s.settings = Object.assign(f.settings, s.settings || {});
   for (const it of Object.values(s.items || {})) if (it.type === 'task' && !Array.isArray(it.subtasks)) it.subtasks = [];   // v1.11: tasks hold subtasks
   s.auth = Object.assign(f.auth, s.auth || {});
+  s.score = Object.assign({ momentum: 8, today: 0, date: todayStr() }, s.score || {});
   return s;
 }
 
@@ -346,10 +371,10 @@ function blockLabel(bid) {
   if (b.subId) { const s = it.subtasks.find(x => x.id === b.subId); return { proj: it.name, name: s ? s.name : '?' }; }
   return { proj: null, name: it.name };
 }
-function blockName(bid) { const l = blockLabel(bid); return l.proj ? `${l.proj} › ${l.name}` : l.name; }
+function blockName(bid) { const l = blockLabel(bid); return l.proj ? `${l.proj}: ${l.name}` : l.name; }
 
 function newItem(type, name) {
-  const it = { id: uid(), type, name: name.trim(), created: Date.now() };
+  const it = { id: uid(), type, name: name.trim(), created: Date.now(), size: 1 };
   if (type === 'task') Object.assign(it, { notes: '', subtasks: [], recurring: false, schedule: { freq: 'none' } });
   if (type === 'list') Object.assign(it, { subtasks: [], recurring: false, recSubtasks: false, schedule: { freq: 'none' } });
   if (type === 'project') Object.assign(it, { subtasks: [], recurring: false });
@@ -409,12 +434,41 @@ function maybeRevertToTask(id) {
   convertItem(id, 'task');
   return true;
 }
-/* Block height in rows, like stacked Tetris rows: one row per open subtask (at least one), up to MAX_ROWS. */
-const MAX_ROWS = 5;
-function blockRows(it) {
-  if (!it || (it.type !== 'list' && it.type !== 'project')) return 1;
-  return Math.max(1, Math.min(MAX_ROWS, (it.subtasks || []).filter(s => !s.done).length));
+/* ---------- size and capacity ----------
+   Size (1-4) is how much a block weighs: its height in rows on STACK and its points when completed.
+   Project subtasks have their own size; list subtasks don't. STACK holds at most MOMENTUM rows. */
+function clampSize(n) { return Math.max(1, Math.min(4, Math.round(Number(n) || 1))); }
+function blockSize(bid) {
+  const b = state.blocks[bid]; if (!b) return 1;
+  const it = state.items[b.itemId]; if (!it) return 1;
+  if (b.subId) { const x = (it.subtasks || []).find(y => y.id === b.subId); return clampSize(x && x.size); }
+  return clampSize(it.size);
 }
+function projectSize(it) { return (it.subtasks || []).filter(x => !x.done).reduce((n, x) => n + clampSize(x.size), 0); }
+function stackLoad() { return state.stack.reduce((n, bid) => n + blockSize(bid), 0); }
+function capacity() { return Math.max(1, state.score.momentum); }
+function fits(rows) { return stackLoad() + rows <= capacity(); }
+const NO_ROOM = 'No room under the capacity line';
+
+/* TODAY adds the size of what you complete; MOMENTUM rises to TODAY and never drops (except a RESET). */
+function addPoints(n) {
+  const sc = state.score;
+  if (sc.date !== todayStr()) dayRollover();
+  sc.today += n;
+  if (sc.today > sc.momentum) sc.momentum = sc.today;
+}
+/* A new day: everything still on STACK carries over and turns red (MOMENTUM is untouched).
+   Red blocks can only be completed, or go through SUPPORT. Returns how many carried over. */
+function dayRollover() {
+  const today = todayStr(), sc = state.score;
+  if (sc.date >= today) return 0;
+  let carried = 0;
+  for (const bid of state.stack) { const b = state.blocks[bid]; if (!b) continue; if (!b.carried) carried++; b.carried = true; }
+  sc.today = 0; sc.date = today;
+  return carried || -1;   // -1: a new day with nothing newly carried (still worth saving)
+}
+function isCarried(bid) { const b = state.blocks[bid]; return !!(b && b.carried && state.stack.includes(bid)); }
+
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
 /* Adds an item (or project subtask) to STACK. where: 'top' (lowest priority, from a backlog)
@@ -423,8 +477,12 @@ function addToStack(itemId, subId, where) {
   let bid = findBlock(itemId, subId);
   const w = bid && whereBlock(bid);
   if (w === 'stack') return 'Already on STACK';
+  const it = state.items[itemId];
+  const size = subId ? clampSize(((it && it.subtasks) || []).find(x => x.id === subId)?.size) : clampSize(it && it.size);
+  if (!fits(size)) return NO_ROOM;
   if (w === 'backlog') detach(bid);
   if (!bid) { bid = uid(); state.blocks[bid] = { bid, itemId, subId: subId || null, elapsed: 0 }; }
+  delete state.blocks[bid].carried;
   if (where === 'bottom') state.stack.unshift(bid); else state.stack.push(bid);
   return null;
 }
@@ -437,39 +495,10 @@ function deleteBlockItem(bid) {
     removeBlock(bid);
   } else deleteItem(b.itemId);
 }
-/* How long a block has sat on STACK without progress: stamped when it lands there, cleared when it leaves. */
-const STATIC_DAYS = 1;
-function stampStack() {
-  let changed = false;
-  for (const bid of state.stack) { const b = state.blocks[bid]; if (b && !b.stackedAt) { b.stackedAt = Date.now(); changed = true; } }
-  for (const [bid, b] of Object.entries(state.blocks)) if (b.stackedAt && !state.stack.includes(bid)) { delete b.stackedAt; changed = true; }
-  return changed;
-}
-function stackDays(bid) { const b = state.blocks[bid]; return b && b.stackedAt ? Math.floor((Date.now() - b.stackedAt) / DAY) : 0; }
-/* STATIC: a block on STACK with no progress for STATIC_DAYS (tasks, lists and project subtasks).
-   Progress (a subtask added or completed) restarts the clock; moving to a backlog or scheduling it clears it. */
-function isStatic(bid) {
-  const b = state.blocks[bid]; if (!b || !state.stack.includes(bid) || !state.items[b.itemId]) return false;
-  return Date.now() - (b.stackedAt || Date.now()) >= STATIC_DAYS * DAY;
-}
-function markProgress(itemId) {
-  for (const bid of state.stack) { const b = state.blocks[bid]; if (b && b.itemId === itemId && !b.subId) b.stackedAt = Date.now(); }
-}
-
 /* ---------- scheduling an item to another day ----------
    It becomes an all-day event on the Paradigm calendar and leaves STACK / its backlog. Its subtasks and notes
    travel with the event (readable checklist + a hidden copy) and come back when that day's calendar is pulled in.
-   A recurring item becomes a recurring event. A project subtask leaves its project and returns as its own task. */
-const RRULE_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-function rruleFor(it) {
-  const sch = it && it.recurring ? it.schedule : null;
-  if (!sch || sch.freq === 'none') return null;
-  if (sch.freq === 'daily') return 'FREQ=DAILY';
-  if (sch.freq === 'weekly') return 'FREQ=WEEKLY;BYDAY=' + (sch.days || []).map(d => RRULE_DAYS[d]).join(',');
-  if (sch.freq === 'monthly') return 'FREQ=MONTHLY;BYMONTHDAY=' + (sch.dom || 1);
-  if (sch.freq === 'annually') return `FREQ=YEARLY;BYMONTH=${(sch.month || 0) + 1};BYMONTHDAY=${sch.dom || 1}`;
-  return null;
-}
+   A project subtask leaves its project and returns as its own task. */
 /* Removes the item (or project subtask) and queues its all-day event. Returns the queue entry. */
 function scheduleBlockToDay(bid, date) {
   const b = state.blocks[bid]; if (!b) return null;
@@ -477,13 +506,13 @@ function scheduleBlockToDay(bid, date) {
   let entry;
   if (b.subId) {
     const sub = (it.subtasks || []).find(x => x.id === b.subId);
-    entry = { id: uid(), kind: 'allday', date, name: sub ? sub.name : '?', rrule: null, payload: { type: 'task', subtasks: [], notes: '' } };
+    entry = { id: uid(), kind: 'allday', date, name: sub ? sub.name : '?', rrule: null, payload: { type: 'task', subtasks: [], notes: '', size: clampSize(sub && sub.size) } };
     it.subtasks = (it.subtasks || []).filter(x => x.id !== b.subId);
     removeBlock(bid);
   } else {
     const open = (it.subtasks || []).filter(x => !x.done).map(x => x.name);
-    entry = { id: uid(), kind: 'allday', date, name: it.name, rrule: rruleFor(it),
-      payload: { type: open.length ? 'list' : 'task', subtasks: open, notes: it.notes || '' } };
+    entry = { id: uid(), kind: 'allday', date, name: it.name, rrule: null,
+      payload: { type: open.length ? 'list' : 'task', subtasks: open, notes: it.notes || '', size: clampSize(it.size) } };
     deleteItem(it.id);
   }
   entry.at = Date.now();   // posted after the undo window (see processCalQueue)
@@ -498,69 +527,52 @@ function sendToBacklog(bid) {
   state.backlogs[blockKind(bid)].unshift(bid);
 }
 
-/* ---------- schedules ---------- */
-function defaultSchedule(freq) {
-  const d = new Date();
-  return { freq, days: [d.getDay()], dom: d.getDate(), month: d.getMonth() };
-}
-function matchesSchedule(sch, d) {
-  if (!sch || sch.freq === 'none') return false;
-  const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-  switch (sch.freq) {
-    case 'daily': return true;
-    case 'weekly': return (sch.days || []).includes(d.getDay());
-    case 'monthly': return d.getDate() === Math.min(sch.dom || 1, dim);
-    case 'annually': return d.getMonth() === sch.month && d.getDate() === Math.min(sch.dom || 1, dim);
-  }
-  return false;
-}
-/* Drops due recurring items onto the bottom of STACK. Returns ids that arrived. */
-function runDueCheck() {
-  const today = todayStr();
-  if (state.lastDueCheck >= today) return [];
-  const due = [];
-  for (const it of Object.values(state.items)) {
-    if (!it.recurring || !it.schedule || it.schedule.freq === 'none') continue;
-    let d = addDays(state.lastDueCheck, 1), n = 0;
-    while (d <= today && n++ < 400) { if (matchesSchedule(it.schedule, parseDate(d))) { due.push(it); break; } d = addDays(d, 1); }
-  }
-  state.lastDueCheck = today;
-  due.sort((a, b) => b.created - a.created);
-  const arrived = [];
-  for (const it of due) {
-    let bid = findBlock(it.id, null);
-    const w = bid && whereBlock(bid);
-    if (w === 'stack' || w === 'running') continue;
-    if (w === 'backlog') detach(bid);
-    if (!bid) { bid = uid(); state.blocks[bid] = { bid, itemId: it.id, subId: null, elapsed: 0 }; }
-    state.stack.unshift(bid);
-    arrived.push(bid);
-  }
-  if (due.length || arrived.length) save();
-  return arrived;
-}
+/* Repeating things now live in Google Calendar (they arrive with the daily import). */
+function runDueCheck() { state.lastDueCheck = todayStr(); return []; }
 
 /* ---------- completion ---------- */
-/* Completes a block: it leaves STACK (nothing goes on the calendar). Returns { name }. */
+/* Completes a block: it leaves STACK, nothing goes on the calendar, and TODAY gains its size. Returns { name, size }. */
 function completeBlock(bid) {
   const b = state.blocks[bid]; if (!b) return null;
   const it = state.items[b.itemId];
-  const res = { name: blockName(bid) };
-  if (b.subId) {
-    // Done subtasks leave the project, unless it's a recurring project (then it stays, ready to do again).
-    if (!it.recurring) it.subtasks = it.subtasks.filter(x => x.id !== b.subId);
-  } else if (it.type === 'task') {
-    if (!it.recurring) delete state.items[it.id];
-    else (it.subtasks || []).forEach(s => { s.done = false; });   // a recurring task's subtasks come back
-  } else if (it.type === 'list') {
-    if (!it.recurring) delete state.items[it.id];
-    else if (it.recSubtasks) it.subtasks.forEach(s => { s.done = false; });
-    else it.subtasks = [];
-  }
+  const res = { name: blockName(bid), size: blockSize(bid) };
+  if (b.subId) it.subtasks = it.subtasks.filter(x => x.id !== b.subId);
+  else delete state.items[it.id];
   removeBlock(bid);
-  if (state.items[b.itemId]) { maybeRevertToTask(b.itemId); placeInBacklog(b.itemId); }   // recurring items go back to their backlog
+  addPoints(res.size);
   save();
   return res;
+}
+/* SUPPORT's answer is always the same: split it. The original becomes a project (PROJECT BACKLOG) and the
+   pieces ("Original: Piece", each with a size) take its place on STACK, as many as fit; the rest wait in the
+   project. From a backlog, the pieces simply stay in the project. Returns how many went on STACK. */
+function splitIntoProject(bid, pieces, notes) {
+  const b = state.blocks[bid]; if (!b) return 0;
+  let it = state.items[b.itemId]; if (!it) return 0;
+  const pos = state.stack.indexOf(bid);
+  const fresh = pieces.map(p => ({ id: uid(), name: p.name, done: false, size: clampSize(p.size) }));
+  if (b.subId) {
+    // A project subtask: its pieces replace it inside the same project.
+    const i = it.subtasks.findIndex(x => x.id === b.subId);
+    it.subtasks.splice(Math.max(0, i), i >= 0 ? 1 : 0, ...fresh);
+  } else {
+    const old = (it.subtasks || []).filter(x => !x.done).map(x => ({ id: x.id, name: x.name, done: false, size: 1 }));
+    it.type = 'project'; it.subtasks = fresh.concat(old);
+    if (notes) it.notes = (it.notes ? it.notes + '\n' : '') + notes;
+    delete it.recurring; delete it.recSubtasks; delete it.schedule;
+  }
+  removeBlock(bid);
+  listProject(it.id);
+  let placed = 0;
+  if (pos >= 0) {
+    let at = pos;
+    for (const p of fresh) {
+      if (!fits(p.size)) break;
+      const nb = uid(); state.blocks[nb] = { bid: nb, itemId: it.id, subId: p.id, elapsed: 0 };
+      state.stack.splice(at++, 0, nb); placed++;
+    }
+  }
+  return placed;
 }
 
 /* Paradigm: phone <-> glasses sync through a free Firebase Realtime Database.
@@ -569,7 +581,7 @@ function completeBlock(bid) {
    The higher rev wins. Each device listens for the other's writes (server-sent events). */
 'use strict';
 
-const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue', 'dayCache', 'calImportDate'];
+const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue', 'dayCache', 'calImportDate', 'score'];
 let syncCfg = null;            // { db, key }
 let syncDevice = 'phone';
 let syncRev = 0, syncLastSent = '', syncTimer = null, syncES = null, syncPoll = null;
@@ -669,36 +681,16 @@ function syncStop() {
   clearInterval(syncPoll); syncPoll = null;
 }
 
-/* Paradigm for Meta Ray-Ban Display.
-   Same data as the phone (synced) and, as far as arrows + Enter allow, the same gestures.
-   It never creates or renames anything: that stays on the phone.
-
-   Blocks: → complete (STACK; it's gone) or add to STACK (backlogs) · ← send to backlog (STACK) · Enter = FOCUS
-   FOCUS:  the phone's hold. The screen name reads FOCUS and the block is highlighted.
-           → schedule it for another day · ← its subtask screen (the screen slides) · Back leaves FOCUS
-   Screen name: ← / → move between screens (toward STACK jumps straight there) · Enter = STACK
-   Back undoes the last complete / send / delete / add for a few seconds, like the phone's UNDO. */
+/* Paradigm for Meta Ray-Ban Display (2.0): a viewer for STACK.
+   It shows STACK (sizes as rows, the active block marked, carry-overs in red) with MOMENTUM and TODAY.
+   Enter on a block opens its subtasks; → swipes one off (completes it). Back closes. Nothing else:
+   adding, completing blocks, scheduling and SUPPORT happen on the phone. */
 'use strict';
 
-const GLASSES_VERSION = '1.14.1';
+const GLASSES_VERSION = '2.0.1';
 const $ = (s, r) => (r || document).querySelector(s);
 const LS_KEY = 'paradigm.glasses.v1';
-const SCREENS = ['project', 'list', 'task', 'stack', 'schedule', 'settings'];
-const SCREEN_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK', schedule: 'SCHEDULE', settings: 'SETTINGS' };
-// [where ← goes, where → goes] on each screen's name. Going toward STACK always jumps straight there.
-const NAV = {
-  stack: ['task', 'schedule'],
-  task: ['list', 'stack'], list: ['project', 'stack'], project: [null, 'stack'],
-  schedule: ['stack', 'settings'], settings: ['stack', null]
-};
-const PX_MIN = 1;   // timeline scale: 1px per minute (about 8 hours on screen)
-
-let screen = 'stack';
-let focusKey = null;     // the block the cursor is on (kept across re-renders)
-let focused = null;      // the block in FOCUS (green), or null
-let focusLayer = null, overlayLayer = null, undoLayer = null, undoSnap = null, undoTimer = null;
-let onLabel = false;
-let overlayRefresh = null;   // redraws the open full screen after a sync     // true only when you moved the cursor to the screen name yourself
+let focusKey = null, overlayOpen = false, overlayRefresh = null;
 
 /* ---------- storage + sync (replaces the phone's IndexedDB versions in store.js) ---------- */
 async function loadState() {
@@ -728,435 +720,98 @@ function onSyncStatus(s) {
   if (screen === 'settings' && !overlayLayer) renderSettings();
 }
 
-/* ---------- small helpers ---------- */
+/* ---------- helpers ---------- */
 let toastTimer = null;
-function toast(msg, ms) {
-  const t = $('#toast');
-  t.textContent = msg; t.classList.remove('hidden');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('hidden'), ms || 3500);
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.remove('hidden');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('hidden'), 3000);
 }
-function listFor(name) { return name === 'stack' ? state.stack : state.backlogs[name]; }
-function setList(name, arr) { if (name === 'stack') state.stack = arr; else state.backlogs[name] = arr; }
-function keyName(key) { return screen === 'project' ? state.items[key].name : blockName(key); }
-function blockInfo(key) {
-  if (screen === 'project') { const it = state.items[key]; return it ? { kind: 'project', it } : null; }
-  const b = state.blocks[key]; if (!b) return null;
-  const it = state.items[b.itemId];
-  return { kind: b.subId ? 'subtask' : it.type, it, b };
-}
-function openSubtasks(it) { return (it.subtasks || []).filter(s => !s.done); }
-function focusNext(key) { const arr = listFor(screen), i = arr.indexOf(key); focusKey = arr[i - 1] || arr[i + 1] || null; }
+function onSyncConflict() { toast('Updated from your phone'); }
 
-/* ---------- Back handling ----------
-   FOCUS, an open screen (activity / schedule) and the undo window each own one browser-history entry,
-   so the system Back closes or undoes them in order. A finished entry is reused by the next one,
-   which keeps history short (the glasses allow 5 entries) and avoids racing the browser. */
-const layers = [];
-let ignorePop = 0;
-function pushLayer(onPop) {
-  const l = { onPop, dead: false };
-  if (layers.length && layers[layers.length - 1].dead) { layers[layers.length - 1] = l; history.replaceState({ depth: layers.length }, ''); }
-  else { layers.push(l); history.pushState({ depth: layers.length }, ''); }
-  return l;
-}
-function retire(l) { if (l) l.dead = true; }
-window.addEventListener('popstate', () => {
-  if (ignorePop) { ignorePop--; return; }
-  const l = layers.pop(); if (!l) return;
-  if (l.dead) { history.back(); return; }   // already finished: Back applies to the next one down
-  l.onPop();
-});
-
-/* ---------- undo (Back within a few seconds), like the phone's UNDO ---------- */
-function snapshot() { const o = {}; SYNC_FIELDS.forEach(k => { o[k] = state[k]; }); return JSON.stringify(o); }
-function withUndo(msg, mutate) {
-  const snap = snapshot();
-  mutate(); save(); render();
-  undoSnap = snap;
-  if (!undoLayer || undoLayer.dead) {
-    undoLayer = pushLayer(() => {
-      undoLayer = null; clearTimeout(undoTimer);
-      if (!undoSnap) return;
-      const o = JSON.parse(undoSnap); undoSnap = null;
-      SYNC_FIELDS.forEach(k => { if (o[k] !== undefined) state[k] = o[k]; });
-      repair(); save(); render(); toast('Undone');
-    });
-  }
-  clearTimeout(undoTimer);
-  undoTimer = setTimeout(() => {
-    undoSnap = null;
-    const l = undoLayer; undoLayer = null;
-    if (!l) return;
-    // Remove the entry quietly if nothing is open on top of it; otherwise let Back skip it later.
-    if (layers[layers.length - 1] === l && !l.dead) { layers.pop(); ignorePop++; history.back(); }
-    else retire(l);
-  }, 6000);
-  toast(`${msg} · Back to undo`, 6000);
-}
-
-/* ---------- FOCUS ---------- */
-function enterFocus(key) {
-  focused = key; focusKey = key; onLabel = false;
-  focusLayer = pushLayer(() => { focusLayer = null; focused = null; render(); });
-  render();
-  // Keep the cursor on the block even if the glasses move it after the tap.
-  focusBlock(key);
-  requestAnimationFrame(() => { if (focused === key && !onLabel) focusBlock(key); });
-  setTimeout(() => { if (focused === key && !onLabel && !overlayLayer) focusBlock(key); }, 150);
-}
-function exitFocus() { retire(focusLayer); focusLayer = null; focused = null; }
-function focusBlock(key) { const el = $(`#list [data-key="${CSS.escape(key)}"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); } }
-function updateHint() {
-  const h = $('#hint');
-  // The hint's space is always kept, so showing it never shifts the stack (the FOCUS block stays put).
-  if (!focused || overlayLayer) { h.style.visibility = 'hidden'; return; }
-  h.textContent = '→ schedule a day · ← subtasks · Back: leave FOCUS';
-  h.style.visibility = 'visible';
-}
-
-/* ---------- main screens ---------- */
+/* ---------- STACK ---------- */
 function render() {
   if (!state) return;
-  // The block in FOCUS was completed or removed on the phone: leave FOCUS.
-  if (focused && !((listFor(screen) || []).includes(focused))) exitFocus();
   $('#unpaired').classList.toggle('hidden', !!(syncCfg && syncCfg.key));
-  const [L, R] = NAV[screen];
-  $('#navtitle .t').textContent = focused ? 'FOCUS' : SCREEN_TITLE[screen];
-  $('#navtitle .l').style.visibility = L || focused ? 'visible' : 'hidden';
-  $('#navtitle .r').style.visibility = R ? 'visible' : 'hidden';
-  $('#navtitle').classList.toggle('focusmode', !!focused);
-  const isList = !['schedule', 'settings'].includes(screen);
-  $('#list').classList.toggle('hidden', !isList);
-  $('#timeline').classList.toggle('hidden', screen !== 'schedule');
-  $('#settings').classList.toggle('hidden', screen !== 'settings');
-  $('#empty').classList.add('hidden');
-  if (screen === 'schedule') renderSchedule();
-  else if (screen === 'settings') renderSettings();
-  else renderList();
-  updateHint();
-}
-
-function renderList() {
-  if (screen === 'stack' && stampStack()) save({ noBackup: true });
-  const list = $('#list');
+  $('#sc-m').textContent = state.score.momentum;
+  $('#sc-t').textContent = state.score.date === todayStr() ? state.score.today : 0;
+  const list = $('#list'), box = $('#capbox');
+  box.style.minBlockSize = `calc(${capacity()} * 2.4em + ${capacity() - 1} * 6px + 10px)`;   // capacity line = MOMENTUM rows up
   list.innerHTML = '';
-  const keys = listFor(screen) || [];
-  keys.forEach(key => {
-
+  state.stack.forEach((bid, i) => {
+    const b = state.blocks[bid], it = b && state.items[b.itemId]; if (!it) return;
+    const size = blockSize(bid), l = blockLabel(bid);
     const btn = document.createElement('button');
     btn.type = 'button';
-    const rowItem = screen === 'project' ? state.items[key] : (state.blocks[key] && !state.blocks[key].subId ? state.items[state.blocks[key].itemId] : null);
-    const rows = blockRows(rowItem);   // one row per open subtask, like the phone
-    if (rows > 1) btn.style.minBlockSize = `calc(${rows} * 2.4em + ${rows - 1} * 6px)`;
-    btn.className = 'block' + (focused === key ? ' focused' : '') + (rows > 1 ? ' tall' : '') + (screen === 'stack' && isStatic(key) ? ' static' : '');
-    btn.dataset.key = key;
-    let name, meta = '';
-    if (screen === 'project') {
-      const it = state.items[key]; if (!it) return;
-      const n = it.subtasks.length, d = it.subtasks.filter(s => s.done).length;
-      name = esc(it.name); meta = (n ? `<span class="meta">${d}/${n}</span>` : '') + '<span class="meta">›</span>';
-    } else {
-      const l = blockLabel(key), info = blockInfo(key);
-      name = (l.proj ? `<span class="proj">${esc(l.proj)} ›</span> ` : '') + esc(l.name);
-      if (info.kind === 'list' && info.it.subtasks.length) meta = `<span class="meta">${info.it.subtasks.filter(s => s.done).length}/${info.it.subtasks.length}</span>`;
-      if (info.it.recurring && !info.b.subId) meta += '<span class="meta">↻</span>';
-      if (info.it.cal && info.it.cal.date === todayStr() && info.it.cal.startMin != null && !info.b.subId) meta = `<span class="meta">${minToClock(info.it.cal.startMin)}</span>` + meta;
-      if (screen === 'stack' && isStatic(key)) meta = `<span class="meta nudge">static · ${Math.max(1, stackDays(key))}d</span>` + meta;
-    }
-    btn.innerHTML = `<span class="name">${name}</span>${meta}`;
-    btn.addEventListener('keydown', e => blockKey(e, key));
-    btn.addEventListener('click', () => blockEnter(key));
-    btn.addEventListener('focus', () => {
-      // In FOCUS the cursor stays on the FOCUS block, so → / ← / ↑ ↓ always act on it.
-      if (focused && key !== focused && !overlayLayer) { focusBlock(focused); return; }
-      focusKey = key; onLabel = false; updateHint();
-    });
+    btn.className = 'block' + (i === 0 ? ' active' : '') + (isCarried(bid) ? ' carry' : '') + (size > 1 ? ' sized' : '');
+    btn.dataset.key = bid;
+    if (size > 1) btn.style.minBlockSize = `calc(${size} * 2.4em + ${size - 1} * 6px)`;
+    const open = !b.subId ? (it.subtasks || []).filter(s => !s.done).length : 0;
+    btn.innerHTML = `<span class="name">${l.proj ? `<span class="proj">${esc(l.proj)}:</span> ` : ''}${esc(l.name)}</span>${open ? `<span class="meta">${open} ▸</span>` : ''}`;
+    btn.addEventListener('click', () => openSubtasks(bid));
+    btn.addEventListener('focus', () => { focusKey = bid; });
     list.appendChild(btn);
   });
-  const empty = $('#empty');
-  empty.textContent = screen === 'stack' ? 'STACK is empty. Add things on your phone.' : `Nothing in ${SCREEN_TITLE[screen]}.`;
-  empty.classList.toggle('hidden', !!keys.length);
-  if (!overlayLayer) {
+  $('#empty').classList.toggle('hidden', !!state.stack.length);
+  if (!overlayOpen) {
     const el = (focusKey && list.querySelector(`[data-key="${CSS.escape(focusKey)}"]`)) || list.querySelector('.block');
-    if (el && !onLabel) { el.focus(); el.scrollIntoView({ block: 'nearest' }); }
-    else if (!el) $('#navtitle').focus();
+    if (el) { el.focus(); el.scrollIntoView({ block: 'nearest' }); }
   }
 }
 
-/* Arrow keys on a block mirror the phone's swipes; ↑ ↓ are the browser's own cursor movement. */
-function blockKey(e, key) {
-  if (overlayLayer) { e.preventDefault(); return; }   // a screen is on top: the STACK behind it ignores keys
-  const k = e.key;
-  if (focused === key) {
-    e.preventDefault();
-    if (k === 'ArrowRight') {   // FOCUS → : schedule it for another day
-      if (screen === 'project') { toast('Projects can’t be scheduled. Schedule their subtasks from STACK'); return; }
-      exitFocus(); render(); openSchedule(key);
-    }
-    else if (k === 'ArrowLeft') { exitFocus(); render(); openActivity(key, true); }                 // FOCUS ← : subtask screen
-    return;
-  }
-  if (k !== 'ArrowRight' && k !== 'ArrowLeft') return;
-  e.preventDefault();
-  if (focused) { exitFocus(); render(); }
-  const right = k === 'ArrowRight';
-  if (screen === 'stack') {
-    focusNext(key);
-    if (right) { const name = blockName(key); withUndo(`Completed ${name}`, () => completeBlock(key)); return; }
-    { const sub = !!state.blocks[key].subId, k2 = blockKind(key); withUndo(sub ? 'Returned to project' : `Sent to ${BACKLOG_TITLE[k2]}`, () => sendToBacklog(key)); }
-  } else if (right) {
-    if (screen === 'project') openActivity(key);
-    else { focusNext(key); withUndo('Added to top of STACK', () => { detach(key); state.stack.push(key); }); }
-  }
-}
-function blockEnter(key) {
-  if (overlayLayer) return;
-  if (focused === key) return;
-  if (focused) exitFocus();
-  enterFocus(key);
-}
-function reorder(key, dir) {
-  const arr = listFor(screen).slice(), i = arr.indexOf(key), j = i + dir;   // drawn bottom-up: ↑ = later in the list
-  if (j < 0 || j >= arr.length) return;
-  arr.splice(i, 1); arr.splice(j, 0, key);
-  setList(screen, arr); save(); render(); focusBlock(key);
-}
-function goScreen(name) {
-  if (!name) return;
-  if (focused) exitFocus();
-  screen = name; focusKey = null; onLabel = true;
-  render();
-  $('#navtitle').focus();
-}
-
-/* ---------- today's timeline (SCHEDULE screen and the planner) ---------- */
-function timelineHTML() {
-  let g = '';
-  for (let h = 0; h < 24; h++) g += `<div class="tl-hr" style="top:${h * 60 * PX_MIN}px"><span>${minToClock(h * 60).replace(':00', '')}</span></div>`;
-  return g;
-}
-function todayEvents() { return state.dayCache && state.dayCache.date === todayStr() ? state.dayCache : null; }
-function paintTimeline(box, cls) {
-  const c = todayEvents();
-  box.innerHTML = `<div class="tl-grid" style="height:${1440 * PX_MIN}px">${timelineHTML()}</div>`;
-  const grid = $('.tl-grid', box), allday = [];
-  (c ? c.events : []).forEach(e => {
-    if (e.allDay) { allday.push(e.title); return; }
-    const d = document.createElement('div'); d.className = 'tl-ev ' + (cls || '');
-    d.style.top = (e.startMin * PX_MIN) + 'px'; d.style.height = Math.max(18, (e.endMin - e.startMin) * PX_MIN) + 'px';
-    d.innerHTML = `<b>${esc(minToClock(e.startMin))}</b> ${esc(e.title)}`;
-    grid.appendChild(d);
-  });
-  const n = new Date(), m = n.getHours() * 60 + n.getMinutes();
-  const nl = document.createElement('div'); nl.className = 'tl-now'; nl.style.top = (m * PX_MIN) + 'px'; grid.appendChild(nl);
-  return { grid, allday, cache: c, nowMin: m };
-}
-function renderSchedule() {
-  const box = $('#timeline');
-  const { allday, cache, nowMin } = paintTimeline(box, 'live');
-  const head = document.createElement('div'); head.className = 'tl-head';
-  head.textContent = cache ? `${allday.length ? 'All day: ' + allday.join(', ') + ' · ' : ''}as of ${msToClock(cache.at)}` : 'Open SCHEDULE on your phone to load today’s calendar.';
-  box.prepend(head);
-  box.scrollTop = Math.max(0, (nowMin - 60) * PX_MIN);
-  if (!overlayLayer) $('#navtitle').focus();
-}
-
-/* ---------- SETTINGS (read-only: change settings on the phone) ---------- */
-function renderSettings() {
-  const box = $('#settings'), c = todayEvents(), q = (state.calQueue || []).length;
-  const rows = [
-    ['Sync', (SYNC_TEXT[syncStatus] || 'Off').replace(/^[●○] /, '')],
-    ['Paired', syncCfg && syncCfg.key ? 'Yes' : 'No'],
-    ['Waiting for calendar', q ? `${q} (your phone adds ${q > 1 ? 'them' : 'it'})` : 'None'],
-    ['Today’s schedule', c ? `as of ${msToClock(c.at)}` : 'Not loaded yet'],
-    ['Version', 'Paradigm ' + GLASSES_VERSION]
-  ];
-  box.innerHTML = rows.map(([k, v]) => `<div class="gsrow" tabindex="0"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('') +
-    '<p class="note">Change settings in Paradigm on your phone.</p>';
-  if (!overlayLayer) $('#navtitle').focus();
-}
-
-/* ---------- full screens on top: the activity screen and the planner ---------- */
-function openOverlay(build) {
+/* ---------- a block's subtasks: → completes one (it disappears) ---------- */
+function openSubtasks(bid) {
+  const b = state.blocks[bid]; if (!b) return;
+  const id = b.itemId, cur = () => state.items[id];
+  if (b.subId) { toast('A project piece has no subtasks'); return; }
   const ov = $('#overlay');
-  ov.innerHTML = ''; ov.onkeydown = null; overlayRefresh = null;
-  ov.classList.remove('hidden');   // visible first, so the cursor can be placed inside it
-  build(ov);
-  if (!overlayLayer) overlayLayer = pushLayer(() => { overlayLayer = null; hideOverlay(); });
-  updateHint();
-}
-function hideOverlay() { const ov = $('#overlay'); ov.classList.add('hidden'); ov.innerHTML = ''; ov.onkeydown = null; overlayRefresh = null; render(); }
-function closeOverlay() { retire(overlayLayer); overlayLayer = null; hideOverlay(); }
-/* The name at the bottom of a full screen, like the phone's: ← back, → its second action, ↑/Enter back up. */
-function bottomLabel(ov, text, onLeft, onRight, toTop) {
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'olabel';
-  b.innerHTML = `<span class="l" aria-hidden="true">‹</span><span class="t"></span><span class="r" aria-hidden="true">›</span>`;
-  $('.t', b).textContent = text.toUpperCase();
-  b.addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft') { e.preventDefault(); onLeft(); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); onRight(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); toTop(); }
-  });
-  b.addEventListener('click', toTop);
-  ov.appendChild(b);
-  return b;
-}
-
-/* The activity's screen: like the phone's, subtasks pile up from the bottom with its name at the bottom.
-   Name: ← back, → add to STACK.  List subtask: → complete, ← delete, Enter = FOCUS (↑ ↓ move it, Enter to drop).
-   Project subtask: → add to STACK, Enter = FOCUS (↑ ↓ move, ← delete).  Task: its notes. */
-function openActivity(key, slide) {
-  const info = blockInfo(key); if (!info) return;
-  const id = info.it.id;
-  // Always read the current copy: a sync from the phone can replace it while this screen is open.
-  const cur = () => state.items[id];
-  const kind = info.kind === 'subtask' || info.kind === 'project' ? 'project' : 'list';   // tasks show subtasks too (none yet)
-  openOverlay(ov => {
-    ov.classList.toggle('slidein', !!slide);
-    const k = document.createElement('div'); k.className = 'okind'; k.textContent = (info.kind === 'subtask' ? 'project' : info.it.type).toUpperCase(); ov.appendChild(k);
-    let label;
-    const toTop = () => { const f = ov.querySelector('.olist button, .notes'); if (f) f.focus(); };
-    const addToStackFromHere = () => {
-      const it = cur(); if (!it) return closeOverlay();
-      if (kind === 'project') { toast('Projects stay in PROJECT BACKLOG. Add their subtasks with →'); return; }
-      const msg = addToStack(it.id, null, 'bottom');
-      if (msg) { toast(msg); return; }
-      closeOverlay(); withUndo(`Added ${it.name} to STACK`, () => {});
-    };
-    const list = document.createElement('div'); list.className = 'olist'; ov.appendChild(list);
-    label = bottomLabel(ov, cur().name, closeOverlay, addToStackFromHere, toTop);
-    let moving = null;
-    const paint = focusId => {
-      const it = cur(); if (!it) { closeOverlay(); toast('That was removed on your phone'); return; }
-      list.innerHTML = '';
-      const open = openSubtasks(it);
-      if (!open.length) {
-        if (it.type === 'task' && (it.notes || '').trim()) {
-          const n = document.createElement('div'); n.className = 'notes'; n.tabIndex = 0; n.textContent = it.notes.trim();
-          list.appendChild(n); n.focus(); return;
-        }
-        list.innerHTML = `<p class="note">${!(it.subtasks || []).length ? 'No subtasks yet. Add some on your phone.' : 'All subtasks done.'}</p>`; label.focus(); return;
-      }
-      open.forEach(s => {
-        const b = document.createElement('button'); b.type = 'button';
-        b.className = 'block' + (moving === s.id ? ' focused' : ''); b.dataset.id = s.id;
-        let meta = '';
-        if (kind === 'project') { const bid = findBlock(it.id, s.id); if (bid && whereBlock(bid) === 'stack') meta = '<span class="meta">STACK</span>'; }
-        b.innerHTML = `<span class="name">${esc(s.name)}</span>${meta}`;
-        b.addEventListener('keydown', e => subKey(e, s));
-        b.addEventListener('click', () => { moving = moving === s.id ? null : s.id; paint(s.id); });
-        list.appendChild(b);
+  ov.innerHTML = `<div class="okind">SUBTASKS</div><div class="olist"></div><div class="olabel"><span class="t"></span></div>`;
+  $('.olabel .t', ov).textContent = (cur().name || '').toUpperCase();
+  const list = $('.olist', ov);
+  const paint = focusId => {
+    const it = cur(); if (!it) { close(); return; }
+    list.innerHTML = '';
+    const open = (it.subtasks || []).filter(s => !s.done);
+    if (!open.length) { list.innerHTML = '<p class="note">No subtasks. Add them on your phone.</p>'; return; }
+    open.forEach(s => {
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'block'; btn.dataset.id = s.id;
+      btn.innerHTML = `<span class="name">${esc(s.name)}</span>`;
+      btn.addEventListener('keydown', e => {
+        if (e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        const it2 = cur(); if (!it2) return;
+        const i = open.indexOf(s), next = (open[i - 1] || open[i + 1] || {}).id;
+        it2.subtasks = it2.subtasks.filter(x => x.id !== s.id);
+        if (maybeRevertToTask(id)) toast('All done. Complete it on your phone');
+        else toast(`Done: ${s.name}`);
+        save(); paint(next);
       });
-      const bs = [...list.querySelectorAll('button')];
-      (bs.find(x => x.dataset.id === focusId) || bs[0]).focus();
-    };
-    const neighbour = s => { const o = openSubtasks(cur()), i = o.indexOf(s); return (o[i - 1] || o[i + 1] || {}).id; };
-    const subKey = (e, s0) => {
-      const it = cur(); if (!it) return;
-      const s = it.subtasks.find(x => x.id === s0.id); if (!s) return;
-      const k2 = e.key;
-      if (moving === s.id) {
-        if (k2 === 'ArrowUp' || k2 === 'ArrowDown') {
-          e.preventDefault();
-          const all = it.subtasks.slice(), open = openSubtasks(it), i = open.indexOf(s), j = i + (k2 === 'ArrowUp' ? 1 : -1);
-          if (j < 0 || j >= open.length) return;
-          const a = all.indexOf(s), b2 = all.indexOf(open[j]);
-          all[a] = open[j]; all[b2] = s; it.subtasks = all; save(); paint(s.id);
-        } else if (k2 === 'ArrowLeft' && kind === 'project') {
-          e.preventDefault(); const nx = neighbour(s); moving = null;
-          const bid = findBlock(it.id, s.id); if (bid) removeBlock(bid);
-          it.subtasks = it.subtasks.filter(x => x.id !== s.id); save(); toast(`Deleted ${s.name}`); paint(nx);
-        } else if (k2 === 'ArrowRight' || k2 === 'ArrowLeft') e.preventDefault();
-        return;
-      }
-      if (k2 !== 'ArrowRight' && k2 !== 'ArrowLeft') return;
-      e.preventDefault();
-      const nx = neighbour(s);
-      if (kind === 'project') {
-        if (k2 === 'ArrowRight') { const msg = addToStack(it.id, s.id, 'top'); save(); toast(msg || `Added ${s.name} to top of STACK`); paint(s.id); }
-        return;   // like the phone, deleting a project subtask needs FOCUS first
-      }
-      if (k2 === 'ArrowRight') {   // same rule as the phone: recurring subtasks are checked off, others leave the list
-        if (it.recurring && it.recSubtasks) s.done = true; else it.subtasks = it.subtasks.filter(x => x.id !== s.id);
-        toast(`Completed ${s.name}`);
-      } else { it.subtasks = it.subtasks.filter(x => x.id !== s.id); toast(`Deleted ${s.name}`); }
-      if (k2 === 'ArrowRight') markProgress(it.id);              // a completed subtask restarts its STATIC clock
-      if (maybeRevertToTask(it.id)) toast('Back to a task');   // nothing left: the list is a task again
-      save(); paint(nx);
-    };
-    paint(null);
-    // Redraw if the phone changes this activity while it's open, keeping the cursor where it was.
-    overlayRefresh = () => { const f = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.id : null; if (document.activeElement === label) { const it = cur(); if (!it) closeOverlay(); return; } paint(f || null); };
-  });
-}
-
-/* Scheduling for another day (FOCUS →): ‹ › pick the day (tomorrow onward), Enter on ADD TO CALENDAR.
-   The item leaves Paradigm and becomes an all-day event that day (your phone adds it); it comes back that morning.
-   Back (within a few seconds) undoes it. On the SCHEDULE label, ← cancels. */
-function openSchedule(key) {
-  const name = keyName(key);
-  let date = addDays(todayStr(), 1);
-  openOverlay(ov => {
-    ov.classList.remove('slidein');
-    const k = document.createElement('div'); k.className = 'okind'; k.textContent = 'SCHEDULE'; ov.appendChild(k);
-    const nm = document.createElement('div'); nm.className = 'block oname'; nm.innerHTML = `<span class="name">${esc(name)}</span>`; ov.appendChild(nm);
-    const row = document.createElement('div'); row.className = 'dayrow';
-    const prev = document.createElement('button'); prev.type = 'button'; prev.className = 'opt small'; prev.textContent = '‹'; prev.setAttribute('aria-label', 'Earlier day');
-    const val = document.createElement('span'); val.className = 'tval';
-    const next = document.createElement('button'); next.type = 'button'; next.className = 'opt small'; next.textContent = '›'; next.setAttribute('aria-label', 'Later day');
-    row.append(prev, val, next); ov.appendChild(row);
-    const paint = () => { val.textContent = parseDate(date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); prev.disabled = date <= addDays(todayStr(), 1); };
-    prev.addEventListener('click', () => { if (date > addDays(todayStr(), 1)) { date = addDays(date, -1); paint(); } });
-    next.addEventListener('click', () => { date = addDays(date, 1); paint(); });
-    // ← / → on the day row step the day too
-    row.addEventListener('keydown', e => {
-      if (e.key === 'ArrowLeft') { e.preventDefault(); if (date > addDays(todayStr(), 1)) { date = addDays(date, -1); paint(); } }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); date = addDays(date, 1); paint(); }
+      list.appendChild(btn);
     });
-    const add = document.createElement('button'); add.type = 'button'; add.className = 'opt addcal'; add.textContent = 'ADD TO CALENDAR';
-    add.addEventListener('click', () => {
-      const day = val.textContent;
-      closeOverlay(); focusNext(key);
-      withUndo(`Scheduled ${name} for ${day}`, () => { scheduleBlockToDay(key, date); });
-    });
-    ov.appendChild(add);
-    bottomLabel(ov, 'SCHEDULE', closeOverlay, () => add.focus(), () => next.focus());
-    paint();
-    next.focus();
-  });
+    const bs = [...list.querySelectorAll('button')];
+    (bs.find(x => x.dataset.id === focusId) || bs[0]).focus();
+  };
+  const close = () => { if (!overlayOpen) return; overlayOpen = false; overlayRefresh = null; ov.classList.add('hidden'); ov.innerHTML = ''; render(); };
+  ov._close = close;
+  ov.classList.remove('hidden');
+  overlayOpen = true; history.pushState({ o: 1 }, '');
+  overlayRefresh = () => paint(document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.id : null);
+  paint(null);
 }
+window.addEventListener('popstate', () => { const ov = $('#overlay'); if (overlayOpen && ov._close) ov._close(); });
 
 /* ---------- boot ---------- */
 async function boot() {
   const t0 = Date.now();
-  history.replaceState({ depth: 0 }, '');
+  history.replaceState({ home: 1 }, '');
   await loadState();
   syncDevice = 'glasses';
-  onSyncAdopt = () => { if (!overlayLayer) render(); else if (overlayRefresh) overlayRefresh(); };
-  const nav = $('#navtitle');
-  nav.addEventListener('keydown', e => {
-    if (overlayLayer) { e.preventDefault(); return; }
-    if (e.key === 'ArrowUp' && focused) { e.preventDefault(); onLabel = false; focusBlock(focused); updateHint(); return; }
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    e.preventDefault();
-    if (focused) exitFocus();
-    goScreen(NAV[screen][e.key === 'ArrowLeft' ? 0 : 1]) || render();
-  });
-  nav.addEventListener('click', () => { if (focused) { onLabel = false; focusBlock(focused); updateHint(); } else goScreen('stack'); });
-  nav.addEventListener('focus', () => {
-    if (focused && !onLabel) { focusBlock(focused); return; }   // in FOCUS, only Enter goes to the label
-    if (!focused && screen !== 'schedule' && screen !== 'settings' && $('#list .block')) onLabel = true;
-    updateHint();
-  });
-  nav.addEventListener('blur', () => setTimeout(updateHint, 0));
-  const arrived = runDueCheck();
+  onSyncAdopt = () => { if (overlayOpen && overlayRefresh) overlayRefresh(); else render(); };
   render();
-  if (arrived.length) toast(`${arrived.length} recurring item${arrived.length > 1 ? 's' : ''} due today`);
   syncStart();
-  setInterval(() => { if (state.lastDueCheck < todayStr()) { runDueCheck(); if (!overlayLayer) render(); } }, 30000);
+  setInterval(() => { if (!overlayOpen) render(); }, 60000);   // keeps TODAY right across midnight
   document.addEventListener('visibilitychange', () => { if (!document.hidden && syncConfigured()) syncFetch().then(syncReceive).catch(() => {}); });
   const sp = $('#splash');
-  setTimeout(() => { sp.classList.add('gone'); setTimeout(() => sp.remove(), 500); }, Math.max(0, 1200 - (Date.now() - t0)));
+  if (sp) setTimeout(() => { sp.classList.add('gone'); setTimeout(() => sp.remove(), 500); }, Math.max(0, 1200 - (Date.now() - t0)));
 }
 boot();
 

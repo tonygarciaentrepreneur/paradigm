@@ -204,7 +204,7 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .status { font-size: 15px; color: var(--g); }
 
 /* Toast + modal */
-#toast { position: fixed; left: 14px; right: 14px; top: calc(var(--top) + 14px); z-index: 60; background: var(--bg); border: 2px solid var(--g); padding: 12px 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; font-size: 15px; box-shadow: 0 0 16px rgba(0, 255, 65, .35); }
+#toast { position: fixed; left: 14px; right: 14px; top: calc(var(--top) + 52px);   /* just below MOMENTUM / TODAY */ z-index: 60; background: var(--bg); border: 2px solid var(--g); padding: 12px 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; font-size: 15px; box-shadow: 0 0 16px rgba(0, 255, 65, .35); }
 #toast .act { flex: none; padding: 8px 12px; font-size: 14px; }
 .modal { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .82); display: flex; align-items: center; justify-content: center; padding: 24px; }
 .modal .box { width: 100%; max-width: 420px; border: 2px solid var(--g); background: var(--bg); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
@@ -375,6 +375,53 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .mpage .days button.picked { background: var(--g); color: var(--bg); }
 .daypick .acttop .kind { color: var(--g); font-size: 15px; letter-spacing: .08em; }
 
+/* ===== 2.0: MOMENTUM / TODAY, capacity line, sizes ===== */
+.scores { flex: none; display: flex; justify-content: space-between; padding: 12px 18px 6px; font-family: "OCR-A", var(--font); font-size: 13px; letter-spacing: .18em; color: var(--g2); }
+.scores b { font-weight: 400; color: var(--g); font-size: 20px; letter-spacing: .05em; margin-left: 6px; text-shadow: var(--glow); }
+.stackarea { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; overscroll-behavior: contain; }
+.capbox { flex: none; margin-top: auto; border-top: 2px dashed var(--g); position: relative; display: flex; flex-direction: column; }
+.capbox::before { content: "CAPACITY"; position: absolute; right: 16px; top: -8px; background: var(--bg); padding: 0 6px; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
+.capbox .list { flex: 1; overflow: visible; padding: 6px 22px 6px; }
+/* Size = rows: dashed lines mark each row inside a block */
+.block.sized { align-items: flex-end; background-image: var(--rowlines, none); }
+.block .rowline { position: absolute; left: 6px; right: 6px; border-top: 1px dashed var(--dim); pointer-events: none; }
+.block.armed .rowline { border-top-color: rgba(0, 0, 0, .35); }
+/* The active block (bottom of STACK): triangles pointing at it */
+.block.active::before, .block.active::after { content: ""; position: absolute; top: 50%; transform: translateY(-50%); border: 8px solid transparent; }
+.block.active::before { left: -19px; border-left: 10px solid var(--g); }
+.block.active::after { right: -19px; border-right: 10px solid var(--g); }
+/* Carry-over: a red version of the green block */
+.block.carry { border-color: #ff3b3b; color: #ff5a5a; text-shadow: 0 0 6px rgba(255, 59, 59, .45); }
+.block.carry .meta, .block.carry .proj { color: #ff8080; }
+.block.carry.armed { background: #ff3b3b; color: var(--bg); text-shadow: none; }
+.block.carry.armed .meta, .block.carry.armed .proj { color: var(--bg); }
+.block.carry.active::before { border-left-color: #ff3b3b; }
+.block.carry.active::after { border-right-color: #ff3b3b; }
+.block.carry .rowline { border-top-color: rgba(255, 59, 59, .4); }
+/* Size icon in backlogs: a little column of 1-4 squares */
+.sz { flex: none; display: inline-flex; flex-direction: column-reverse; gap: 2px; margin-left: 4px; }
+.sz i { width: 9px; height: 5px; border: 1px solid var(--dim); }
+.sz i.on { background: var(--g); border-color: var(--g); }
+.block.armed .sz i.on { background: var(--bg); border-color: var(--bg); }
+/* Size picker: drag across four segments */
+.sizepick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; touch-action: none; padding: 6px 0; }
+.sizepick i { height: 26px; border: 2px dashed var(--dim); display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 12px; color: var(--dim); }
+.sizepick i.on { border: 2px solid var(--g); background: rgba(0, 255, 65, .18); color: var(--g); }
+
+/* Composer */
+.composer .compmain { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 22px 10px; gap: 10px; }
+.composer .compblk { min-height: 54px; touch-action: pan-y; }
+.compsides { flex: none; display: flex; justify-content: space-between; padding: 6px 22px 0; font-size: 12px; letter-spacing: .15em; color: var(--g2); }
+.compsides .blocked { color: #ff6060; }
+/* SUPPORT */
+.support .supopts { padding: 10px 22px; }
+.supopt { min-height: 72px; }
+.splitprompt { flex: none; padding: 4px 16px 6px; }
+.splitprompt .q { margin: 6px 0; color: var(--g); font-size: 15px; line-height: 1.4; }
+.splitprompt .outcome { min-height: 0; height: 64px; }
+.actinput .newsize { margin-top: 6px; }
+.actinput .newsize .sizepick i { height: 20px; }
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -401,7 +448,10 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
     </section>
 
     <section class="panel" id="p-stack">
-      <div class="list stack" id="stack-list"></div>
+      <div class="scores" id="scores"><span>MOMENTUM <b id="sc-m">8</b></span><span>TODAY <b id="sc-t">0</b></span></div>
+      <div class="stackarea" id="stack-area">
+        <div class="capbox" id="cap-box"><div class="list stack" id="stack-list"></div></div>
+      </div>
       <p class="empty" id="stack-empty">Type below to add something.</p>
       <div class="stackfoot">
         <div id="suggest" class="hidden"></div>
@@ -499,6 +549,7 @@ function freshState() {
     calQueue: [],   // schedules made on the glasses, waiting for the phone to add them to Google Calendar
     dayCache: null, // today's calendar as last loaded by the phone, for the glasses' SCHEDULE screen
     calImportDate: '', // the day today's calendar events were last added to STACK
+    score: { momentum: 8, today: 0, date: todayStr() },   // MOMENTUM is also STACK's capacity, in rows
     settings: { clientId: '', connected: false, paradigmCalId: '', driveFileId: '', lastBackup: 0 },
     auth: { token: '', exp: 0 }
   };
@@ -516,11 +567,18 @@ function normalize(s) {
   if ((s.v || 1) < 3) { s.backlogs.project = []; s.v = 3; }
   // v4: no FOCUS timer. Anything mid-session goes back to the bottom of STACK.
   if (s.running) { s.stack = [s.running.bid].concat((s.stack || []).filter(b => b !== s.running.bid)); s.running = null; }
-  s.v = 4;
+  // v5 (2.0): sizes, MOMENTUM/TODAY, no recurring inside Paradigm (repeats live in Google Calendar).
+  for (const it of Object.values(s.items || {})) {
+    if (it.type !== 'event' && !(it.size >= 1 && it.size <= 4)) it.size = 1;
+    if (it.recurring) { it.recurring = false; it.recSubtasks = false; }
+    if (it.type === 'project') (it.subtasks || []).forEach(x => { if (!(x.size >= 1 && x.size <= 4)) x.size = 1; });
+  }
+  s.v = 5;
   for (const k of Object.keys(f)) if (s[k] === undefined) s[k] = f[k];
   s.settings = Object.assign(f.settings, s.settings || {});
   for (const it of Object.values(s.items || {})) if (it.type === 'task' && !Array.isArray(it.subtasks)) it.subtasks = [];   // v1.11: tasks hold subtasks
   s.auth = Object.assign(f.auth, s.auth || {});
+  s.score = Object.assign({ momentum: 8, today: 0, date: todayStr() }, s.score || {});
   return s;
 }
 
@@ -608,10 +666,10 @@ function blockLabel(bid) {
   if (b.subId) { const s = it.subtasks.find(x => x.id === b.subId); return { proj: it.name, name: s ? s.name : '?' }; }
   return { proj: null, name: it.name };
 }
-function blockName(bid) { const l = blockLabel(bid); return l.proj ? `${l.proj} › ${l.name}` : l.name; }
+function blockName(bid) { const l = blockLabel(bid); return l.proj ? `${l.proj}: ${l.name}` : l.name; }
 
 function newItem(type, name) {
-  const it = { id: uid(), type, name: name.trim(), created: Date.now() };
+  const it = { id: uid(), type, name: name.trim(), created: Date.now(), size: 1 };
   if (type === 'task') Object.assign(it, { notes: '', subtasks: [], recurring: false, schedule: { freq: 'none' } });
   if (type === 'list') Object.assign(it, { subtasks: [], recurring: false, recSubtasks: false, schedule: { freq: 'none' } });
   if (type === 'project') Object.assign(it, { subtasks: [], recurring: false });
@@ -671,12 +729,41 @@ function maybeRevertToTask(id) {
   convertItem(id, 'task');
   return true;
 }
-/* Block height in rows, like stacked Tetris rows: one row per open subtask (at least one), up to MAX_ROWS. */
-const MAX_ROWS = 5;
-function blockRows(it) {
-  if (!it || (it.type !== 'list' && it.type !== 'project')) return 1;
-  return Math.max(1, Math.min(MAX_ROWS, (it.subtasks || []).filter(s => !s.done).length));
+/* ---------- size and capacity ----------
+   Size (1-4) is how much a block weighs: its height in rows on STACK and its points when completed.
+   Project subtasks have their own size; list subtasks don't. STACK holds at most MOMENTUM rows. */
+function clampSize(n) { return Math.max(1, Math.min(4, Math.round(Number(n) || 1))); }
+function blockSize(bid) {
+  const b = state.blocks[bid]; if (!b) return 1;
+  const it = state.items[b.itemId]; if (!it) return 1;
+  if (b.subId) { const x = (it.subtasks || []).find(y => y.id === b.subId); return clampSize(x && x.size); }
+  return clampSize(it.size);
 }
+function projectSize(it) { return (it.subtasks || []).filter(x => !x.done).reduce((n, x) => n + clampSize(x.size), 0); }
+function stackLoad() { return state.stack.reduce((n, bid) => n + blockSize(bid), 0); }
+function capacity() { return Math.max(1, state.score.momentum); }
+function fits(rows) { return stackLoad() + rows <= capacity(); }
+const NO_ROOM = 'No room under the capacity line';
+
+/* TODAY adds the size of what you complete; MOMENTUM rises to TODAY and never drops (except a RESET). */
+function addPoints(n) {
+  const sc = state.score;
+  if (sc.date !== todayStr()) dayRollover();
+  sc.today += n;
+  if (sc.today > sc.momentum) sc.momentum = sc.today;
+}
+/* A new day: everything still on STACK carries over and turns red (MOMENTUM is untouched).
+   Red blocks can only be completed, or go through SUPPORT. Returns how many carried over. */
+function dayRollover() {
+  const today = todayStr(), sc = state.score;
+  if (sc.date >= today) return 0;
+  let carried = 0;
+  for (const bid of state.stack) { const b = state.blocks[bid]; if (!b) continue; if (!b.carried) carried++; b.carried = true; }
+  sc.today = 0; sc.date = today;
+  return carried || -1;   // -1: a new day with nothing newly carried (still worth saving)
+}
+function isCarried(bid) { const b = state.blocks[bid]; return !!(b && b.carried && state.stack.includes(bid)); }
+
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
 /* Adds an item (or project subtask) to STACK. where: 'top' (lowest priority, from a backlog)
@@ -685,8 +772,12 @@ function addToStack(itemId, subId, where) {
   let bid = findBlock(itemId, subId);
   const w = bid && whereBlock(bid);
   if (w === 'stack') return 'Already on STACK';
+  const it = state.items[itemId];
+  const size = subId ? clampSize(((it && it.subtasks) || []).find(x => x.id === subId)?.size) : clampSize(it && it.size);
+  if (!fits(size)) return NO_ROOM;
   if (w === 'backlog') detach(bid);
   if (!bid) { bid = uid(); state.blocks[bid] = { bid, itemId, subId: subId || null, elapsed: 0 }; }
+  delete state.blocks[bid].carried;
   if (where === 'bottom') state.stack.unshift(bid); else state.stack.push(bid);
   return null;
 }
@@ -699,39 +790,10 @@ function deleteBlockItem(bid) {
     removeBlock(bid);
   } else deleteItem(b.itemId);
 }
-/* How long a block has sat on STACK without progress: stamped when it lands there, cleared when it leaves. */
-const STATIC_DAYS = 1;
-function stampStack() {
-  let changed = false;
-  for (const bid of state.stack) { const b = state.blocks[bid]; if (b && !b.stackedAt) { b.stackedAt = Date.now(); changed = true; } }
-  for (const [bid, b] of Object.entries(state.blocks)) if (b.stackedAt && !state.stack.includes(bid)) { delete b.stackedAt; changed = true; }
-  return changed;
-}
-function stackDays(bid) { const b = state.blocks[bid]; return b && b.stackedAt ? Math.floor((Date.now() - b.stackedAt) / DAY) : 0; }
-/* STATIC: a block on STACK with no progress for STATIC_DAYS (tasks, lists and project subtasks).
-   Progress (a subtask added or completed) restarts the clock; moving to a backlog or scheduling it clears it. */
-function isStatic(bid) {
-  const b = state.blocks[bid]; if (!b || !state.stack.includes(bid) || !state.items[b.itemId]) return false;
-  return Date.now() - (b.stackedAt || Date.now()) >= STATIC_DAYS * DAY;
-}
-function markProgress(itemId) {
-  for (const bid of state.stack) { const b = state.blocks[bid]; if (b && b.itemId === itemId && !b.subId) b.stackedAt = Date.now(); }
-}
-
 /* ---------- scheduling an item to another day ----------
    It becomes an all-day event on the Paradigm calendar and leaves STACK / its backlog. Its subtasks and notes
    travel with the event (readable checklist + a hidden copy) and come back when that day's calendar is pulled in.
-   A recurring item becomes a recurring event. A project subtask leaves its project and returns as its own task. */
-const RRULE_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-function rruleFor(it) {
-  const sch = it && it.recurring ? it.schedule : null;
-  if (!sch || sch.freq === 'none') return null;
-  if (sch.freq === 'daily') return 'FREQ=DAILY';
-  if (sch.freq === 'weekly') return 'FREQ=WEEKLY;BYDAY=' + (sch.days || []).map(d => RRULE_DAYS[d]).join(',');
-  if (sch.freq === 'monthly') return 'FREQ=MONTHLY;BYMONTHDAY=' + (sch.dom || 1);
-  if (sch.freq === 'annually') return `FREQ=YEARLY;BYMONTH=${(sch.month || 0) + 1};BYMONTHDAY=${sch.dom || 1}`;
-  return null;
-}
+   A project subtask leaves its project and returns as its own task. */
 /* Removes the item (or project subtask) and queues its all-day event. Returns the queue entry. */
 function scheduleBlockToDay(bid, date) {
   const b = state.blocks[bid]; if (!b) return null;
@@ -739,13 +801,13 @@ function scheduleBlockToDay(bid, date) {
   let entry;
   if (b.subId) {
     const sub = (it.subtasks || []).find(x => x.id === b.subId);
-    entry = { id: uid(), kind: 'allday', date, name: sub ? sub.name : '?', rrule: null, payload: { type: 'task', subtasks: [], notes: '' } };
+    entry = { id: uid(), kind: 'allday', date, name: sub ? sub.name : '?', rrule: null, payload: { type: 'task', subtasks: [], notes: '', size: clampSize(sub && sub.size) } };
     it.subtasks = (it.subtasks || []).filter(x => x.id !== b.subId);
     removeBlock(bid);
   } else {
     const open = (it.subtasks || []).filter(x => !x.done).map(x => x.name);
-    entry = { id: uid(), kind: 'allday', date, name: it.name, rrule: rruleFor(it),
-      payload: { type: open.length ? 'list' : 'task', subtasks: open, notes: it.notes || '' } };
+    entry = { id: uid(), kind: 'allday', date, name: it.name, rrule: null,
+      payload: { type: open.length ? 'list' : 'task', subtasks: open, notes: it.notes || '', size: clampSize(it.size) } };
     deleteItem(it.id);
   }
   entry.at = Date.now();   // posted after the undo window (see processCalQueue)
@@ -760,69 +822,52 @@ function sendToBacklog(bid) {
   state.backlogs[blockKind(bid)].unshift(bid);
 }
 
-/* ---------- schedules ---------- */
-function defaultSchedule(freq) {
-  const d = new Date();
-  return { freq, days: [d.getDay()], dom: d.getDate(), month: d.getMonth() };
-}
-function matchesSchedule(sch, d) {
-  if (!sch || sch.freq === 'none') return false;
-  const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-  switch (sch.freq) {
-    case 'daily': return true;
-    case 'weekly': return (sch.days || []).includes(d.getDay());
-    case 'monthly': return d.getDate() === Math.min(sch.dom || 1, dim);
-    case 'annually': return d.getMonth() === sch.month && d.getDate() === Math.min(sch.dom || 1, dim);
-  }
-  return false;
-}
-/* Drops due recurring items onto the bottom of STACK. Returns ids that arrived. */
-function runDueCheck() {
-  const today = todayStr();
-  if (state.lastDueCheck >= today) return [];
-  const due = [];
-  for (const it of Object.values(state.items)) {
-    if (!it.recurring || !it.schedule || it.schedule.freq === 'none') continue;
-    let d = addDays(state.lastDueCheck, 1), n = 0;
-    while (d <= today && n++ < 400) { if (matchesSchedule(it.schedule, parseDate(d))) { due.push(it); break; } d = addDays(d, 1); }
-  }
-  state.lastDueCheck = today;
-  due.sort((a, b) => b.created - a.created);
-  const arrived = [];
-  for (const it of due) {
-    let bid = findBlock(it.id, null);
-    const w = bid && whereBlock(bid);
-    if (w === 'stack' || w === 'running') continue;
-    if (w === 'backlog') detach(bid);
-    if (!bid) { bid = uid(); state.blocks[bid] = { bid, itemId: it.id, subId: null, elapsed: 0 }; }
-    state.stack.unshift(bid);
-    arrived.push(bid);
-  }
-  if (due.length || arrived.length) save();
-  return arrived;
-}
+/* Repeating things now live in Google Calendar (they arrive with the daily import). */
+function runDueCheck() { state.lastDueCheck = todayStr(); return []; }
 
 /* ---------- completion ---------- */
-/* Completes a block: it leaves STACK (nothing goes on the calendar). Returns { name }. */
+/* Completes a block: it leaves STACK, nothing goes on the calendar, and TODAY gains its size. Returns { name, size }. */
 function completeBlock(bid) {
   const b = state.blocks[bid]; if (!b) return null;
   const it = state.items[b.itemId];
-  const res = { name: blockName(bid) };
-  if (b.subId) {
-    // Done subtasks leave the project, unless it's a recurring project (then it stays, ready to do again).
-    if (!it.recurring) it.subtasks = it.subtasks.filter(x => x.id !== b.subId);
-  } else if (it.type === 'task') {
-    if (!it.recurring) delete state.items[it.id];
-    else (it.subtasks || []).forEach(s => { s.done = false; });   // a recurring task's subtasks come back
-  } else if (it.type === 'list') {
-    if (!it.recurring) delete state.items[it.id];
-    else if (it.recSubtasks) it.subtasks.forEach(s => { s.done = false; });
-    else it.subtasks = [];
-  }
+  const res = { name: blockName(bid), size: blockSize(bid) };
+  if (b.subId) it.subtasks = it.subtasks.filter(x => x.id !== b.subId);
+  else delete state.items[it.id];
   removeBlock(bid);
-  if (state.items[b.itemId]) { maybeRevertToTask(b.itemId); placeInBacklog(b.itemId); }   // recurring items go back to their backlog
+  addPoints(res.size);
   save();
   return res;
+}
+/* SUPPORT's answer is always the same: split it. The original becomes a project (PROJECT BACKLOG) and the
+   pieces ("Original: Piece", each with a size) take its place on STACK, as many as fit; the rest wait in the
+   project. From a backlog, the pieces simply stay in the project. Returns how many went on STACK. */
+function splitIntoProject(bid, pieces, notes) {
+  const b = state.blocks[bid]; if (!b) return 0;
+  let it = state.items[b.itemId]; if (!it) return 0;
+  const pos = state.stack.indexOf(bid);
+  const fresh = pieces.map(p => ({ id: uid(), name: p.name, done: false, size: clampSize(p.size) }));
+  if (b.subId) {
+    // A project subtask: its pieces replace it inside the same project.
+    const i = it.subtasks.findIndex(x => x.id === b.subId);
+    it.subtasks.splice(Math.max(0, i), i >= 0 ? 1 : 0, ...fresh);
+  } else {
+    const old = (it.subtasks || []).filter(x => !x.done).map(x => ({ id: x.id, name: x.name, done: false, size: 1 }));
+    it.type = 'project'; it.subtasks = fresh.concat(old);
+    if (notes) it.notes = (it.notes ? it.notes + '\n' : '') + notes;
+    delete it.recurring; delete it.recSubtasks; delete it.schedule;
+  }
+  removeBlock(bid);
+  listProject(it.id);
+  let placed = 0;
+  if (pos >= 0) {
+    let at = pos;
+    for (const p of fresh) {
+      if (!fits(p.size)) break;
+      const nb = uid(); state.blocks[nb] = { bid: nb, itemId: it.id, subId: p.id, elapsed: 0 };
+      state.stack.splice(at++, 0, nb); placed++;
+    }
+  }
+  return placed;
 }
 
 /* Paradigm: touch gestures.
@@ -1018,8 +1063,8 @@ function wireList(listEl, opts) {
     gesture(el, {
       enabled: opts.enabled,
       // FOCUS: swiping left slides the whole screen (to its subtask screen); swiping right moves only the block (to scheduling).
-      moveEl: dir => (isArmed(el) && dir < 0 && el.closest('.panel, .screen')) || el,
-      holdAfter: dir => (isArmed(el) && dir < 0 ? 450 : 0),
+      moveEl: dir => (isArmed(el) && dir < 0 && (!opts.armSlide || opts.armSlide(key)) && el.closest('.panel, .screen')) || el,
+      holdAfter: dir => (isArmed(el) && dir < 0 && (!opts.armSlide || opts.armSlide(key)) ? 450 : 0),
       onSwipeRight: (opts.swipeRight || canArm) ? () => {
         if (isArmed(el)) { disarm(); opts.openEdit(key); return; }
         if (opts.swipeRight) opts.swipeRight(key);
@@ -3606,7 +3651,7 @@ var qrcode = function() {
    The higher rev wins. Each device listens for the other's writes (server-sent events). */
 'use strict';
 
-const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue', 'dayCache', 'calImportDate'];
+const SYNC_FIELDS = ['items', 'blocks', 'stack', 'backlogs', 'lastDueCheck', 'calQueue', 'dayCache', 'calImportDate', 'score'];
 let syncCfg = null;            // { db, key }
 let syncDevice = 'phone';
 let syncRev = 0, syncLastSent = '', syncTimer = null, syncES = null, syncPoll = null;
@@ -3824,10 +3869,12 @@ function eventWhen(ev) {
 /* The activity's own screen (formerly EDIT). Laid out like STACK: subtasks pile up from the bottom,
    the entry box sits above the name at the bottom.
    Swipe left on the name = save and go back; swipe right = save and add to STACK. Android back discards. */
-function openEditor(item, isNew, slide) {
+/* from: 'backlog' when opened from a backlog (swiping right on the name then adds it to the top of STACK). */
+function openEditor(item, isNew, slide, from) {
   const orig = clone(item);
   const d = clone(item);
   if (d.type === 'task' && !Array.isArray(d.subtasks)) d.subtasks = [];
+  if (d.type !== 'event') d.size = clampSize(d.size);
   const hasSubs = d.type !== 'event';   // tasks, lists and projects all hold subtasks
   // Like STACK: the list piles up from the bottom, the entry box sits above the name at the bottom.
   // OPTIONS is at the top right (where REFRESH is on SCHEDULE).
@@ -3849,26 +3896,24 @@ function openEditor(item, isNew, slide) {
   if (d.type === 'event' || isNew) { optpanel.classList.remove('hidden'); optBtn.classList.add('on'); }
   gesture($('.act-title', el), { moveEl: false, onSwipeRight: () => leave(true), onSwipeLeft: () => leave(false) });
 
-  let subsList = null, progressed = false;   // a subtask added or completed counts as progress (restarts STATIC)
+  let subsList = null;
   function render() {
     kindLabel.textContent = TYPES[d.type];
     optcontent.innerHTML = '';
+    if (d.type === 'task' || d.type === 'list') {   // SIZE: rows on STACK and points when completed
+      const r = document.createElement('div'); r.className = 'sect';
+      r.innerHTML = '<h3>Size</h3>';
+      r.appendChild(sizePicker(d.size, n => { d.size = n; }));
+      optcontent.appendChild(r);
+    }
     if (d.type === 'task' || d.type === 'list' || d.type === 'project') {
       // Project, like Recurring: a checkbox. A project lives in PROJECT BACKLOG; its subtasks go to STACK one by one.
       const pr = document.createElement('div'); pr.className = 'sect'; optcontent.appendChild(pr);
       pr.append(checkBtn('Project', d.type === 'project', () => {
-        if (d.type === 'project') {
-          d.type = d.subtasks.length ? 'list' : 'task';
-          Object.assign(d, { recurring: !!d.recurring, schedule: d.schedule || { freq: 'none' } });
-          if (d.type === 'list' && d.recSubtasks === undefined) d.recSubtasks = false;
-        } else d.type = 'project';
+        if (d.type === 'project') d.type = d.subtasks.length ? 'list' : 'task';
+        else { d.type = 'project'; d.subtasks.forEach(x => { x.size = clampSize(x.size); }); }
         render();
       }));
-    }
-    if (d.type === 'task' || d.type === 'list') { const r = document.createElement('div'); r.className = 'sect'; optcontent.appendChild(r); recurringUI(d, r); }
-    if (d.type === 'project') {
-      const r = document.createElement('div'); r.className = 'sect'; optcontent.appendChild(r);
-      r.append(checkBtn('Recurring project', !!d.recurring, () => { d.recurring = !d.recurring; render(); }));
     }
     main.innerHTML = '';
     if (hasSubs) {
@@ -3892,7 +3937,7 @@ function openEditor(item, isNew, slide) {
     e.preventDefault();
     const v = si.value.trim(); if (!v) return;
     d.subtasks.push({ id: uid(), name: v, done: false });
-    progressed = true;
+    if (d.type === 'project') d.subtasks[d.subtasks.length - 1].size = 1;
     si.value = '';
     if (d.type === 'task') {   // its first subtask makes a task a list
       d.type = 'list'; if (d.recSubtasks === undefined) d.recSubtasks = false;
@@ -3909,7 +3954,10 @@ function openEditor(item, isNew, slide) {
       const b = document.createElement('div');
       b.className = 'block'; b.dataset.key = s.id;
       let extra = '';
-      if (d.type === 'project') { const bid = findBlock(d.id, s.id); if (bid && whereBlock(bid) === 'stack') extra = '<span class="meta">STACK</span>'; }
+      if (d.type === 'project') {
+        const bid = findBlock(d.id, s.id); if (bid && whereBlock(bid) === 'stack') extra = '<span class="meta">STACK</span>';
+        extra += sizeIcon(clampSize(s.size));   // project subtasks have sizes: tap to change
+      }
       b.innerHTML = `<span class="name">${esc(s.name)}</span>${extra}`;
       subsList.appendChild(b);
     });
@@ -3918,12 +3966,12 @@ function openEditor(item, isNew, slide) {
       reverse: true,
       onReorder: keys => { const done = d.subtasks.filter(s => s.done); d.subtasks = keys.map(k => d.subtasks.find(s => s.id === k)).concat(done); renderSubs(); },
       swipeRight: k => completeSub(k),
-      swipeLeft: k => { d.subtasks = d.subtasks.filter(s => s.id !== k); afterSubChange(); }
+      swipeLeft: k => { d.subtasks = d.subtasks.filter(s => s.id !== k); afterSubChange(); },
+      tap: d.type === 'project' ? k => { const x = d.subtasks.find(y => y.id === k); if (x) { x.size = clampSize(x.size) % 4 + 1; renderSubs(); } } : null
     });
   }
   function completeSub(k) {
     const s = d.subtasks.find(x => x.id === k); if (!s) return;
-    progressed = true;
     if (d.type === 'list' && d.recurring && d.recSubtasks) s.done = true;            // comes back when the list resets
     else if (d.type === 'project' && d.recurring) { toast(`${s.name} done. It stays in this recurring project`); renderSubs(); return; }
     else d.subtasks = d.subtasks.filter(x => x.id !== k);
@@ -3952,7 +4000,6 @@ function openEditor(item, isNew, slide) {
     }
     state.items[d.id] = d;
     if (d.type === 'project') listProject(d.id);
-    if (progressed) markProgress(d.id);
     save();
   }
   /* toStack: swipe right on the name (save and add to STACK). Otherwise swipe left (save and go back). */
@@ -3963,7 +4010,7 @@ function openEditor(item, isNew, slide) {
     let msg = 'Saved';
     if (d.type === 'project' && orig.type !== 'project') msg = 'Now a project: it’s in PROJECT BACKLOG';
     else if (toStack && d.type === 'project') msg = 'Projects live in PROJECT BACKLOG. Add their subtasks to STACK from there';
-    else if (toStack) msg = addToStack(d.id, null, 'bottom') || 'Added to STACK';
+    else if (toStack) msg = addToStack(d.id, null, from === 'backlog' ? 'top' : 'bottom') || (from === 'backlog' ? 'Added to top of STACK' : 'Added to STACK');
     else if (placeInBacklog(d.id)) msg = `Saved to ${BACKLOG_TITLE[d.type]}`;
     else if (isNew && d.type === 'project') msg = 'Saved to PROJECT BACKLOG';
     save();
@@ -4372,6 +4419,145 @@ function openDayPicker(bid) {
   if (first.slice(0, 7) !== todayStr().slice(0, 7)) requestAnimationFrame(() => { pager.scrollLeft = pager.clientWidth; });
 }
 
+/* ---------- size picker: drag (or tap) across four segments ---------- */
+function sizePicker(value, onChange) {
+  const el = document.createElement('div'); el.className = 'sizepick';
+  el.setAttribute('role', 'slider'); el.setAttribute('aria-label', 'Size'); el.setAttribute('aria-valuemin', '1'); el.setAttribute('aria-valuemax', '4');
+  el.innerHTML = [1, 2, 3, 4].map(n => `<i data-n="${n}">${n}</i>`).join('');
+  const set = n => {
+    value = clampSize(n);
+    el.querySelectorAll('i').forEach(i => i.classList.toggle('on', +i.dataset.n <= value));
+    el.setAttribute('aria-valuenow', value);
+    onChange(value);
+  };
+  const at = x => { const r = el.getBoundingClientRect(); return Math.ceil(Math.max(0.01, Math.min(0.999, (x - r.left) / r.width)) * 4); };
+  el.addEventListener('touchstart', e => { e.stopPropagation(); set(at(e.touches[0].clientX)); }, { passive: true });
+  el.addEventListener('touchmove', e => { if (e.cancelable) e.preventDefault(); e.stopPropagation(); set(at(e.touches[0].clientX)); }, { passive: false });
+  el.addEventListener('click', e => { if (!('ontouchstart' in window)) set(at(e.clientX)); });
+  set(value);
+  return el;
+}
+
+/* ---------- adding something new ----------
+   Name → size (drag across the four segments under the block) → swipe the block:
+   right = TODAY (bottom of STACK, if it fits) · left = TO-DO, then left = SAVE (backlog) · right = SCHEDULE (pick a day). */
+function openComposer(name) {
+  let size = 1, step = 'decide';
+  const el = screenEl('composer', `
+    <div class="compmain"><div class="block compblk"><span class="name"></span></div><div class="comppick"></div></div>
+    <div class="compsides"><span class="l"></span><span class="r"></span></div>
+    <header class="title"><h1>NEW</h1></header>`);
+  const blk = $('.compblk', el), sides = $('.compsides', el);
+  $('.name', blk).textContent = name;
+  const paint = () => {
+    blk.style.minHeight = (size * 54 + (size - 1) * 5) + 'px';
+    $('.l', sides).textContent = step === 'decide' ? '← TO-DO' : '← SAVE';
+    $('.r', sides).textContent = step === 'decide' ? (fits(size) ? 'TODAY →' : 'NO ROOM TODAY') : 'SCHEDULE →';
+    $('.r', sides).classList.toggle('blocked', step === 'decide' && !fits(size));
+    $('.comppick', el).classList.toggle('hidden', step !== 'decide');
+  };
+  $('.comppick', el).appendChild(sizePicker(size, n => { size = n; paint(); }));
+  const create = () => { const it = newItem('task', name); it.size = size; state.items[it.id] = it; return it; };
+  gesture(blk, {
+    allowRight: () => step !== 'decide' || fits(size),
+    onSwipeRight: () => {
+      if (step === 'decide') {   // TODAY: bottom of STACK, the new active block
+        if (!fits(size)) { toast(NO_ROOM); return; }
+        const it = create(); addToStack(it.id, null, 'bottom'); save(); clearMainInput();
+        closeAll(() => { goPanel('stack'); toast(`${name} is on STACK`); });
+      } else {                   // SCHEDULE: pick a day
+        const it = create(); placeInBacklog(it.id); save(); clearMainInput();
+        const bid = findBlock(it.id, null);
+        closeAll(() => { goPanel('stack'); openDayPicker(bid); });
+      }
+    },
+    onSwipeLeft: () => {
+      if (step === 'decide') { step = 'todo'; blk.style.transform = ''; paint(); return; }   // TO-DO: on to SAVE / SCHEDULE
+      const it = create(); placeInBacklog(it.id); save(); clearMainInput();                 // SAVE: backlog
+      closeAll(() => { goPanel('stack'); toast(`Saved to ${BACKLOG_TITLE.task}`); });
+    },
+    noFly: false
+  });
+  paint();
+  openScreen(el);
+}
+
+/* ---------- SUPPORT ----------
+   TIRED (physical energy), STUCK (mental energy), DREAD (emotional energy): swipe right on the one that fits.
+   Each prompt ends the same way: split it into pieces, each with a size. The original becomes a project;
+   the pieces ("Original: Piece") take its place on STACK. TIRED starts with "Choose Best Time". */
+const SUPPORT = {
+  TIRED: { energy: 'Physical energy', prompt: 'Low on physical energy. Break it into pieces you can do now, and choose when your energy is highest.', seed: ['Choose Best Time'] },
+  STUCK: { energy: 'Mental energy', ask: 'What does done look like?', prompt: 'What’s the first step toward that? Add the steps.', seed: [] },
+  DREAD: { energy: 'Emotional energy', prompt: 'What’s the smallest part you could face for 5 minutes? Start there and build up.', seed: [] }
+};
+function openSupport(bid, slide) {
+  const b = state.blocks[bid]; if (!b) return;
+  const name = blockName(bid);
+  const el = screenEl('support' + (slide ? ' slidein' : ''), `
+    <div class="acttop"><span class="label kind"></span></div>
+    <div class="list rev supopts"></div>
+    <header class="title"><h1>SUPPORT</h1></header>`);
+  $('.kind', el).textContent = name;
+  const list = $('.supopts', el);
+  ['DREAD', 'STUCK', 'TIRED'].forEach(k => {
+    const o = document.createElement('div'); o.className = 'block supopt'; o.dataset.key = k;
+    o.innerHTML = `<span class="name">${k}</span><span class="meta">${SUPPORT[k].energy}</span>`;
+    list.appendChild(o);
+  });
+  wireList(list, { reverse: true, swipeRight: k => openSplit(bid, k) });
+  gesture($('.title', el), { moveEl: false, onSwipeLeft: () => closeTop(), onSwipeRight: () => closeTop() });
+  openScreen(el);
+}
+function openSplit(bid, kind) {
+  const cfg = SUPPORT[kind], name = blockName(bid);
+  const pieces = cfg.seed.map(n => ({ id: uid(), name: n, size: 1 }));
+  let newSize = 1, outcome = '';
+  const el = screenEl('activity split', `
+    <div class="acttop"><span class="label kind"></span></div>
+    <div class="splitprompt">${cfg.ask ? `<p class="q">${esc(cfg.ask)}</p><textarea class="notes outcome" rows="2" placeholder="Done looks like…"></textarea>` : ''}<p class="q">${esc(cfg.prompt)}</p></div>
+    <div class="actmain"><div class="list rev"></div><p class="empty">Add the first piece below.</p></div>
+    <div class="inputbar actinput"><input class="subin" type="text" placeholder="Add a piece" enterkeyhint="done" autocomplete="off"><div class="newsize"></div></div>
+    <header class="title act-title"><h1></h1></header>`);
+  $('.kind', el).textContent = kind;
+  $('.act-title h1', el).textContent = name.toUpperCase();
+  const list = $('.actmain .list', el), empty = $('.actmain .empty', el), inp = $('.subin', el);
+  const oc = $('.outcome', el); if (oc) oc.addEventListener('input', () => { outcome = oc.value.trim(); });
+  $('.newsize', el).appendChild(sizePicker(newSize, n => { newSize = n; }));
+  const paint = () => {
+    list.innerHTML = '';
+    pieces.forEach(p => {
+      const e = document.createElement('div'); e.className = 'block'; e.dataset.key = p.id;
+      e.innerHTML = `<span class="name">${esc(p.name)}</span>${sizeIcon(p.size)}`;
+      list.appendChild(e);
+    });
+    empty.classList.toggle('hidden', !!pieces.length);
+    wireList(list, {
+      reverse: true,
+      onReorder: keys => { const m = new Map(pieces.map(p => [p.id, p])); pieces.splice(0, pieces.length, ...keys.map(k => m.get(k))); paint(); },
+      swipeLeft: k => { const i = pieces.findIndex(p => p.id === k); if (i >= 0) pieces.splice(i, 1); paint(); },
+      tap: k => { const p = pieces.find(x => x.id === k); if (p) { p.size = p.size % 4 + 1; paint(); } }
+    });
+  };
+  inp.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const v = inp.value.trim(); if (!v) return;
+    pieces.push({ id: uid(), name: v, size: newSize }); inp.value = ''; paint();
+  });
+  // Swipe right on the name: split it. Swipe left: back to the three choices.
+  gesture($('.act-title', el), { moveEl: false, onSwipeLeft: () => closeTop(), onSwipeRight: () => {
+    if (!pieces.length) { toast('Add at least one piece'); return; }
+    const notes = outcome ? `Done looks like: ${outcome}` : '';
+    let placed = 0;
+    withUndo('Split into pieces', () => { placed = splitIntoProject(bid, pieces, notes); });
+    const left = pieces.length - placed;
+    closeAll(() => { goPanel('stack'); toast(`Now a project: ${placed} piece${placed === 1 ? '' : 's'} on STACK${left ? `, ${left} waiting in it` : ''}`); });
+  } });
+  paint();
+  openScreen(el);
+}
+
 /* Paradigm: RECOVERY. Lists earlier versions of the Drive backup (paradigm-backup.json) so one can be
    restored straight into Paradigm, or downloaded and IMPORTed later.
    It only reads from Drive, except one change Google requires before downloading an older version:
@@ -4511,7 +4697,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '1.14.1';
+const VERSION = '2.0.1';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
@@ -4530,69 +4716,86 @@ function goPanel(name, instant) {
 }
 
 /* ---------- blocks ---------- */
-function blockEl(bid) {
+const ROW = 54, GAP = 5;
+const rowsPx = n => n * ROW + (n - 1) * GAP;
+function sizeIcon(n) { return `<span class="sz" aria-label="Size ${n}">${[1, 2, 3, 4].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`; }
+/* On STACK a block is as tall as its size (dashed lines mark the rows); in a backlog it's one row with a size icon. */
+function blockEl(bid, where) {
   const b = state.blocks[bid], it = state.items[b.itemId], l = blockLabel(bid);
+  const size = blockSize(bid), onStack = where === 'stack';
   const el = document.createElement('div');
-  const rows = b.subId ? 1 : blockRows(it);
-  el.className = 'block' + (rows > 1 ? ' tall' : '') + (isStatic(bid) ? ' static' : '');
-  if (rows > 1) el.style.minHeight = `calc(${rows} * 54px + ${rows - 1} * 5px)`;   // taller with each open subtask
+  el.className = 'block' + (onStack && size > 1 ? ' sized' : '') + (onStack && isCarried(bid) ? ' carry' : '');
   el.dataset.key = bid;
+  if (onStack && size > 1) {
+    el.style.minHeight = rowsPx(size) + 'px';
+    for (let r = 1; r < size; r++) { const line = document.createElement('span'); line.className = 'rowline'; line.style.top = (r * (ROW + GAP) - GAP / 2 - 2) + 'px'; el.appendChild(line); }
+  }
   let meta = '';
-  if (isStatic(bid)) meta += `<span class="meta nudge">static · ${Math.max(1, stackDays(bid))}d</span>`;
   if ((it.type === 'list' || it.type === 'task') && !b.subId && (it.subtasks || []).length) meta += `<span class="meta">${it.subtasks.filter(s => s.done).length}/${it.subtasks.length}</span>`;
-  if (b.elapsed) meta += `<span class="meta">${fmtShort(b.elapsed)}</span>`;
-  if (it.recurring && !b.subId) meta += '<span class="mark" aria-label="Recurring">↻</span>';
   if (it.cal && it.cal.date === todayStr() && it.cal.startMin != null && !b.subId) meta = `<span class="meta">${minToClock(it.cal.startMin)}</span>` + meta;
-  el.innerHTML = `<span class="name">${l.proj ? `<span class="proj">${esc(l.proj)} ›</span> ` : ''}${esc(l.name)}</span>${meta}`;
+  if (!onStack) meta += sizeIcon(size);
+  el.insertAdjacentHTML('beforeend', `<span class="name">${l.proj ? `<span class="proj">${esc(l.proj)}:</span> ` : ''}${esc(l.name)}</span>${meta}`);
   return el;
 }
 
-/* FOCUS: hold a block and let go (it turns solid green, and the bottom label reads FOCUS). Then:
-   swipe the block right = open its screen, swipe it left = delete it,
-   swipe left on the FOCUS label (toward SCHEDULE) = plan where it fits on today's schedule. */
+/* ---------- gestures ----------
+   Active block (bottom of STACK):  → complete (opens its subtasks first if any are open) · ← to backlog
+                                    highlighted: → schedule · ← delete
+   Other STACK blocks:              → detail (add subtasks) · ← to backlog · highlighted: → schedule · ← SUPPORT
+   Backlog items:                   → detail (swipe right on its name there to add it to STACK) · ← SUPPORT
+                                    highlighted: → schedule · ← delete
+   Red (carried over) blocks: anything that would skip SUPPORT (backlog, schedule, delete) goes to SUPPORT. */
 function blockEditable(bid) { return !!state.blocks[bid]; }
-function editBlock(bid, slide) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false, slide); }
+function editBlock(bid, slide, from) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false, slide, from); }
 function scheduleBlock(bid) { if (state.blocks[bid]) openDayPicker(bid); }
 function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName(bid)}`, () => deleteBlockItem(bid)); }
+const isActive = bid => state.stack[0] === bid;
+const openSubs = bid => { const b = state.blocks[bid], it = b && state.items[b.itemId]; return !!(it && !b.subId && (it.subtasks || []).some(s => !s.done)); };
+function completeActive(bid) {
+  if (openSubs(bid)) { editBlock(bid); return; }   // finish its subtasks first
+  const name = blockName(bid), size = blockSize(bid);
+  withUndo(`Completed ${name} · +${size}`, () => completeBlock(bid));
+}
 const PANEL_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
-/* FOCUS: the screen name reads FOCUS and every other block disappears. Tap anywhere else to leave. */
+/* FOCUS (highlight): the screen name reads FOCUS; the other blocks stay visible. Tap the block again to leave. */
 function onArmChange(el) {
   for (const k of Object.keys(PANEL_TITLE)) { $(`#t-${k} h1`).textContent = PANEL_TITLE[k]; $(`#p-${k}`).classList.remove('focusmode'); }
   const p = el && el.closest('.panel');
   if (p && PANEL_TITLE[p.id.slice(2)]) { $(`#t-${p.id.slice(2)} h1`).textContent = 'FOCUS'; p.classList.add('focusmode'); }
-}
-function armedIn(panelKey) { return armed && armed.isConnected && armed.closest(`#p-${panelKey}`) ? armed : null; }
-function scheduleArmed(panelKey) {
-  const a = armedIn(panelKey); if (!a) return false;
-  const key = a.dataset.key; disarm();
-  openSchedulePicker(panelKey === 'project' ? state.items[key].name : blockName(key));
-  return true;
 }
 function renderAll() {
   if (!state) return;
   renderStack(); renderBacklogs(); renderSettings(); onArmChange(null);
 }
 
-/* ---------- STACK (bottom = highest priority; new from the input lands at the bottom, from a backlog at the top) ---------- */
+/* ---------- STACK: capacity line at MOMENTUM rows; bottom = active; new and calendar items land at the bottom ---------- */
+function renderScores() {
+  $('#sc-m').textContent = state.score.momentum;
+  $('#sc-t').textContent = state.score.date === todayStr() ? state.score.today : 0;
+}
 function renderStack() {
-  if (stampStack()) save({ noBackup: true });
-  const list = $('#stack-list');
+  renderScores();
+  const list = $('#stack-list'), box = $('#cap-box');
+  box.style.minHeight = (rowsPx(capacity()) + 14) + 'px';   // the capacity line sits MOMENTUM rows above the bottom
   list.innerHTML = '';
-  state.stack.forEach(bid => list.appendChild(blockEl(bid)));
+  state.stack.forEach((bid, i) => { const e = blockEl(bid, 'stack'); if (i === 0) e.classList.add('active'); list.appendChild(e); });
   wireList(list, {
     reverse: true,
-    onReorder: keys => { state.stack = keys; save(); },
+    onReorder: keys => { state.stack = keys; save(); renderStack(); },
     armable: blockEditable,
-    openEdit: scheduleBlock,                                                                                    // FOCUS → right: scheduling flow
-    armDelete: bid => editBlock(bid, true),                                                                     // FOCUS → left: its subtask screen (slides in)
-    swipeRight: bid => { const name = blockName(bid); withUndo(`Completed ${name}`, () => completeBlock(bid)); },   // plain right: complete (it's gone)
-    swipeLeft: bid => {
+    armSlide: bid => !isActive(bid),                                                   // highlighted ← slides to SUPPORT (not for delete)
+    openEdit: bid => isCarried(bid) ? openSupport(bid) : scheduleBlock(bid),           // highlighted → : schedule
+    armDelete: bid => isActive(bid) ? (isCarried(bid) ? openSupport(bid) : deleteBlock(bid)) : openSupport(bid, true),   // highlighted ←
+    swipeRight: bid => isActive(bid) ? completeActive(bid) : editBlock(bid),           // → : complete (active) or its detail
+    swipeLeft: bid => {                                                                // ← : to backlog (red: SUPPORT)
+      if (isCarried(bid)) { openSupport(bid); return; }
       const b = state.blocks[bid];
       const msg = b.subId ? `Returned to ${state.items[b.itemId].name}` : `Sent to ${BACKLOG_TITLE[blockKind(bid)]}`;
       withUndo(msg, () => sendToBacklog(bid));
     }
   });
   $('#stack-empty').classList.toggle('hidden', !!state.stack.length);
+  const area = $('#stack-area'); requestAnimationFrame(() => { area.scrollTop = area.scrollHeight; });
 }
 
 /* ---------- BACKLOGS (bottom-aligned; bottom = highest priority) ---------- */
@@ -4600,9 +4803,7 @@ function projectEl(id) {
   const it = state.items[id], n = it.subtasks.length, d = it.subtasks.filter(s => s.done).length;
   const el = document.createElement('div');
   el.className = 'block'; el.dataset.key = id;
-  const rows = blockRows(it);
-  if (rows > 1) { el.classList.add('tall'); el.style.minHeight = `calc(${rows} * 54px + ${rows - 1} * 5px)`; }
-  el.innerHTML = `<span class="name">${esc(it.name)}</span>${n ? `<span class="meta">${d}/${n}</span>` : ''}<span class="mark" aria-hidden="true">›</span>`;
+  el.innerHTML = `<span class="name">${esc(it.name)}</span>${n ? `<span class="meta">${d}/${n}</span>` : ''}${sizeIcon(Math.min(4, Math.max(1, projectSize(it))))}<span class="mark" aria-hidden="true">›</span>`;
   return el;
 }
 function renderBacklogs() {
@@ -4613,25 +4814,25 @@ function renderBacklogs() {
     reverse: true,
     onReorder: keys => { state.backlogs.project = keys; save(); },
     armable: () => true,
-    openEdit: () => toast('Projects can’t be scheduled. Schedule their subtasks from STACK'),
-    armDelete: id => openEditor(state.items[id], false, true),     // FOCUS → left: its subtask screen
+    armSlide: () => false,
+    openEdit: () => toast('Projects can’t be scheduled. Schedule their subtasks'),
+    armDelete: id => withUndo(`Deleted ${state.items[id].name}`, () => deleteItem(id)),
     swipeRight: id => openProjectSubs(id)
   });
   $('#empty-project').classList.toggle('hidden', !!state.backlogs.project.length);
   for (const k of BLOCK_KINDS) {
     const list = $('#bl-' + k);
     list.innerHTML = '';
-    state.backlogs[k].forEach(bid => list.appendChild(blockEl(bid)));
+    state.backlogs[k].forEach(bid => list.appendChild(blockEl(bid, 'backlog')));
     wireList(list, {
       reverse: true,
       onReorder: keys => { state.backlogs[k] = keys; save(); },
       armable: blockEditable,
-      openEdit: scheduleBlock,
-      armDelete: bid => editBlock(bid, true),
-      swipeRight: bid => {
-        detach(bid); state.stack.push(bid); save(); renderAll();
-        toast('Added to top of STACK');
-      }
+      armSlide: () => false,
+      openEdit: scheduleBlock,                        // highlighted → : schedule
+      armDelete: deleteBlock,                         // highlighted ← : delete
+      swipeRight: bid => editBlock(bid, false, 'backlog'),   // → : detail (swipe right on its name to add it to STACK)
+      swipeLeft: bid => openSupport(bid, true)        // ← : SUPPORT
     });
     $('#empty-' + k).classList.toggle('hidden', !!state.backlogs[k].length);
   }
@@ -4667,13 +4868,13 @@ function submitInput() {
   const ex = itemByName(v);
   inp.blur(); hideSuggest();
   if (ex) { inp.value = ''; openEditor(ex, false); }
-  else createTask(v);
+  else openComposer(v);
 }
 
 /* ---------- SETTINGS ---------- */
 function renderSettings() {
   const body = $('#settings-body');
-  if (!body || !body.isConnected || (document.activeElement && ['cid', 'fdb'].includes(document.activeElement.id))) return;
+  if (!body || !body.isConnected || (document.activeElement && ['cid', 'fdb', 'mreset'].includes(document.activeElement.id))) return;
   const s = state.settings;
   const status = tokenValid() ? 'Connected' : s.connected ? 'Connected. Access refreshes on your next sync.' : 'Not connected';
   body.innerHTML = `
@@ -4682,6 +4883,10 @@ function renderSettings() {
       <input type="text" id="cid" placeholder="Client ID" autocomplete="off" spellcheck="false">
       <p class="status">${esc(status)}</p>
       <button class="btn wide" id="b-connect">CONNECT GOOGLE</button>
+    </div>
+    <div class="sect"><h3>Capacity</h3>
+      <p>MOMENTUM is your capacity: STACK holds that many rows. It rises whenever TODAY passes it and never drops on its own. Reset it to start lower; it still grows from there.</p>
+      <div class="inline"><input type="number" id="mreset" min="1" max="99" inputmode="numeric" value="${state.score.momentum}"><button class="btn" id="b-mreset">RESET</button></div>
     </div>
     <div class="sect"><h3>Glasses</h3>
       <p>Sync with Paradigm on Meta Ray-Ban Display through your free Firebase database. The README walks through setup.</p>
@@ -4703,6 +4908,10 @@ function renderSettings() {
       <p>In Chrome, open the menu and choose Add to home screen (or Install app) to run Paradigm fullscreen.</p>
       <p>Paradigm ${VERSION}</p>
     </div>`;
+  $('#b-mreset').addEventListener('click', () => {
+    const n = Math.max(1, Math.min(99, parseInt($('#mreset').value, 10) || 1));
+    confirmBox(`Reset MOMENTUM to ${n}?`, 'RESET', () => { state.score.momentum = n; save(); renderAll(); toast(`MOMENTUM is now ${n}`); });
+  });
   const fdb = $('#fdb');
   fdb.value = s.syncDb || '';
   $('#b-sync').addEventListener('click', () => {
@@ -4886,7 +5095,15 @@ function showCalBar(show) {
   b.classList.toggle('hidden', !show); i.classList.toggle('hidden', !!show);
 }
 let calImporting = false;
+/* A new day: carry-overs turn red and cost MOMENTUM (store.js dayRollover). Runs before today's import. */
+function rollover() {
+  const n = dayRollover();
+  if (n > 0) { save(); renderAll(); toast(`${n} block${n > 1 ? 's' : ''} carried over. Red blocks need completing or SUPPORT`); }
+  else if (n < 0) { save(); renderAll(); }
+  else renderScores();
+}
 async function importTodayCalendar(interactive) {
+  rollover();
   const today = todayStr();
   if (state.calImportDate === today || !state.settings.clientId) { showCalBar(false); return; }
   const tp = getToken(interactive);   // first, so a tap on the bar may sign in
@@ -4912,7 +5129,15 @@ async function importTodayCalendar(interactive) {
     const allday = evs.filter(e => ok(e) && isPara(e) && e.start.date)
       .map(e => ({ id: e.id, title: (e.summary || 'Untitled').trim(), payload: readPayload(e), notes: descriptionText(e.description) }))
       .filter(fresh);
-    const bring = (ev, cal) => {
+    // All-day events you made in your main calendar come in too (holidays and birthdays live on other calendars).
+    const mainAllDay = evs.filter(e => ok(e) && !isPara(e) && e.start.date)
+      .map(e => ({ id: e.id, title: (e.summary || 'Untitled').trim(), notes: descriptionText(e.description), size: 1 }))
+      .filter(fresh);
+    // Size from length, rounding up: 30 min = 1, 1 hr = 2, 2 hr = 3, longer = 4.
+    const sizeFor = mins => mins <= 30 ? 1 : mins <= 60 ? 2 : mins <= 120 ? 3 : 4;
+    timed.forEach(ev => { ev.size = sizeFor(ev.endMin - ev.startMin); });
+    allday.forEach(ev => { ev.size = clampSize(ev.payload && ev.payload.size); });
+    const make = (ev, cal) => {
       const p = ev.payload;
       const wantList = !!(p && (p.subtasks || []).length);
       let it = itemByName(ev.title), name = ev.title;
@@ -4921,20 +5146,30 @@ async function importTodayCalendar(interactive) {
         it = newItem(wantList ? 'list' : 'task', name);
         if (wantList) it.subtasks = p.subtasks.map(n => ({ id: uid(), name: n, done: false }));
         it.notes = p ? (p.notes || '') : (ev.notes || '');
+        it.size = ev.size;
         state.items[it.id] = it;
       } else if (!it.notes && (p ? p.notes : ev.notes)) it.notes = p ? p.notes : ev.notes;
       it.cal = cal;
       let bid = findBlock(it.id, null);
       if (bid) detach(bid); else { bid = uid(); state.blocks[bid] = { bid, itemId: it.id, subId: null, elapsed: 0 }; }
-      state.stack.unshift(bid);
+      return bid;
     };
-    let added = 0;
-    // Bottom of STACK, top to bottom: the all-day ones, then the timed ones with the earliest at the very bottom.
-    for (const ev of allday) { bring(ev, { id: ev.id, date: today }); added++; }
-    for (const ev of timed.slice().reverse()) { bring(ev, { id: ev.id, date: today, startMin: ev.startMin, endMin: ev.endMin }); added++; }
+    // Priority: timed events (earliest first), then the all-day ones. What fits goes to the bottom of STACK;
+    // nothing overflows the capacity line, so the rest waits at the top of its backlog.
+    const queue = timed.map(ev => [ev, { id: ev.id, date: today, startMin: ev.startMin, endMin: ev.endMin }])
+      .concat(allday.concat(mainAllDay).map(ev => [ev, { id: ev.id, date: today }]));
+    let room = capacity() - stackLoad(), added = 0, waiting = 0;
+    const onStack = [];
+    for (const [ev, cal] of queue) {
+      const bid = make(ev, cal);
+      if (ev.size <= room) { room -= ev.size; onStack.push(bid); added++; }
+      else { detach(bid); state.backlogs[blockKind(bid)].push(bid); waiting++; }
+    }
+    // Earliest at the very bottom: insert in reverse priority order.
+    for (const bid of onStack.slice().reverse()) { delete state.blocks[bid].carried; state.stack.unshift(bid); }
     state.calImportDate = today;
     save(); renderAll(); showCalBar(false);
-    if (added || interactive) toast(added ? `Added ${added} event${added > 1 ? 's' : ''} from today’s calendar to STACK` : 'Nothing on today’s calendar');
+    if (added || waiting || interactive) toast(added || waiting ? `Added ${added} event${added === 1 ? '' : 's'} from today’s calendar to STACK${waiting ? ` · ${waiting} didn’t fit (in backlogs)` : ''}` : 'Nothing on today’s calendar');
   } finally { calImporting = false; }
 }
 
@@ -5010,7 +5245,7 @@ async function boot() {
   sug.addEventListener('mousedown', e => e.preventDefault());
   sug.addEventListener('click', e => {
     const r = e.target.closest('.sug'); if (!r) return;
-    if (r.dataset.new) { const v = inp.value.trim(); inp.blur(); hideSuggest(); createTask(v); }
+    if (r.dataset.new) { const v = inp.value.trim(); inp.blur(); hideSuggest(); openComposer(v); }
     else { const it = state.items[r.dataset.id]; inp.value = ''; inp.blur(); hideSuggest(); if (it) openEditor(it, false); }
   });
 
