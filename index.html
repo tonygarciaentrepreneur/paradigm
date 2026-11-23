@@ -204,7 +204,7 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .status { font-size: 15px; color: var(--g); }
 
 /* Toast + modal */
-#toast { position: fixed; left: 14px; right: 14px; top: calc(var(--top) + 52px);   /* just below MOMENTUM / TODAY */ z-index: 60; background: var(--bg); border: 2px solid var(--g); padding: 12px 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; font-size: 15px; box-shadow: 0 0 16px rgba(0, 255, 65, .35); }
+#toast { position: fixed; left: 14px; right: 14px; top: calc(var(--top) + 82px);   /* just below the progress bar */ z-index: 60; background: var(--bg); border: 2px solid var(--g); padding: 12px 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; font-size: 15px; box-shadow: 0 0 16px rgba(0, 255, 65, .35); }
 #toast .act { flex: none; padding: 8px 12px; font-size: 14px; }
 .modal { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .82); display: flex; align-items: center; justify-content: center; padding: 24px; }
 .modal .box { width: 100%; max-width: 420px; border: 2px solid var(--g); background: var(--bg); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
@@ -380,14 +380,14 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .scores b { font-weight: 400; color: var(--g); font-size: 20px; letter-spacing: .05em; margin-left: 6px; text-shadow: var(--glow); }
 .stackarea { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; overscroll-behavior: contain; }
 .capbox { flex: none; margin-top: auto; border-top: 2px dashed var(--g); position: relative; display: flex; flex-direction: column; }
-.capbox::before { content: "CAPACITY"; position: absolute; right: 16px; top: -8px; background: var(--bg); padding: 0 6px; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
+.capbox::before { content: none; position: absolute; right: 16px; top: -8px; background: var(--bg); padding: 0 6px; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
 .capbox .list { flex: 1; overflow: visible; padding: 6px 22px 6px; }
 /* Size = rows: dashed lines mark each row inside a block */
 .block.sized { align-items: flex-end; background-image: var(--rowlines, none); }
 .block .rowline { position: absolute; left: 6px; right: 6px; border-top: 1px dashed var(--dim); pointer-events: none; }
 .block.armed .rowline { border-top-color: rgba(0, 0, 0, .35); }
 /* The active block (bottom of STACK): triangles pointing at it */
-.block.active::before, .block.active::after { content: ""; position: absolute; top: 50%; transform: translateY(-50%); border: 8px solid transparent; }
+.block.active::before, .block.active::after { content: ""; position: absolute; bottom: 19px; border: 8px solid transparent; }   /* point at the bottom row */
 .block.active::before { left: -19px; border-left: 10px solid var(--g); }
 .block.active::after { right: -19px; border-right: 10px solid var(--g); }
 /* Carry-over: a red version of the green block */
@@ -422,6 +422,39 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .actinput .newsize { margin-top: 6px; }
 .actinput .newsize .sizepick i { height: 20px; }
 
+/* ===== 2.1 ===== */
+/* Progress: done (filled) + still on STACK (outlined), with the capacity marked */
+.progress { flex: none; padding: 26px 18px 8px; position: relative; }
+.pcall { position: absolute; top: 6px; text-align: center; font-size: 10px; letter-spacing: .14em; color: var(--g2); white-space: nowrap; }
+.pcall b { font-weight: 400; color: var(--g); }
+.pbar { position: relative; height: 14px; border: 1px solid var(--dim); }
+.pbar .pdone { position: absolute; left: 0; top: 0; bottom: 0; background: var(--g); box-shadow: 0 0 10px rgba(0, 255, 65, .5); }
+.pbar .pleft { position: absolute; top: 2px; bottom: 2px; border: 1px dashed var(--g2); }
+.pbar .pcap { position: absolute; top: -8px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--hot); }
+.pnums { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; letter-spacing: .16em; color: var(--g2); }
+.pnums b { font-weight: 400; color: var(--g); font-size: 14px; margin-left: 4px; }
+/* Difficulty in backlogs: equal squares, side by side */
+.sz { flex-direction: row; gap: 3px; align-items: center; }
+.sz i { width: 8px; height: 8px; }
+/* Completing the active block: it fills left to right, then pops */
+#stack-list .block.active { --fill: 0%; }
+#stack-list .block.active > .fillbar, #stack-list .block.active::marker { display: none; }
+#stack-list .block.active { background-image: linear-gradient(90deg, rgba(0, 255, 65, .35) var(--fill), transparent var(--fill)); }
+#stack-list .block.active.carry { background-image: linear-gradient(90deg, rgba(255, 59, 59, .35) var(--fill), transparent var(--fill)); }
+#stack-list .block.popping { transition: background-image .2s; animation: pop .38s ease-out forwards; }
+@keyframes pop { 0% { transform: scale(1); } 45% { transform: scale(1.06); box-shadow: 0 0 22px rgba(0, 255, 65, .8); } 100% { transform: scale(1.12); opacity: 0; } }
+/* Detail: Difficulty and Project at the top */
+.dettop { flex: none; padding: 14px 16px 8px; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid var(--faint); }
+.diffrow, .switchrow { display: flex; align-items: center; gap: 12px; }
+.difflabel { flex: none; font-size: 14px; letter-spacing: .08em; color: var(--g); min-width: 92px; }
+.diffrow .sizepick { flex: 1; padding: 0; }
+.sizepick i { border-style: solid; }
+.switch { position: relative; width: 48px; height: 26px; border: 2px solid var(--g); background: var(--bg); padding: 0; cursor: pointer; }
+.switch i { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: var(--dim); transition: transform .15s, background .15s; }
+.switch[aria-checked="true"] i { transform: translateX(22px); background: var(--g); }
+.renamein { margin: 0 14px; text-align: center; font-family: "OCR-A", var(--font) !important; text-transform: uppercase; letter-spacing: .2em; }
+.composer .comppick .diffrow { padding-top: 4px; }
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -448,7 +481,11 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
     </section>
 
     <section class="panel" id="p-stack">
-      <div class="scores" id="scores"><span>MOMENTUM <b id="sc-m">8</b></span><span>TODAY <b id="sc-t">0</b></span></div>
+      <div class="progress" id="progress">
+        <div class="pcall" id="p-call">PREVIOUS DAY’S CAPACITY <b id="p-cap">8</b></div>
+        <div class="pbar"><i class="pdone" id="p-done"></i><i class="pleft" id="p-left"></i><span class="pcap" id="p-capline"></span></div>
+        <div class="pnums"><span>DONE <b id="p-d">0</b></span><span>ON STACK <b id="p-l">0</b></span></div>
+      </div>
       <div class="stackarea" id="stack-area">
         <div class="capbox" id="cap-box"><div class="list stack" id="stack-list"></div></div>
       </div>
@@ -926,12 +963,14 @@ function gesture(el, o) {
       if (moved && moved !== m) { moved.style.transition = 'none'; moved.style.transform = ''; }   // direction flipped mid-swipe
       moved = m;
       if (m) { m.style.transition = 'none'; m.style.transform = `translateX(${x}px)`; }
+      if (o.onDrag) o.onDrag(dx);
     } else if (st.mode === 'v') {
       if (e.cancelable) e.preventDefault();
     }
   }, { passive: false });
 
   function snapBack() {
+    if (o.onDrag) o.onDrag(0);
     const m = moved || mover(lastDir); moved = null; if (!m) return;
     m.style.transition = 'transform .18s ease-out'; m.style.transform = '';
   }
@@ -1063,8 +1102,9 @@ function wireList(listEl, opts) {
     gesture(el, {
       enabled: opts.enabled,
       // FOCUS: swiping left slides the whole screen (to its subtask screen); swiping right moves only the block (to scheduling).
-      moveEl: dir => (isArmed(el) && dir < 0 && (!opts.armSlide || opts.armSlide(key)) && el.closest('.panel, .screen')) || el,
-      holdAfter: dir => (isArmed(el) && dir < 0 && (!opts.armSlide || opts.armSlide(key)) ? 450 : 0),
+      // opts.moves(key, dir, armed) → false when nothing should slide (e.g. the active block fills instead)
+      moveEl: dir => (opts.moves && opts.moves(key, dir, isArmed(el)) === false) ? null : el,
+      onDrag: opts.drag ? dx => opts.drag(key, dx, el, isArmed(el)) : null,
       onSwipeRight: (opts.swipeRight || canArm) ? () => {
         if (isArmed(el)) { disarm(); opts.openEdit(key); return; }
         if (opts.swipeRight) opts.swipeRight(key);
@@ -3878,39 +3918,37 @@ function openEditor(item, isNew, slide, from) {
   const hasSubs = d.type !== 'event';   // tasks, lists and projects all hold subtasks
   // Like STACK: the list piles up from the bottom, the entry box sits above the name at the bottom.
   // OPTIONS is at the top right (where REFRESH is on SCHEDULE).
+  // Difficulty and Project sit at the top; the name is only at the bottom (tap it to rename).
   const el = screenEl('editor activity' + (slide ? ' slidein' : ''), `
-    <div class="acttop"><span class="label kind"></span><button class="btn quiet small optbtn">OPTIONS</button></div>
-    <div class="optpanel hidden"><input class="namein" type="text" autocomplete="off" aria-label="Name"><div class="optcontent"></div></div>
+    <div class="optcontent dettop"></div>
     <div class="actmain"></div>
     ${hasSubs ? '<div class="inputbar actinput"><input class="subin" type="text" placeholder="Add a subtask" enterkeyhint="done" autocomplete="off"></div>' : ''}
     <header class="title act-title"><h1></h1></header>`);
-  const kindLabel = $('.kind', el);
-  const title = $('.act-title h1', el), optpanel = $('.optpanel', el), optcontent = $('.optcontent', el), main = $('.actmain', el);
-  const nameIn = $('.namein', el);
-  nameIn.value = d.name;
+  const title = $('.act-title h1', el), optcontent = $('.optcontent', el), main = $('.actmain', el);
+  const optpanel = optcontent;   // kept for validName()
   const setTitle = () => { title.textContent = (d.name || 'UNTITLED').toUpperCase(); };
-  nameIn.addEventListener('input', () => { d.name = nameIn.value; setTitle(); });
   setTitle();
-  const optBtn = $('.optbtn', el);
-  optBtn.addEventListener('click', () => { optpanel.classList.toggle('hidden'); optBtn.classList.toggle('on', !optpanel.classList.contains('hidden')); });
-  if (d.type === 'event' || isNew) { optpanel.classList.remove('hidden'); optBtn.classList.add('on'); }
+  // Tap the name to rename it.
+  title.addEventListener('click', () => {
+    if ($('.renamein', el)) return;
+    const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'renamein'; inp.value = d.name; inp.setAttribute('aria-label', 'Name');
+    title.replaceWith(inp); inp.focus(); inp.select();
+    const done = () => { d.name = inp.value.trim() || d.name; inp.replaceWith(title); setTitle(); };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+    inp.addEventListener('blur', done);
+  });
   gesture($('.act-title', el), { moveEl: false, onSwipeRight: () => leave(true), onSwipeLeft: () => leave(false) });
 
   let subsList = null;
   function render() {
-    kindLabel.textContent = TYPES[d.type];
     optcontent.innerHTML = '';
-    if (d.type === 'task' || d.type === 'list') {   // SIZE: rows on STACK and points when completed
-      const r = document.createElement('div'); r.className = 'sect';
-      r.innerHTML = '<h3>Size</h3>';
-      r.appendChild(sizePicker(d.size, n => { d.size = n; }));
-      optcontent.appendChild(r);
+    if (d.type === 'task' || d.type === 'list') {   // Difficulty: rows on STACK and points when completed
+      optcontent.appendChild(difficultyRow(d.size, n => { d.size = n; }));
     }
     if (d.type === 'task' || d.type === 'list' || d.type === 'project') {
-      // Project, like Recurring: a checkbox. A project lives in PROJECT BACKLOG; its subtasks go to STACK one by one.
-      const pr = document.createElement('div'); pr.className = 'sect'; optcontent.appendChild(pr);
-      pr.append(checkBtn('Project', d.type === 'project', () => {
-        if (d.type === 'project') d.type = d.subtasks.length ? 'list' : 'task';
+      // Project: a switch. A project lives in PROJECT BACKLOG; its subtasks (each with a difficulty) go to STACK one by one.
+      optcontent.appendChild(switchRow('Project', d.type === 'project', on => {
+        if (!on) d.type = d.subtasks.length ? 'list' : 'task';
         else { d.type = 'project'; d.subtasks.forEach(x => { x.size = clampSize(x.size); }); }
         render();
       }));
@@ -3985,9 +4023,9 @@ function openEditor(item, isNew, slide, from) {
 
   function validName() {
     const n = (d.name || '').trim();
-    if (!n) { toast('Give it a name first (OPTIONS)'); optpanel.classList.remove('hidden'); return false; }
+    if (!n) { toast('Give it a name first (tap the name at the bottom)'); return false; }
     const other = itemByName(n);
-    if (other && other.id !== d.id) { toast('Another item already has that name'); optpanel.classList.remove('hidden'); return false; }
+    if (other && other.id !== d.id) { toast('Another item already has that name'); return false; }
     d.name = n; return true;
   }
   function commit() {
@@ -4423,7 +4461,7 @@ function openDayPicker(bid) {
 function sizePicker(value, onChange) {
   const el = document.createElement('div'); el.className = 'sizepick';
   el.setAttribute('role', 'slider'); el.setAttribute('aria-label', 'Size'); el.setAttribute('aria-valuemin', '1'); el.setAttribute('aria-valuemax', '4');
-  el.innerHTML = [1, 2, 3, 4].map(n => `<i data-n="${n}">${n}</i>`).join('');
+  el.innerHTML = [1, 2, 3, 4].map(n => `<i data-n="${n}"></i>`).join('');
   const set = n => {
     value = clampSize(n);
     el.querySelectorAll('i').forEach(i => i.classList.toggle('on', +i.dataset.n <= value));
@@ -4438,45 +4476,51 @@ function sizePicker(value, onChange) {
   return el;
 }
 
+/* "Difficulty:" with its four blocks on one line. */
+function difficultyRow(value, onChange) {
+  const r = document.createElement('div'); r.className = 'diffrow';
+  const l = document.createElement('span'); l.className = 'difflabel'; l.textContent = 'Difficulty:';
+  r.append(l, sizePicker(value, onChange));
+  return r;
+}
+/* A labelled on/off switch. */
+function switchRow(label, on, onChange) {
+  const r = document.createElement('div'); r.className = 'switchrow';
+  r.innerHTML = `<span class="difflabel">${esc(label)}</span><button class="switch" role="switch" aria-checked="${on}" aria-label="${esc(label)}"><i></i></button>`;
+  const b = $('.switch', r);
+  b.addEventListener('click', () => { on = !on; b.setAttribute('aria-checked', on); onChange(on); });
+  return r;
+}
+
 /* ---------- adding something new ----------
    Name → size (drag across the four segments under the block) → swipe the block:
    right = TODAY (bottom of STACK, if it fits) · left = TO-DO, then left = SAVE (backlog) · right = SCHEDULE (pick a day). */
 function openComposer(name) {
-  let size = 1, step = 'decide';
+  let size = 1;
   const el = screenEl('composer', `
     <div class="compmain"><div class="block compblk"><span class="name"></span></div><div class="comppick"></div></div>
-    <div class="compsides"><span class="l"></span><span class="r"></span></div>
+    <div class="compsides"><span class="l">← BACKLOG</span><span class="r"></span></div>
     <header class="title"><h1>NEW</h1></header>`);
   const blk = $('.compblk', el), sides = $('.compsides', el);
   $('.name', blk).textContent = name;
   const paint = () => {
     blk.style.minHeight = (size * 54 + (size - 1) * 5) + 'px';
-    $('.l', sides).textContent = step === 'decide' ? '← TO-DO' : '← SAVE';
-    $('.r', sides).textContent = step === 'decide' ? (fits(size) ? 'TODAY →' : 'NO ROOM TODAY') : 'SCHEDULE →';
-    $('.r', sides).classList.toggle('blocked', step === 'decide' && !fits(size));
-    $('.comppick', el).classList.toggle('hidden', step !== 'decide');
+    $('.r', sides).textContent = fits(size) ? 'STACK →' : 'NO ROOM ON STACK';
+    $('.r', sides).classList.toggle('blocked', !fits(size));
   };
-  $('.comppick', el).appendChild(sizePicker(size, n => { size = n; paint(); }));
+  $('.comppick', el).appendChild(difficultyRow(size, n => { size = n; paint(); }));
   const create = () => { const it = newItem('task', name); it.size = size; state.items[it.id] = it; return it; };
   gesture(blk, {
-    allowRight: () => step !== 'decide' || fits(size),
-    onSwipeRight: () => {
-      if (step === 'decide') {   // TODAY: bottom of STACK, the new active block
-        if (!fits(size)) { toast(NO_ROOM); return; }
-        const it = create(); addToStack(it.id, null, 'bottom'); save(); clearMainInput();
-        closeAll(() => { goPanel('stack'); toast(`${name} is on STACK`); });
-      } else {                   // SCHEDULE: pick a day
-        const it = create(); placeInBacklog(it.id); save(); clearMainInput();
-        const bid = findBlock(it.id, null);
-        closeAll(() => { goPanel('stack'); openDayPicker(bid); });
-      }
+    allowRight: () => fits(size),
+    onSwipeRight: () => {   // STACK: the bottom, as the new active block
+      if (!fits(size)) { toast(NO_ROOM); return; }
+      const it = create(); addToStack(it.id, null, 'bottom'); save(); clearMainInput();
+      closeAll(() => { goPanel('stack'); toast(`${name} is on STACK`); });
     },
-    onSwipeLeft: () => {
-      if (step === 'decide') { step = 'todo'; blk.style.transform = ''; paint(); return; }   // TO-DO: on to SAVE / SCHEDULE
-      const it = create(); placeInBacklog(it.id); save(); clearMainInput();                 // SAVE: backlog
+    onSwipeLeft: () => {    // BACKLOG
+      const it = create(); placeInBacklog(it.id); save(); clearMainInput();
       closeAll(() => { goPanel('stack'); toast(`Saved to ${BACKLOG_TITLE.task}`); });
-    },
-    noFly: false
+    }
   });
   paint();
   openScreen(el);
@@ -4523,7 +4567,7 @@ function openSplit(bid, kind) {
   $('.act-title h1', el).textContent = name.toUpperCase();
   const list = $('.actmain .list', el), empty = $('.actmain .empty', el), inp = $('.subin', el);
   const oc = $('.outcome', el); if (oc) oc.addEventListener('input', () => { outcome = oc.value.trim(); });
-  $('.newsize', el).appendChild(sizePicker(newSize, n => { newSize = n; }));
+  $('.newsize', el).appendChild(difficultyRow(newSize, n => { newSize = n; }));
   const paint = () => {
     list.innerHTML = '';
     pieces.forEach(p => {
@@ -4697,7 +4741,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '2.0.1';
+const VERSION = '2.1.0';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
@@ -4718,7 +4762,7 @@ function goPanel(name, instant) {
 /* ---------- blocks ---------- */
 const ROW = 54, GAP = 5;
 const rowsPx = n => n * ROW + (n - 1) * GAP;
-function sizeIcon(n) { return `<span class="sz" aria-label="Size ${n}">${[1, 2, 3, 4].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`; }
+function sizeIcon(n) { return `<span class="sz" aria-label="Difficulty ${n}">${[1, 2, 3, 4].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`; }
 /* On STACK a block is as tall as its size (dashed lines mark the rows); in a backlog it's one row with a size icon. */
 function blockEl(bid, where) {
   const b = state.blocks[bid], it = state.items[b.itemId], l = blockLabel(bid);
@@ -4739,39 +4783,64 @@ function blockEl(bid, where) {
 }
 
 /* ---------- gestures ----------
-   Active block (bottom of STACK):  → complete (opens its subtasks first if any are open) · ← to backlog
-                                    highlighted: → schedule · ← delete
-   Other STACK blocks:              → detail (add subtasks) · ← to backlog · highlighted: → schedule · ← SUPPORT
-   Backlog items:                   → detail (swipe right on its name there to add it to STACK) · ← SUPPORT
-                                    highlighted: → schedule · ← delete
-   Red (carried over) blocks: anything that would skip SUPPORT (backlog, schedule, delete) goes to SUPPORT. */
+   STACK block:     → schedule (pick a day) · ← to backlog
+                    highlighted (FOCUS): → SUPPORT · ← delete   (the block slides away; the screen stays)
+                    swipe left on the FOCUS title: its detail screen
+   Active block:    the same, except → completes: it fills left to right, then pops (not while highlighted)
+   Backlog item:    the same as a STACK block, except → adds it to the top of STACK
+   Red (carried over): anything that would skip SUPPORT (backlog, schedule, delete) opens SUPPORT instead. */
 function blockEditable(bid) { return !!state.blocks[bid]; }
 function editBlock(bid, slide, from) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false, slide, from); }
 function scheduleBlock(bid) { if (state.blocks[bid]) openDayPicker(bid); }
 function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName(bid)}`, () => deleteBlockItem(bid)); }
 const isActive = bid => state.stack[0] === bid;
 const openSubs = bid => { const b = state.blocks[bid], it = b && state.items[b.itemId]; return !!(it && !b.subId && (it.subtasks || []).some(s => !s.done)); };
-function completeActive(bid) {
+/* Completing the active block: it fills up left to right, then pops. */
+function completeActive(bid, el) {
   if (openSubs(bid)) { editBlock(bid); return; }   // finish its subtasks first
   const name = blockName(bid), size = blockSize(bid);
-  withUndo(`Completed ${name} · +${size}`, () => completeBlock(bid));
+  if (el) { el.style.setProperty('--fill', '100%'); el.classList.add('popping'); }
+  setTimeout(() => withUndo(`Completed ${name} · +${size}`, () => completeBlock(bid)), el ? 380 : 0);
 }
 const PANEL_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
-/* FOCUS (highlight): the screen name reads FOCUS; the other blocks stay visible. Tap the block again to leave. */
+/* FOCUS (highlight): the screen name reads FOCUS. Tap the block again to leave. */
 function onArmChange(el) {
   for (const k of Object.keys(PANEL_TITLE)) { $(`#t-${k} h1`).textContent = PANEL_TITLE[k]; $(`#p-${k}`).classList.remove('focusmode'); }
   const p = el && el.closest('.panel');
   if (p && PANEL_TITLE[p.id.slice(2)]) { $(`#t-${p.id.slice(2)} h1`).textContent = 'FOCUS'; p.classList.add('focusmode'); }
+}
+/* Swipe left on the FOCUS title: the highlighted block's detail screen. */
+function focusDetail(panelKey) {
+  const a = armed && armed.isConnected && armed.closest(`#p-${panelKey}`) ? armed : null;
+  if (!a) return false;
+  const key = a.dataset.key; disarm();
+  if (panelKey === 'project') openEditor(state.items[key], false, true); else editBlock(key, true, panelKey === 'stack' ? null : 'backlog');
+  return true;
 }
 function renderAll() {
   if (!state) return;
   renderStack(); renderBacklogs(); renderSettings(); onArmChange(null);
 }
 
-/* ---------- STACK: capacity line at MOMENTUM rows; bottom = active; new and calendar items land at the bottom ---------- */
+/* ---------- STACK: progress bar, capacity line at MOMENTUM rows; bottom = active ---------- */
+/* Progress: difficulty completed today (filled) + difficulty still on STACK (outlined), with the
+   capacity (MOMENTUM) marked on the bar as PREVIOUS DAY'S CAPACITY. */
 function renderScores() {
-  $('#sc-m').textContent = state.score.momentum;
-  $('#sc-t').textContent = state.score.date === todayStr() ? state.score.today : 0;
+  const done = state.score.date === todayStr() ? state.score.today : 0, left = stackLoad(), cap = capacity();
+  const scale = Math.max(done + left, cap, 1), pct = n => (100 * n / scale).toFixed(2) + '%';
+  $('#p-done').style.width = pct(done);
+  $('#p-left').style.left = pct(done); $('#p-left').style.width = pct(left);
+  $('#p-capline').style.left = pct(cap);
+  $('#p-cap').textContent = cap; $('#p-d').textContent = done; $('#p-l').textContent = left;
+  placeCallout($('#p-call'), $('#p-capline'), $('#progress'));
+}
+/* Keep the PREVIOUS DAY'S CAPACITY label over its marker, but fully on screen. */
+function placeCallout(call, line, box) {
+  requestAnimationFrame(() => {
+    const b = box.getBoundingClientRect(), l = line.getBoundingClientRect(), w = call.offsetWidth, pad = 12;
+    const x = Math.max(pad, Math.min(b.width - w - pad, l.left - b.left - w / 2));
+    call.style.left = x + 'px';
+  });
 }
 function renderStack() {
   renderScores();
@@ -4783,10 +4852,16 @@ function renderStack() {
     reverse: true,
     onReorder: keys => { state.stack = keys; save(); renderStack(); },
     armable: blockEditable,
-    armSlide: bid => !isActive(bid),                                                   // highlighted ← slides to SUPPORT (not for delete)
-    openEdit: bid => isCarried(bid) ? openSupport(bid) : scheduleBlock(bid),           // highlighted → : schedule
-    armDelete: bid => isActive(bid) ? (isCarried(bid) ? openSupport(bid) : deleteBlock(bid)) : openSupport(bid, true),   // highlighted ←
-    swipeRight: bid => isActive(bid) ? completeActive(bid) : editBlock(bid),           // → : complete (active) or its detail
+    // The active block doesn't slide when completing: it fills up as you drag.
+    moves: (bid, dir, armedNow) => !(isActive(bid) && dir > 0 && !armedNow),
+    drag: (bid, dx, el, armedNow) => { if (isActive(bid) && !armedNow) el.style.setProperty('--fill', Math.max(0, Math.min(100, dx / 0.8)) + '%'); },
+    openEdit: bid => openSupport(bid),                                                 // FOCUS → : SUPPORT
+    armDelete: bid => isCarried(bid) ? openSupport(bid) : deleteBlock(bid),            // FOCUS ← : delete (red: SUPPORT)
+    swipeRight: bid => {                                                               // → : complete (active) / schedule
+      if (isActive(bid)) completeActive(bid, list.querySelector(`[data-key="${bid}"]`));
+      else if (isCarried(bid)) openSupport(bid);
+      else scheduleBlock(bid);
+    },
     swipeLeft: bid => {                                                                // ← : to backlog (red: SUPPORT)
       if (isCarried(bid)) { openSupport(bid); return; }
       const b = state.blocks[bid];
@@ -4814,10 +4889,9 @@ function renderBacklogs() {
     reverse: true,
     onReorder: keys => { state.backlogs.project = keys; save(); },
     armable: () => true,
-    armSlide: () => false,
-    openEdit: () => toast('Projects can’t be scheduled. Schedule their subtasks'),
+    openEdit: () => toast('Projects are already split. Add their subtasks to STACK with →'),
     armDelete: id => withUndo(`Deleted ${state.items[id].name}`, () => deleteItem(id)),
-    swipeRight: id => openProjectSubs(id)
+    swipeRight: id => openProjectSubs(id)                         // → : its subtasks, to send to STACK
   });
   $('#empty-project').classList.toggle('hidden', !!state.backlogs.project.length);
   for (const k of BLOCK_KINDS) {
@@ -4828,11 +4902,14 @@ function renderBacklogs() {
       reverse: true,
       onReorder: keys => { state.backlogs[k] = keys; save(); },
       armable: blockEditable,
-      armSlide: () => false,
-      openEdit: scheduleBlock,                        // highlighted → : schedule
-      armDelete: deleteBlock,                         // highlighted ← : delete
-      swipeRight: bid => editBlock(bid, false, 'backlog'),   // → : detail (swipe right on its name to add it to STACK)
-      swipeLeft: bid => openSupport(bid, true)        // ← : SUPPORT
+      openEdit: bid => openSupport(bid),                          // FOCUS → : SUPPORT
+      armDelete: deleteBlock,                                     // FOCUS ← : delete
+      swipeRight: bid => {                                        // → : to the top of STACK
+        const b = state.blocks[bid]; if (!b) return;
+        const msg = addToStack(b.itemId, b.subId, 'top');
+        if (msg) { toast(msg); return; }
+        save(); renderAll(); toast('Added to top of STACK');
+      }
     });
     $('#empty-' + k).classList.toggle('hidden', !!state.backlogs[k].length);
   }
@@ -5211,11 +5288,12 @@ async function refreshSchedule(interactive) {
 /* ---------- boot ---------- */
 /* Swipes on a bottom label move between screens. With a block in FOCUS on that screen,
    swiping left (toward SCHEDULE) plans it on today's schedule instead. */
+/* Swipes on a bottom label move between screens. On a FOCUS title, swiping left opens the block's detail screen. */
 function navTitle(id, right, left, panelKey) {
   gesture($(id), {
     moveEl: false,
     onSwipeRight: right ? () => goPanel(right) : null,
-    onSwipeLeft: left ? () => goPanel(left) : null
+    onSwipeLeft: () => { if (panelKey && focusDetail(panelKey)) return; if (left) goPanel(left); }
   });
 }
 async function boot() {

@@ -77,29 +77,31 @@ If the Meta AI app has no Web apps section at all even with Developer Mode on, t
 
 ### Glasses
 
-The glasses are a viewer for STACK: sizes as rows, the active block marked, carry-overs in red, and MOMENTUM / TODAY at the top. **Enter** on a block opens its subtasks; **→** swipes one off (completes it). **Back** closes. Everything else happens on the phone.
+The glasses are a viewer for STACK: difficulty as rows, the active block marked, carry-overs in red, and the progress bar at the top. **Enter** on a block opens its subtasks; **→** swipes one off (completes it). **Back** closes. Everything else happens on the phone.
 
 ## How Paradigm 2.0 works
 
-**Size (1–4)** is how much something weighs: its height in rows on STACK (dashed lines mark the rows) and its points when completed. In backlogs it's the little icon on the right. Lists have one size; a project's subtasks each have their own.
+**Difficulty (1–4)** is how much something weighs: its height in rows on STACK (dashed lines mark the rows) and how much it counts when completed. In backlogs it's the row of little squares on the right. Lists have one difficulty; a project's subtasks each have their own.
 
-**Capacity:** the dashed line at the top of STACK sits MOMENTUM rows up. STACK can't hold more than that: nothing new goes on until there's room. **TODAY** adds the size of each block you complete; when TODAY passes MOMENTUM, MOMENTUM rises to it. TODAY resets at midnight. MOMENTUM never drops on its own; reset it lower in SETTINGS any time; it still grows from there.
+**Capacity:** the dashed line on STACK sits MOMENTUM rows up, and STACK can't hold more than that. At the top, a **progress bar** shows the difficulty you've completed today (filled) plus what's still on STACK (outlined), with your capacity marked as **PREVIOUS DAY'S CAPACITY**. Completing more than your capacity raises it; it never drops on its own (reset it lower in SETTINGS any time).
 
-**Carry-over:** anything still on STACK at midnight turns **red** (MOMENTUM isn't affected). A red block can be completed, or it has to go through SUPPORT: trying to send it to backlog, schedule it or delete it opens SUPPORT instead.
+**Carry-over:** anything still on STACK at midnight turns **red**. A red block can be completed, or it has to go through SUPPORT: trying to send it to backlog, schedule it or delete it opens SUPPORT instead.
 
-**Adding something:** type a name and press enter. Drag across the four segments under the block to set its size, then swipe the block: **right = TODAY** (bottom of STACK; blocked if it won't fit), **left = TO-DO**, then **left = SAVE** (backlog) or **right = SCHEDULE** (pick a day). Typing the exact name of something you have opens it.
+**Adding something:** type a name and press enter, set **Difficulty** by dragging across the four blocks, then swipe the block: **right = STACK** (the bottom, as the new active block; blocked if it won't fit) or **left = BACKLOG**. Typing the exact name of something you have opens it.
 
-**The active block** is the bottom of STACK (triangles point at it). It's the only one you can complete.
+**The active block** is the bottom of STACK (triangles point at its bottom row). Swipe it right and it fills up, then pops: done. If it still has open subtasks, those open first.
 
-| | Swipe right | Swipe left | Highlighted, swipe right | Highlighted, swipe left |
+| | Swipe right | Swipe left | In FOCUS, swipe right | In FOCUS, swipe left |
 | --- | --- | --- | --- | --- |
-| Active block | Complete (finish its subtasks first: they open) | To backlog | Schedule | Delete |
-| Other STACK blocks | Detail (add subtasks) | To backlog | Schedule | SUPPORT |
-| Backlog items | Detail (swipe right on its name to add it to the top of STACK) | SUPPORT | Schedule | Delete |
+| Active block | Complete | To backlog | SUPPORT | Delete |
+| Other STACK blocks | Schedule (pick a day) | To backlog | SUPPORT | Delete |
+| Backlog items | Add to the top of STACK | (nothing) | SUPPORT | Delete |
 
-Highlight = hold a block and let go (the screen name reads FOCUS); tap it again to leave. Hold and drag reorders.
+**FOCUS:** hold a block and let go; it turns green and the screen name reads FOCUS. Swipe left on the **FOCUS** name itself to open the block's detail screen. Tap the block again to leave FOCUS. Hold and drag reorders.
 
-**SUPPORT:** swipe right on the one that fits. **TIRED** (physical energy), **STUCK** (mental energy: what does done look like, then the first step), **DREAD** (emotional energy: the smallest part you could face for 5 minutes). Each ends the same way: add the pieces, each with its own size, then swipe right on the name. The original becomes a project in PROJECT BACKLOG and the pieces ("Original: Piece") take its place on STACK, as many as fit. TIRED starts you with "Choose Best Time".
+**Detail screen:** **Difficulty** and a **Project** switch at the top; subtasks pile up from the bottom with the entry box above the name. A task shows notes until it gets subtasks (then it's a list). Tap the name to rename it. Swipe left on the name to save and go back; swipe right to save and add it to STACK.
+
+**SUPPORT:** swipe right on the one that fits. **TIRED** (physical energy), **STUCK** (mental energy: what does done look like, then the first step), **DREAD** (emotional energy: the smallest part you could face for 5 minutes). Each ends the same way: add the pieces, each with its own difficulty, then swipe right on the name. The original becomes a project in PROJECT BACKLOG and the pieces ("Original: Piece") take its place on STACK, as many as fit. TIRED starts you with "Choose Best Time".
 
 **Scheduling** (pick a day from tomorrow on) turns it into an all-day event on your Paradigm calendar; it comes back onto STACK that morning with its subtasks and size.
 
