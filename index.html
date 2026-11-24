@@ -493,7 +493,7 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
     </section>
 
     <section class="panel" id="p-stack">
-      <div class="scores" id="scores"><span>MOMENTUM: <b id="sc-m">8</b></span><span>TODAY: <b id="sc-t">0</b></span></div>
+      <div class="scores" id="scores"><span>MOMENTUM: <b id="sc-m">0</b></span></div>
       <div class="stackarea" id="stack-area">
         <div class="list stack" id="stack-list"></div>
       </div>
@@ -798,7 +798,7 @@ function capacity() {
 function fits(rows) { return stackLoad() + rows <= capacity(); }
 const NO_ROOM = 'STACK is at capacity (see SCHEDULE)';
 
-/* TODAY adds the difficulty of what you complete; MOMENTUM rises to TODAY and never drops (except a RESET). */
+/* MOMENTUM (score.today) adds the difficulty of what you complete; it starts at 0 each day. */
 function addPoints(n) {
   const sc = state.score;
   if (sc.date !== todayStr()) dayRollover();
@@ -4760,7 +4760,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '2.2.0';
+const VERSION = '2.2.1';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
@@ -4841,10 +4841,9 @@ function renderAll() {
 }
 
 /* ---------- STACK: progress bar, capacity line at MOMENTUM rows; bottom = active ---------- */
-/* The top of STACK: MOMENTUM and TODAY (difficulty completed today). CAPACITY lives on SCHEDULE. */
+/* The top of STACK: MOMENTUM = today's score (difficulty completed today; back to 0 each day). CAPACITY lives on SCHEDULE. */
 function renderScores() {
-  $('#sc-m').textContent = state.score.momentum;
-  $('#sc-t').textContent = state.score.date === todayStr() ? state.score.today : 0;
+  $('#sc-m').textContent = state.score.date === todayStr() ? state.score.today : 0;
   const c = $('#sched-cap'); if (c) c.textContent = capacity();
 }
 /* Keep the PREVIOUS DAY'S CAPACITY label over its marker, but fully on screen. */
@@ -4971,7 +4970,7 @@ function renderSettings() {
       <button class="btn wide" id="b-connect">CONNECT GOOGLE</button>
     </div>
     <div class="sect"><h3>Capacity</h3>
-      <p>CAPACITY is your ${CAP_DAYS}-day average of difficulty completed, rounded down: STACK holds that much. MOMENTUM is your best day; it never drops on its own. RESET starts both over from a number you pick.</p>
+      <p>CAPACITY is your ${CAP_DAYS}-day average of difficulty completed (MOMENTUM at the end of each day), rounded down: STACK holds that much. RESET starts it over from a number you pick.</p>
       <div class="inline"><input type="number" id="mreset" min="1" max="99" inputmode="numeric" value="${capacity()}"><button class="btn" id="b-mreset">RESET</button></div>
     </div>
     <div class="sect"><h3>Glasses</h3>
@@ -4996,7 +4995,7 @@ function renderSettings() {
     </div>`;
   $('#b-mreset').addEventListener('click', () => {
     const n = Math.max(1, Math.min(99, parseInt($('#mreset').value, 10) || 1));
-    confirmBox(`Reset CAPACITY and MOMENTUM to ${n}?`, 'RESET', () => { state.score.momentum = n; state.score.base = n; state.score.history = []; save(); renderAll(); toast(`CAPACITY and MOMENTUM are now ${n}`); });
+    confirmBox(`Reset CAPACITY to ${n}?`, 'RESET', () => { state.score.base = n; state.score.history = []; save(); renderAll(); toast(`CAPACITY is now ${n}`); });
   });
   const fdb = $('#fdb');
   fdb.value = s.syncDb || '';

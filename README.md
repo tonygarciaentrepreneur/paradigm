@@ -77,15 +77,15 @@ If the Meta AI app has no Web apps section at all even with Developer Mode on, t
 
 ### Glasses
 
-The glasses are a viewer for STACK: difficulty as rows, the active block marked, carry-overs in red, and MOMENTUM and TODAY at the top. **Enter** on a block opens its subtasks; **→** swipes one off (completes it). **Back** closes. Everything else happens on the phone.
+The glasses are a viewer for STACK: difficulty as rows, the active block marked, carry-overs in red, and MOMENTUM at the top. **Enter** on a block opens its subtasks; **→** swipes one off (completes it). **Back** closes. Everything else happens on the phone.
 
 ## How Paradigm 2.0 works
 
 **Difficulty (1–4)** is how much something weighs: its height in rows on STACK (dashed lines mark the rows) and how much it counts when completed. In backlogs it's the row of little squares on the right. Lists have one difficulty; a project's subtasks each have their own.
 
-**MOMENTUM and TODAY** sit at the top of STACK. TODAY adds up the difficulty you complete today; when it passes MOMENTUM, MOMENTUM rises to it (it never drops on its own).
+**MOMENTUM** at the top of STACK is today's score: it starts at 0 each day and rises by the difficulty of each task you complete.
 
-**CAPACITY** (shown on SCHEDULE) is your 7-day average of difficulty completed, rounded down. STACK can't hold more difficulty than your capacity: when it's full, new things wait. RESET in SETTINGS starts capacity and MOMENTUM over from a number you pick.
+**CAPACITY** (shown on SCHEDULE) is your 7-day average of difficulty completed, rounded down. STACK can't hold more difficulty than your capacity: when it's full, new things wait. RESET in SETTINGS starts capacity over from a number you pick.
 
 **Carry-over:** anything still on STACK at midnight turns **red**. A red block can be completed, or it has to go through SUPPORT: trying to send it to backlog, schedule it or delete it opens SUPPORT instead.
 
