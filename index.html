@@ -455,6 +455,18 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .renamein { margin: 0 14px; text-align: center; font-family: "OCR-A", var(--font) !important; text-transform: uppercase; letter-spacing: .2em; }
 .composer .comppick .diffrow { padding-top: 4px; }
 
+/* ===== 2.2 ===== */
+#stack-area > #stack-list { flex: 1 0 auto; overflow: visible; padding: 6px 22px; }
+.scores { padding: 14px 18px 8px; }
+.capscore { flex: none; padding: 12px 16px 0; font-family: "OCR-A", var(--font); font-size: 13px; letter-spacing: .18em; color: var(--g2); display: flex; align-items: baseline; gap: 10px; }
+.capscore b { font-weight: 400; font-size: 22px; color: var(--g); text-shadow: var(--glow); }
+.capscore .capnote { font-family: var(--font); font-size: 11px; letter-spacing: .1em; color: var(--dim); }
+.sizepick i.on { background: var(--g); border-color: var(--g); }          /* solid, like a highlighted block */
+.switch { width: 64px; height: 30px; touch-action: none; }
+.switch i { top: 4px; left: 4px; width: 18px; height: 18px; }
+.switch[aria-checked="true"] i { transform: translateX(34px); }
+#toast { top: calc(var(--top) + 52px); }
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -481,13 +493,9 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
     </section>
 
     <section class="panel" id="p-stack">
-      <div class="progress" id="progress">
-        <div class="pcall" id="p-call">PREVIOUS DAY’S CAPACITY <b id="p-cap">8</b></div>
-        <div class="pbar"><i class="pdone" id="p-done"></i><i class="pleft" id="p-left"></i><span class="pcap" id="p-capline"></span></div>
-        <div class="pnums"><span>DONE <b id="p-d">0</b></span><span>ON STACK <b id="p-l">0</b></span></div>
-      </div>
+      <div class="scores" id="scores"><span>MOMENTUM: <b id="sc-m">8</b></span><span>TODAY: <b id="sc-t">0</b></span></div>
       <div class="stackarea" id="stack-area">
-        <div class="capbox" id="cap-box"><div class="list stack" id="stack-list"></div></div>
+        <div class="list stack" id="stack-list"></div>
       </div>
       <p class="empty" id="stack-empty">Type below to add something.</p>
       <div class="stackfoot">
@@ -501,6 +509,7 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
     </section>
 
     <section class="panel" id="p-schedule">
+      <div class="capscore">CAPACITY <b id="sched-cap">8</b><span class="capnote">7-day average</span></div>
       <div class="dayhead"><span class="d" id="sched-date"></span><button class="btn quiet small" id="b-refresh">REFRESH</button></div>
       <p class="schednote" id="sched-note"></p>
       <div class="allday-strip" id="sched-allday"></div>
@@ -778,11 +787,18 @@ function blockSize(bid) {
 }
 function projectSize(it) { return (it.subtasks || []).filter(x => !x.done).reduce((n, x) => n + clampSize(x.size), 0); }
 function stackLoad() { return state.stack.reduce((n, bid) => n + blockSize(bid), 0); }
-function capacity() { return Math.max(1, state.score.momentum); }
+/* CAPACITY: the rolling average of difficulty completed per day over the last CAP_DAYS days you used Paradigm,
+   rounded down (8 until there's history). RESET in SETTINGS starts it over from a baseline. */
+const CAP_DAYS = 7;
+function capacity() {
+  const h = (state.score.history || []).slice(-CAP_DAYS);
+  if (!h.length) return Math.max(1, state.score.base || 8);
+  return Math.max(1, Math.floor(h.reduce((n, d) => n + d.done, 0) / h.length));
+}
 function fits(rows) { return stackLoad() + rows <= capacity(); }
-const NO_ROOM = 'No room under the capacity line';
+const NO_ROOM = 'STACK is at capacity (see SCHEDULE)';
 
-/* TODAY adds the size of what you complete; MOMENTUM rises to TODAY and never drops (except a RESET). */
+/* TODAY adds the difficulty of what you complete; MOMENTUM rises to TODAY and never drops (except a RESET). */
 function addPoints(n) {
   const sc = state.score;
   if (sc.date !== todayStr()) dayRollover();
@@ -796,6 +812,8 @@ function dayRollover() {
   if (sc.date >= today) return 0;
   let carried = 0;
   for (const bid of state.stack) { const b = state.blocks[bid]; if (!b) continue; if (!b.carried) carried++; b.carried = true; }
+  // The day that just ended goes into the capacity average.
+  sc.history = (sc.history || []).concat({ date: sc.date, done: sc.today || 0 }).slice(-60);
   sc.today = 0; sc.date = today;
   return carried || -1;   // -1: a new day with nothing newly carried (still worth saving)
 }
@@ -3942,9 +3960,6 @@ function openEditor(item, isNew, slide, from) {
   let subsList = null;
   function render() {
     optcontent.innerHTML = '';
-    if (d.type === 'task' || d.type === 'list') {   // Difficulty: rows on STACK and points when completed
-      optcontent.appendChild(difficultyRow(d.size, n => { d.size = n; }));
-    }
     if (d.type === 'task' || d.type === 'list' || d.type === 'project') {
       // Project: a switch. A project lives in PROJECT BACKLOG; its subtasks (each with a difficulty) go to STACK one by one.
       optcontent.appendChild(switchRow('Project', d.type === 'project', on => {
@@ -3952,6 +3967,9 @@ function openEditor(item, isNew, slide, from) {
         else { d.type = 'project'; d.subtasks.forEach(x => { x.size = clampSize(x.size); }); }
         render();
       }));
+    }
+    if (d.type === 'task' || d.type === 'list') {   // Difficulty (below Project): rows on STACK and points when completed
+      optcontent.appendChild(difficultyRow(d.size, n => { d.size = n; }));
     }
     main.innerHTML = '';
     if (hasSubs) {
@@ -4483,12 +4501,13 @@ function difficultyRow(value, onChange) {
   r.append(l, sizePicker(value, onChange));
   return r;
 }
-/* A labelled on/off switch. */
+/* A labelled on/off switch, flipped by swiping it: right = on, left = off (taps do nothing). */
 function switchRow(label, on, onChange) {
   const r = document.createElement('div'); r.className = 'switchrow';
-  r.innerHTML = `<span class="difflabel">${esc(label)}</span><button class="switch" role="switch" aria-checked="${on}" aria-label="${esc(label)}"><i></i></button>`;
+  r.innerHTML = `<span class="difflabel">${esc(label)}</span><div class="switch" role="switch" aria-checked="${on}" aria-label="${esc(label)} (swipe right for on, left for off)"><i></i></div>`;
   const b = $('.switch', r);
-  b.addEventListener('click', () => { on = !on; b.setAttribute('aria-checked', on); onChange(on); });
+  const set = v => { if (v === on) return; on = v; b.setAttribute('aria-checked', on); onChange(on); };
+  gesture(b, { moveEl: false, onSwipeRight: () => set(true), onSwipeLeft: () => set(false) });
   return r;
 }
 
@@ -4741,7 +4760,7 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '2.1.0';
+const VERSION = '2.2.0';
 const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
 let panel = 'stack';
 
@@ -4796,11 +4815,10 @@ function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName
 const isActive = bid => state.stack[0] === bid;
 const openSubs = bid => { const b = state.blocks[bid], it = b && state.items[b.itemId]; return !!(it && !b.subId && (it.subtasks || []).some(s => !s.done)); };
 /* Completing the active block: it fills up left to right, then pops. */
-function completeActive(bid, el) {
+function completeActive(bid) {
   if (openSubs(bid)) { editBlock(bid); return; }   // finish its subtasks first
   const name = blockName(bid), size = blockSize(bid);
-  if (el) { el.style.setProperty('--fill', '100%'); el.classList.add('popping'); }
-  setTimeout(() => withUndo(`Completed ${name} · +${size}`, () => completeBlock(bid)), el ? 380 : 0);
+  withUndo(`Completed ${name} · +${size}`, () => completeBlock(bid));
 }
 const PANEL_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
 /* FOCUS (highlight): the screen name reads FOCUS. Tap the block again to leave. */
@@ -4823,16 +4841,11 @@ function renderAll() {
 }
 
 /* ---------- STACK: progress bar, capacity line at MOMENTUM rows; bottom = active ---------- */
-/* Progress: difficulty completed today (filled) + difficulty still on STACK (outlined), with the
-   capacity (MOMENTUM) marked on the bar as PREVIOUS DAY'S CAPACITY. */
+/* The top of STACK: MOMENTUM and TODAY (difficulty completed today). CAPACITY lives on SCHEDULE. */
 function renderScores() {
-  const done = state.score.date === todayStr() ? state.score.today : 0, left = stackLoad(), cap = capacity();
-  const scale = Math.max(done + left, cap, 1), pct = n => (100 * n / scale).toFixed(2) + '%';
-  $('#p-done').style.width = pct(done);
-  $('#p-left').style.left = pct(done); $('#p-left').style.width = pct(left);
-  $('#p-capline').style.left = pct(cap);
-  $('#p-cap').textContent = cap; $('#p-d').textContent = done; $('#p-l').textContent = left;
-  placeCallout($('#p-call'), $('#p-capline'), $('#progress'));
+  $('#sc-m').textContent = state.score.momentum;
+  $('#sc-t').textContent = state.score.date === todayStr() ? state.score.today : 0;
+  const c = $('#sched-cap'); if (c) c.textContent = capacity();
 }
 /* Keep the PREVIOUS DAY'S CAPACITY label over its marker, but fully on screen. */
 function placeCallout(call, line, box) {
@@ -4844,21 +4857,17 @@ function placeCallout(call, line, box) {
 }
 function renderStack() {
   renderScores();
-  const list = $('#stack-list'), box = $('#cap-box');
-  box.style.minHeight = (rowsPx(capacity()) + 14) + 'px';   // the capacity line sits MOMENTUM rows above the bottom
+  const list = $('#stack-list');
   list.innerHTML = '';
   state.stack.forEach((bid, i) => { const e = blockEl(bid, 'stack'); if (i === 0) e.classList.add('active'); list.appendChild(e); });
   wireList(list, {
     reverse: true,
     onReorder: keys => { state.stack = keys; save(); renderStack(); },
     armable: blockEditable,
-    // The active block doesn't slide when completing: it fills up as you drag.
-    moves: (bid, dir, armedNow) => !(isActive(bid) && dir > 0 && !armedNow),
-    drag: (bid, dx, el, armedNow) => { if (isActive(bid) && !armedNow) el.style.setProperty('--fill', Math.max(0, Math.min(100, dx / 0.8)) + '%'); },
     openEdit: bid => openSupport(bid),                                                 // FOCUS → : SUPPORT
     armDelete: bid => isCarried(bid) ? openSupport(bid) : deleteBlock(bid),            // FOCUS ← : delete (red: SUPPORT)
     swipeRight: bid => {                                                               // → : complete (active) / schedule
-      if (isActive(bid)) completeActive(bid, list.querySelector(`[data-key="${bid}"]`));
+      if (isActive(bid)) completeActive(bid);
       else if (isCarried(bid)) openSupport(bid);
       else scheduleBlock(bid);
     },
@@ -4962,8 +4971,8 @@ function renderSettings() {
       <button class="btn wide" id="b-connect">CONNECT GOOGLE</button>
     </div>
     <div class="sect"><h3>Capacity</h3>
-      <p>MOMENTUM is your capacity: STACK holds that many rows. It rises whenever TODAY passes it and never drops on its own. Reset it to start lower; it still grows from there.</p>
-      <div class="inline"><input type="number" id="mreset" min="1" max="99" inputmode="numeric" value="${state.score.momentum}"><button class="btn" id="b-mreset">RESET</button></div>
+      <p>CAPACITY is your ${CAP_DAYS}-day average of difficulty completed, rounded down: STACK holds that much. MOMENTUM is your best day; it never drops on its own. RESET starts both over from a number you pick.</p>
+      <div class="inline"><input type="number" id="mreset" min="1" max="99" inputmode="numeric" value="${capacity()}"><button class="btn" id="b-mreset">RESET</button></div>
     </div>
     <div class="sect"><h3>Glasses</h3>
       <p>Sync with Paradigm on Meta Ray-Ban Display through your free Firebase database. The README walks through setup.</p>
@@ -4987,7 +4996,7 @@ function renderSettings() {
     </div>`;
   $('#b-mreset').addEventListener('click', () => {
     const n = Math.max(1, Math.min(99, parseInt($('#mreset').value, 10) || 1));
-    confirmBox(`Reset MOMENTUM to ${n}?`, 'RESET', () => { state.score.momentum = n; save(); renderAll(); toast(`MOMENTUM is now ${n}`); });
+    confirmBox(`Reset CAPACITY and MOMENTUM to ${n}?`, 'RESET', () => { state.score.momentum = n; state.score.base = n; state.score.history = []; save(); renderAll(); toast(`CAPACITY and MOMENTUM are now ${n}`); });
   });
   const fdb = $('#fdb');
   fdb.value = s.syncDb || '';

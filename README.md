@@ -77,19 +77,21 @@ If the Meta AI app has no Web apps section at all even with Developer Mode on, t
 
 ### Glasses
 
-The glasses are a viewer for STACK: difficulty as rows, the active block marked, carry-overs in red, and the progress bar at the top. **Enter** on a block opens its subtasks; **→** swipes one off (completes it). **Back** closes. Everything else happens on the phone.
+The glasses are a viewer for STACK: difficulty as rows, the active block marked, carry-overs in red, and MOMENTUM and TODAY at the top. **Enter** on a block opens its subtasks; **→** swipes one off (completes it). **Back** closes. Everything else happens on the phone.
 
 ## How Paradigm 2.0 works
 
 **Difficulty (1–4)** is how much something weighs: its height in rows on STACK (dashed lines mark the rows) and how much it counts when completed. In backlogs it's the row of little squares on the right. Lists have one difficulty; a project's subtasks each have their own.
 
-**Capacity:** the dashed line on STACK sits MOMENTUM rows up, and STACK can't hold more than that. At the top, a **progress bar** shows the difficulty you've completed today (filled) plus what's still on STACK (outlined), with your capacity marked as **PREVIOUS DAY'S CAPACITY**. Completing more than your capacity raises it; it never drops on its own (reset it lower in SETTINGS any time).
+**MOMENTUM and TODAY** sit at the top of STACK. TODAY adds up the difficulty you complete today; when it passes MOMENTUM, MOMENTUM rises to it (it never drops on its own).
+
+**CAPACITY** (shown on SCHEDULE) is your 7-day average of difficulty completed, rounded down. STACK can't hold more difficulty than your capacity: when it's full, new things wait. RESET in SETTINGS starts capacity and MOMENTUM over from a number you pick.
 
 **Carry-over:** anything still on STACK at midnight turns **red**. A red block can be completed, or it has to go through SUPPORT: trying to send it to backlog, schedule it or delete it opens SUPPORT instead.
 
 **Adding something:** type a name and press enter, set **Difficulty** by dragging across the four blocks, then swipe the block: **right = STACK** (the bottom, as the new active block; blocked if it won't fit) or **left = BACKLOG**. Typing the exact name of something you have opens it.
 
-**The active block** is the bottom of STACK (triangles point at its bottom row). Swipe it right and it fills up, then pops: done. If it still has open subtasks, those open first.
+**The active block** is the bottom of STACK (triangles point at its bottom row). Swipe it right to complete it. If it still has open subtasks, those open first.
 
 | | Swipe right | Swipe left | In FOCUS, swipe right | In FOCUS, swipe left |
 | --- | --- | --- | --- | --- |
@@ -99,7 +101,7 @@ The glasses are a viewer for STACK: difficulty as rows, the active block marked,
 
 **FOCUS:** hold a block and let go; it turns green and the screen name reads FOCUS. Swipe left on the **FOCUS** name itself to open the block's detail screen. Tap the block again to leave FOCUS. Hold and drag reorders.
 
-**Detail screen:** **Difficulty** and a **Project** switch at the top; subtasks pile up from the bottom with the entry box above the name. A task shows notes until it gets subtasks (then it's a list). Tap the name to rename it. Swipe left on the name to save and go back; swipe right to save and add it to STACK.
+**Detail screen:** a **Project** switch at the top (swipe it right for on, left for off), with **Difficulty** below it; subtasks pile up from the bottom with the entry box above the name. A task shows notes until it gets subtasks (then it's a list). Tap the name to rename it. Swipe left on the name to save and go back; swipe right to save and add it to STACK.
 
 **SUPPORT:** swipe right on the one that fits. **TIRED** (physical energy), **STUCK** (mental energy: what does done look like, then the first step), **DREAD** (emotional energy: the smallest part you could face for 5 minutes). Each ends the same way: add the pieces, each with its own difficulty, then swipe right on the name. The original becomes a project in PROJECT BACKLOG and the pieces ("Original: Piece") take its place on STACK, as many as fit. TIRED starts you with "Choose Best Time".
 
