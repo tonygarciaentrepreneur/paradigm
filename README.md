@@ -79,35 +79,34 @@ If the Meta AI app has no Web apps section at all even with Developer Mode on, t
 
 The glasses are a viewer for STACK: difficulty as rows, the active block marked, carry-overs in red, and MOMENTUM at the top. **Enter** on a block opens its subtasks; **→** swipes one off (completes it). **Back** closes. Everything else happens on the phone.
 
-## How Paradigm 2.0 works
+## How Paradigm works (3.0)
 
-**Difficulty (1–4)** is how much something weighs: its height in rows on STACK (dashed lines mark the rows) and how much it counts when completed. In backlogs it's the row of little squares on the right. Lists have one difficulty; a project's subtasks each have their own.
+**Screens**, left to right: **RECOVERY · SETTINGS · PROJECT · LIST · TASK BACKLOG · SCHEDULE · STACK · FOCUS · SUPPORT**. Swipe right on a screen name to go further left; from any screen left of STACK, swipe left to snap straight back to STACK. To the right of STACK you step through: STACK ← FOCUS ← SUPPORT and back.
 
-**MOMENTUM** at the top of STACK is today's score: it starts at 0 each day and rises by the difficulty of each task you complete.
+**MOMENTUM** (centered at the top of STACK) is today's score: it starts at 0 each day and rises by the difficulty of each task you complete (+1 for each DIVIDE & CONQUER). Swipe right on it for **HISTORY** (each day's score on a calendar; swipe left on HISTORY to return) or left for **GRAPH** (a line chart; swipe right on GRAPH to return). Anything still on STACK at midnight takes its difficulty off that day's score. Sending to backlog, scheduling, bumping or deleting doesn't change MOMENTUM.
 
-**CAPACITY** (shown on SCHEDULE) is your 7-day average of difficulty completed, rounded down. STACK can't hold more difficulty than your capacity: when it's full, new things wait. RESET in SETTINGS starts capacity over from a number you pick.
+**Difficulty (1–4)** is a block's height in rows on STACK and its points. **CAPACITY** limits how much STACK holds: the average MOMENTUM of your last 4 days on the same weekday (past Tuesdays on a Tuesday), rounded down. Until there's a matching day it uses your recent days, then your RESET number. RESET in SETTINGS restarts it without touching HISTORY.
 
-**Carry-over:** anything still on STACK at midnight turns **red**. A red block can be completed, or it has to go through SUPPORT: trying to send it to backlog, schedule it or delete it opens SUPPORT instead.
+**The active block** (bottom of STACK, triangles point at it) is the only one that leaves STACK by swiping:
 
-**Adding something:** type a name and press enter, set **Difficulty** by dragging across the four blocks, then swipe the block: **right = STACK** (the bottom, as the new active block; blocked if it won't fit) or **left = BACKLOG**. Typing the exact name of something you have opens it.
+| | Swipe right | Swipe left |
+| --- | --- | --- |
+| Active block | Complete (+difficulty; finish open subtasks first) | Bump to tomorrow |
+| Active block, highlighted | Delete | Pick a day (or BACKLOG at the top) |
+| Other blocks | (hold and drag to reorder) | |
 
-**The active block** is the bottom of STACK (triangles point at its bottom row). Swipe it right to complete it. If it still has open subtasks, those open first.
+**Highlighting** (hold a block and let go) turns the screen name into **FOCUS**:
+- swipe right on FOCUS: **SCHEDULE**, to place it at a time today. It stays on STACK and moves to the bottom when that time comes;
+- swipe left on FOCUS: its **FOCUS** screen (notes or subtasks, difficulty). Swipe left again for **SUPPORT**.
+Tap the block again to un-highlight. With nothing highlighted, swipe right on STACK for SCHEDULE, or left for the active block's FOCUS screen, which adds a **timer** (leaving pauses it; the time is kept).
 
-| | Swipe right | Swipe left | In FOCUS, swipe right | In FOCUS, swipe left |
-| --- | --- | --- | --- | --- |
-| Active block | Complete | To backlog | SUPPORT | Delete |
-| Other STACK blocks | Schedule (pick a day) | To backlog | SUPPORT | Delete |
-| Backlog items | Add to the top of STACK | (nothing) | SUPPORT | Delete |
+**SUPPORT:** two questions, then **DIVIDE & CONQUER**: what will help becomes the task's bottom subtask, what's preventing it goes into its notes, and MOMENTUM gets +1.
 
-**FOCUS:** hold a block and let go; it turns green and the screen name reads FOCUS. Swipe left on the **FOCUS** name itself to open the block's detail screen. Tap the block again to leave FOCUS. Hold and drag reorders.
+**Repeats:** every time a task lands on STACK counts once, and every midnight it's still there counts again. At 3 it gets yellow ⚠ signs on both sides of its name. Swipe a ⚠ block right (active or not) for **REPEAT DETECTED**: **REQUIRES SUPPORT** (SUPPORT) or **REQUIRES SYSTEM** (BUILD SYSTEM: pick how often, and it becomes a recurring event on your Paradigm calendar). Either one clears the ⚠.
 
-**Detail screen:** a **Project** switch at the top (swipe it right for on, left for off), with **Difficulty** below it; subtasks pile up from the bottom with the entry box above the name. A task shows notes until it gets subtasks (then it's a list). Tap the name to rename it. Swipe left on the name to save and go back; swipe right to save and add it to STACK.
+**Adding something:** type a name, set Difficulty, then swipe the block right (STACK, at the bottom) or left (BACKLOG). **Backlog items:** swipe right to add to the top of STACK, left to delete. Highlight one and the screen name reads FOCUS: swipe right on it to schedule the item for a day, or left for its memory screen. Projects: swipe right for their subtasks, left to delete.
 
-**SUPPORT:** swipe right on the one that fits. **TIRED** (physical energy), **STUCK** (mental energy: what does done look like, then the first step), **DREAD** (emotional energy: the smallest part you could face for 5 minutes). Each ends the same way: add the pieces, each with its own difficulty, then swipe right on the name. The original becomes a project in PROJECT BACKLOG and the pieces ("Original: Piece") take its place on STACK, as many as fit. TIRED starts you with "Choose Best Time".
-
-**Scheduling** (pick a day from tomorrow on) turns it into an all-day event on your Paradigm calendar; it comes back onto STACK that morning with its subtasks and size.
-
-**Today's calendar:** the first open of the day brings today's events to the bottom of STACK: timed ones at the very bottom in time order (sized by length: 30 min = 1, 1 hr = 2, 2 hr = 3, longer = 4), then all-day ones. What doesn't fit waits at the top of its backlog. Repeating things live in Google Calendar now; Paradigm no longer has its own recurring option.
+**Today's calendar** comes onto the bottom of STACK on the first open of the day (timed events sized by length, then all-day ones).
 
 ## Backups
 

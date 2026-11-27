@@ -189,6 +189,13 @@ nav { display: flex; justify-content: center; }
 .gscores b { font-weight: 400; color: var(--g); font-size: 1.5em; margin-inline-start: 6px; }
 .garea > .list { flex: 1 0 auto; overflow: visible; padding: 4px 18px; }
 
+/* 3.0: names centered; yellow caution signs for repeats */
+.block { justify-content: center; }
+.block .name { flex: 0 1 auto; text-align: center; }
+.block .meta { position: absolute; right: 0.7em; }
+.block .warn { color: #ffd23f; margin: 0 0.4em; flex: none; }
+#list .block:focus .warn { color: #ffd23f; }
+
 </style>
 </head>
 <body>
@@ -462,13 +469,19 @@ function blockSize(bid) {
 }
 function projectSize(it) { return (it.subtasks || []).filter(x => !x.done).reduce((n, x) => n + clampSize(x.size), 0); }
 function stackLoad() { return state.stack.reduce((n, bid) => n + blockSize(bid), 0); }
-/* CAPACITY: the rolling average of difficulty completed per day over the last CAP_DAYS days you used Paradigm,
-   rounded down (8 until there's history). RESET in SETTINGS starts it over from a baseline. */
-const CAP_DAYS = 7;
-function capacity() {
-  const h = (state.score.history || []).slice(-CAP_DAYS);
-  if (!h.length) return Math.max(1, state.score.base || 8);
-  return Math.max(1, Math.floor(h.reduce((n, d) => n + d.done, 0) / h.length));
+/* CAPACITY: the average MOMENTUM of the last CAP_WEEKS days that fell on today's weekday (e.g. past Tuesdays on a
+   Tuesday), rounded down. With no matching day yet, the last CAP_DAYS days you used Paradigm; with no history at all,
+   the RESET baseline (8 by default). RESET only restarts the count from that day; HISTORY is kept. */
+const CAP_WEEKS = 4, CAP_DAYS = 7;
+function capacity(forDate) {
+  const day = forDate || todayStr(), wd = parseDate(day).getDay();
+  const h = (state.score.history || []).filter(d => d.date < day && (!state.score.capFrom || d.date >= state.score.capFrom));
+  const avg = list => Math.max(1, Math.floor(list.reduce((n, d) => n + d.done, 0) / list.length));
+  const same = h.filter(d => parseDate(d.date).getDay() === wd).slice(-CAP_WEEKS);
+  if (same.length) return avg(same);
+  const recent = h.slice(-CAP_DAYS);
+  if (recent.length) return avg(recent);
+  return Math.max(1, state.score.base || 8);
 }
 function fits(rows) { return stackLoad() + rows <= capacity(); }
 const NO_ROOM = 'STACK is at capacity (see SCHEDULE)';
@@ -485,14 +498,20 @@ function addPoints(n) {
 function dayRollover() {
   const today = todayStr(), sc = state.score;
   if (sc.date >= today) return 0;
-  let carried = 0;
-  for (const bid of state.stack) { const b = state.blocks[bid]; if (!b) continue; if (!b.carried) carried++; b.carried = true; }
-  // The day that just ended goes into the capacity average.
-  sc.history = (sc.history || []).concat({ date: sc.date, done: sc.today || 0 }).slice(-60);
+  let carried = 0, penalty = 0;
+  for (const bid of state.stack) {
+    const b = state.blocks[bid]; if (!b) continue;
+    carried++; penalty += blockSize(bid);
+    countRepeat(bid);                 // still on STACK at midnight: it counts again
+    delete b.at; delete b.atDone;     // yesterday's time placement is over
+  }
+  // The day that just ended loses the difficulty it carried over (never below 0), then goes into the capacity average.
+  const ended = Math.max(0, (sc.today || 0) - penalty);
+  sc.history = (sc.history || []).concat({ date: sc.date, done: ended, penalty }).slice(-366);
   sc.today = 0; sc.date = today;
-  return carried || -1;   // -1: a new day with nothing newly carried (still worth saving)
+  return carried || -1;   // -1: a new day with nothing carried (still worth saving)
 }
-function isCarried(bid) { const b = state.blocks[bid]; return !!(b && b.carried && state.stack.includes(bid)); }
+function isCarried() { return false; }   // red carry-over is gone (3.0): repeats and the midnight penalty replace it
 
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
@@ -509,7 +528,36 @@ function addToStack(itemId, subId, where) {
   if (!bid) { bid = uid(); state.blocks[bid] = { bid, itemId, subId: subId || null, elapsed: 0 }; }
   delete state.blocks[bid].carried;
   if (where === 'bottom') state.stack.unshift(bid); else state.stack.push(bid);
+  countRepeat(bid);
   return null;
+}
+
+/* ---------- repeats ----------
+   Every time a task lands on STACK counts once, and every midnight it's still there counts again.
+   At REPEAT_AT or more it gets caution signs; REQUIRES SUPPORT or REQUIRES SYSTEM resets the count. */
+const REPEAT_AT = 3;
+function repeatTarget(bid) {
+  const b = state.blocks[bid]; if (!b) return null;
+  const it = state.items[b.itemId]; if (!it) return null;
+  return b.subId ? (it.subtasks || []).find(x => x.id === b.subId) || null : it;
+}
+function countRepeat(bid) { const t = repeatTarget(bid); if (t) t.repeats = (t.repeats || 0) + 1; }
+function isCaution(bid) { const t = repeatTarget(bid); return !!(t && (t.repeats || 0) >= REPEAT_AT); }
+function clearRepeats(bid) { const t = repeatTarget(bid); if (t) t.repeats = 0; }
+
+/* ---------- placed at a time today ----------
+   A block placed on today's SCHEDULE stays on STACK; when its time comes it moves to the bottom (active). */
+function dueTimed() {
+  const now = Date.now(), moved = [];
+  for (const bid of state.stack.slice()) {
+    const b = state.blocks[bid];
+    if (b && b.at && b.at <= now && !b.atDone) {
+      b.atDone = true;
+      state.stack = [bid].concat(state.stack.filter(x => x !== bid));
+      moved.push(bid);
+    }
+  }
+  return moved;
 }
 /* Deletes what a block stands for: the task or list, or just the subtask for a project subtask. */
 function deleteBlockItem(bid) {
@@ -524,8 +572,19 @@ function deleteBlockItem(bid) {
    It becomes an all-day event on the Paradigm calendar and leaves STACK / its backlog. Its subtasks and notes
    travel with the event (readable checklist + a hidden copy) and come back when that day's calendar is pulled in.
    A project subtask leaves its project and returns as its own task. */
+function defaultSchedule(freq) { const d = new Date(); return { freq, days: [d.getDay()], dom: d.getDate(), month: d.getMonth() }; }
+/* BUILD SYSTEM: a repeat rule for a recurring all-day event. sch = { freq, days[], dom, month } */
+const RRULE_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+function rruleFor(sch) {
+  if (!sch) return null;
+  if (sch.freq === 'daily') return 'FREQ=DAILY';
+  if (sch.freq === 'weekly') return 'FREQ=WEEKLY;BYDAY=' + ((sch.days && sch.days.length ? sch.days : [new Date().getDay()]).map(d => RRULE_DAYS[d]).join(','));
+  if (sch.freq === 'monthly') return 'FREQ=MONTHLY;BYMONTHDAY=' + (sch.dom || new Date().getDate());
+  if (sch.freq === 'annually') return `FREQ=YEARLY;BYMONTH=${(sch.month ?? new Date().getMonth()) + 1};BYMONTHDAY=${sch.dom || new Date().getDate()}`;
+  return null;
+}
 /* Removes the item (or project subtask) and queues its all-day event. Returns the queue entry. */
-function scheduleBlockToDay(bid, date) {
+function scheduleBlockToDay(bid, date, rrule) {
   const b = state.blocks[bid]; if (!b) return null;
   const it = state.items[b.itemId]; if (!it) return null;
   let entry;
@@ -540,6 +599,7 @@ function scheduleBlockToDay(bid, date) {
       payload: { type: open.length ? 'list' : 'task', subtasks: open, notes: it.notes || '', size: clampSize(it.size) } };
     deleteItem(it.id);
   }
+  if (rrule) entry.rrule = rrule;
   entry.at = Date.now();   // posted after the undo window (see processCalQueue)
   state.calQueue.push(entry);
   return entry;
@@ -712,7 +772,7 @@ function syncStop() {
    adding, completing blocks, scheduling and SUPPORT happen on the phone. */
 'use strict';
 
-const GLASSES_VERSION = '2.2.1';
+const GLASSES_VERSION = '3.0.2';
 const $ = (s, r) => (r || document).querySelector(s);
 const LS_KEY = 'paradigm.glasses.v1';
 let focusKey = null, overlayOpen = false, overlayRefresh = null;
@@ -769,7 +829,8 @@ function render() {
     btn.dataset.key = bid;
     if (size > 1) btn.style.minBlockSize = `calc(${size} * 2.4em + ${size - 1} * 6px)`;
     const open = !b.subId ? (it.subtasks || []).filter(s => !s.done).length : 0;
-    btn.innerHTML = `<span class="name">${l.proj ? `<span class="proj">${esc(l.proj)}:</span> ` : ''}${esc(l.name)}</span>${open ? `<span class="meta">${open} ▸</span>` : ''}`;
+    const warn = isCaution(bid) ? '<span class="warn" aria-label="Repeat detected">⚠</span>' : '';   // repeat detected
+    btn.innerHTML = `${warn}<span class="name">${l.proj ? `<span class="proj">${esc(l.proj)}:</span> ` : ''}${esc(l.name)}</span>${warn}${open ? `<span class="meta">${open} ▸</span>` : ''}`;
     btn.addEventListener('click', () => openSubtasks(bid));
     btn.addEventListener('focus', () => { focusKey = bid; });
     list.appendChild(btn);

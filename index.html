@@ -35,8 +35,8 @@ button { font: inherit; color: inherit; }
 .hidden { display: none !important; }
 
 #app { position: fixed; inset: 0; overflow: hidden; }
-#track { position: absolute; top: 0; left: 0; height: 100%; width: 700%; display: flex; transform: translateX(-42.857%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
-.panel { position: relative; width: 14.2857%; height: 100%; display: flex; flex-direction: column; padding-top: var(--top); padding-bottom: var(--bot); }
+#track { position: absolute; top: 0; left: 0; height: 100%; width: 900%; display: flex; transform: translateX(-66.667%); transition: transform .28s cubic-bezier(.2, .8, .2, 1); }
+.panel { position: relative; width: 11.1111%; height: 100%; display: flex; flex-direction: column; padding-top: var(--top); padding-bottom: var(--bot); }
 
 .title { flex: none; padding: 14px 12px 18px; text-align: center; touch-action: pan-y; }
 .title h1 { margin: 0; font-family: "OCR-A", var(--font); font-size: clamp(20px, 7vw, 30px); font-weight: 400; letter-spacing: .24em; padding-left: .24em; white-space: nowrap; text-shadow: 0 0 10px rgba(0, 255, 65, .55); }
@@ -467,6 +467,51 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .switch[aria-checked="true"] i { transform: translateX(34px); }
 #toast { top: calc(var(--top) + 52px); }
 
+/* ===== 3.0 ===== */
+/* Task names centered everywhere; MOMENTUM centered */
+.block { justify-content: center; }
+.block .name { flex: 0 1 auto; text-align: center; }
+.block .meta, .block .sz, .block .mark { position: absolute; right: 12px; }
+.block.sized .meta { bottom: 16px; }
+.block .meta + .meta { right: 46px; }
+.scores { justify-content: center; touch-action: pan-y; }
+/* Repeat detected: yellow caution signs on both sides of the name */
+.block .warn { color: #ffd23f; text-shadow: 0 0 6px rgba(255, 210, 63, .6); font-size: 18px; flex: none; margin: 0 6px; }
+.block.armed .warn { color: var(--bg); text-shadow: none; }
+/* FOCUS and SUPPORT screens */
+.focusbody, .supportbody { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.focusbody .timerbtn { flex: none; margin: 12px 14px 0; width: auto; }
+.focusbody .timerbtn.running { background: var(--g); color: var(--bg); text-shadow: none; }
+.focusbody .dettop { border-bottom: 1px solid var(--faint); }
+.focusbody .actmain { flex: 1 1 auto; }
+.supportbody { padding: 12px 16px; gap: 14px; overflow-y: auto; }
+.supportbody .supname { margin: 0; text-align: center; font-size: 18px; text-shadow: var(--glow); }
+.supportbody .q { display: flex; flex-direction: column; gap: 8px; font-size: 15px; color: var(--g); line-height: 1.4; }
+.supportbody textarea { min-height: 90px; resize: none; }
+/* REPEAT DETECTED / BUILD SYSTEM */
+.repmain { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 12px; padding: 16px; }
+.reptxt { margin: 0 0 8px; text-align: center; color: var(--g2); font-size: 15px; line-height: 1.4; }
+/* HISTORY */
+.histpager .mpage { justify-content: flex-start; padding-top: 14px; }
+.hdays { gap: 4px; }
+.hday { aspect-ratio: 1; border: 1px solid var(--faint); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.hday i { font-style: normal; font-size: 10px; color: var(--dim); }
+.hday b { font-weight: 400; font-size: 16px; color: var(--g); }
+.hday.has { border-color: var(--dim); }
+.hday.today { border: 2px solid var(--g); }
+/* GRAPH */
+.graphwrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.graph { width: 100%; height: auto; }
+.graph .axis { stroke: var(--dim); stroke-width: 1; }
+.graph .line { fill: none; stroke: var(--g); stroke-width: 2; filter: drop-shadow(0 0 4px rgba(0, 255, 65, .7)); }
+.graph .dot { fill: var(--g); }
+.graph .lbl { fill: var(--g2); font-size: 10px; font-family: var(--font); }
+.screen.slideinleft { animation: slideinleft .28s cubic-bezier(.2, .8, .2, 1); }
+@keyframes slideinleft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+/* Long names at the bottom shrink to fit */
+.repeatscreen .title h1, .buildsys .title h1 { font-size: clamp(16px, 5.4vw, 24px); letter-spacing: .14em; padding-left: .14em; }
+#t-focus h1, .act-title h1 { font-size: clamp(16px, 6vw, 30px); overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -474,6 +519,16 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 <div id="splash"><img src="data:image/webp;base64,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" alt="Paradigm"></div>
 <div id="app">
   <div id="track">
+    <section class="panel" id="p-recovery">
+      <div class="settings" id="recovery-body"></div>
+      <header class="title" id="t-recovery"><h1>RECOVERY</h1></header>
+    </section>
+
+    <section class="panel" id="p-settings">
+      <div class="settings" id="settings-body"></div>
+      <header class="title" id="t-settings"><h1>SETTINGS</h1></header>
+    </section>
+
     <section class="panel" id="p-project">
       <div class="list rev" id="bl-project"></div>
       <p class="empty" id="empty-project">No projects yet.</p>
@@ -492,6 +547,14 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
       <header class="title" id="t-task" data-keeparm><h1>TASK BACKLOG</h1></header>
     </section>
 
+    <section class="panel" id="p-schedule">
+      <div class="dayhead"><span class="d" id="sched-date"></span><button class="btn quiet small" id="b-refresh">REFRESH</button></div>
+      <p class="schednote" id="sched-note"></p>
+      <div class="dayscroll" id="sched-scroll"><div class="grid" id="sched-grid" style="margin-top:12px;margin-bottom:24px"></div></div>
+      <div class="schedfoot"><a class="btn wide" id="b-calendar" target="_blank" rel="noopener">CALENDAR</a></div>
+      <header class="title" id="t-schedule"><h1>SCHEDULE</h1></header>
+    </section>
+
     <section class="panel" id="p-stack">
       <div class="scores" id="scores"><span>MOMENTUM: <b id="sc-m">0</b></span></div>
       <div class="stackarea" id="stack-area">
@@ -508,24 +571,15 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
       <header class="title" id="t-stack" data-keeparm><h1>STACK</h1></header>
     </section>
 
-    <section class="panel" id="p-schedule">
-      <div class="capscore">CAPACITY <b id="sched-cap">8</b><span class="capnote">7-day average</span></div>
-      <div class="dayhead"><span class="d" id="sched-date"></span><button class="btn quiet small" id="b-refresh">REFRESH</button></div>
-      <p class="schednote" id="sched-note"></p>
-      <div class="allday-strip" id="sched-allday"></div>
-      <div class="dayscroll" id="sched-scroll"><div class="grid" id="sched-grid" style="margin-top:12px;margin-bottom:24px"></div></div>
-      <div class="schedfoot"><a class="btn wide" id="b-calendar" target="_blank" rel="noopener">CALENDAR</a></div>
-      <header class="title" id="t-schedule"><h1>SCHEDULE</h1></header>
+    <section class="panel" id="p-focus">
+      <div class="focusbody" id="focus-body"></div>
+      <header class="title" id="t-focus"><h1>FOCUS</h1></header>
     </section>
 
-    <section class="panel" id="p-settings">
-      <div class="settings" id="settings-body"></div>
-      <header class="title" id="t-settings"><h1>SETTINGS</h1></header>
-    </section>
-
-    <section class="panel" id="p-recovery">
-      <div class="settings" id="recovery-body"></div>
-      <header class="title" id="t-recovery"><h1>RECOVERY</h1></header>
+    <section class="panel" id="p-support">
+      <div class="supportbody" id="support-body"></div>
+      <div class="schedfoot"><button class="btn wide" id="b-dnc">DIVIDE &amp; CONQUER</button></div>
+      <header class="title" id="t-support"><h1>SUPPORT</h1></header>
     </section>
   </div>
 
@@ -787,13 +841,19 @@ function blockSize(bid) {
 }
 function projectSize(it) { return (it.subtasks || []).filter(x => !x.done).reduce((n, x) => n + clampSize(x.size), 0); }
 function stackLoad() { return state.stack.reduce((n, bid) => n + blockSize(bid), 0); }
-/* CAPACITY: the rolling average of difficulty completed per day over the last CAP_DAYS days you used Paradigm,
-   rounded down (8 until there's history). RESET in SETTINGS starts it over from a baseline. */
-const CAP_DAYS = 7;
-function capacity() {
-  const h = (state.score.history || []).slice(-CAP_DAYS);
-  if (!h.length) return Math.max(1, state.score.base || 8);
-  return Math.max(1, Math.floor(h.reduce((n, d) => n + d.done, 0) / h.length));
+/* CAPACITY: the average MOMENTUM of the last CAP_WEEKS days that fell on today's weekday (e.g. past Tuesdays on a
+   Tuesday), rounded down. With no matching day yet, the last CAP_DAYS days you used Paradigm; with no history at all,
+   the RESET baseline (8 by default). RESET only restarts the count from that day; HISTORY is kept. */
+const CAP_WEEKS = 4, CAP_DAYS = 7;
+function capacity(forDate) {
+  const day = forDate || todayStr(), wd = parseDate(day).getDay();
+  const h = (state.score.history || []).filter(d => d.date < day && (!state.score.capFrom || d.date >= state.score.capFrom));
+  const avg = list => Math.max(1, Math.floor(list.reduce((n, d) => n + d.done, 0) / list.length));
+  const same = h.filter(d => parseDate(d.date).getDay() === wd).slice(-CAP_WEEKS);
+  if (same.length) return avg(same);
+  const recent = h.slice(-CAP_DAYS);
+  if (recent.length) return avg(recent);
+  return Math.max(1, state.score.base || 8);
 }
 function fits(rows) { return stackLoad() + rows <= capacity(); }
 const NO_ROOM = 'STACK is at capacity (see SCHEDULE)';
@@ -810,14 +870,20 @@ function addPoints(n) {
 function dayRollover() {
   const today = todayStr(), sc = state.score;
   if (sc.date >= today) return 0;
-  let carried = 0;
-  for (const bid of state.stack) { const b = state.blocks[bid]; if (!b) continue; if (!b.carried) carried++; b.carried = true; }
-  // The day that just ended goes into the capacity average.
-  sc.history = (sc.history || []).concat({ date: sc.date, done: sc.today || 0 }).slice(-60);
+  let carried = 0, penalty = 0;
+  for (const bid of state.stack) {
+    const b = state.blocks[bid]; if (!b) continue;
+    carried++; penalty += blockSize(bid);
+    countRepeat(bid);                 // still on STACK at midnight: it counts again
+    delete b.at; delete b.atDone;     // yesterday's time placement is over
+  }
+  // The day that just ended loses the difficulty it carried over (never below 0), then goes into the capacity average.
+  const ended = Math.max(0, (sc.today || 0) - penalty);
+  sc.history = (sc.history || []).concat({ date: sc.date, done: ended, penalty }).slice(-366);
   sc.today = 0; sc.date = today;
-  return carried || -1;   // -1: a new day with nothing newly carried (still worth saving)
+  return carried || -1;   // -1: a new day with nothing carried (still worth saving)
 }
-function isCarried(bid) { const b = state.blocks[bid]; return !!(b && b.carried && state.stack.includes(bid)); }
+function isCarried() { return false; }   // red carry-over is gone (3.0): repeats and the midnight penalty replace it
 
 function listProject(id) { if (!state.backlogs.project.includes(id)) state.backlogs.project.push(id); }
 
@@ -834,7 +900,36 @@ function addToStack(itemId, subId, where) {
   if (!bid) { bid = uid(); state.blocks[bid] = { bid, itemId, subId: subId || null, elapsed: 0 }; }
   delete state.blocks[bid].carried;
   if (where === 'bottom') state.stack.unshift(bid); else state.stack.push(bid);
+  countRepeat(bid);
   return null;
+}
+
+/* ---------- repeats ----------
+   Every time a task lands on STACK counts once, and every midnight it's still there counts again.
+   At REPEAT_AT or more it gets caution signs; REQUIRES SUPPORT or REQUIRES SYSTEM resets the count. */
+const REPEAT_AT = 3;
+function repeatTarget(bid) {
+  const b = state.blocks[bid]; if (!b) return null;
+  const it = state.items[b.itemId]; if (!it) return null;
+  return b.subId ? (it.subtasks || []).find(x => x.id === b.subId) || null : it;
+}
+function countRepeat(bid) { const t = repeatTarget(bid); if (t) t.repeats = (t.repeats || 0) + 1; }
+function isCaution(bid) { const t = repeatTarget(bid); return !!(t && (t.repeats || 0) >= REPEAT_AT); }
+function clearRepeats(bid) { const t = repeatTarget(bid); if (t) t.repeats = 0; }
+
+/* ---------- placed at a time today ----------
+   A block placed on today's SCHEDULE stays on STACK; when its time comes it moves to the bottom (active). */
+function dueTimed() {
+  const now = Date.now(), moved = [];
+  for (const bid of state.stack.slice()) {
+    const b = state.blocks[bid];
+    if (b && b.at && b.at <= now && !b.atDone) {
+      b.atDone = true;
+      state.stack = [bid].concat(state.stack.filter(x => x !== bid));
+      moved.push(bid);
+    }
+  }
+  return moved;
 }
 /* Deletes what a block stands for: the task or list, or just the subtask for a project subtask. */
 function deleteBlockItem(bid) {
@@ -849,8 +944,19 @@ function deleteBlockItem(bid) {
    It becomes an all-day event on the Paradigm calendar and leaves STACK / its backlog. Its subtasks and notes
    travel with the event (readable checklist + a hidden copy) and come back when that day's calendar is pulled in.
    A project subtask leaves its project and returns as its own task. */
+function defaultSchedule(freq) { const d = new Date(); return { freq, days: [d.getDay()], dom: d.getDate(), month: d.getMonth() }; }
+/* BUILD SYSTEM: a repeat rule for a recurring all-day event. sch = { freq, days[], dom, month } */
+const RRULE_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+function rruleFor(sch) {
+  if (!sch) return null;
+  if (sch.freq === 'daily') return 'FREQ=DAILY';
+  if (sch.freq === 'weekly') return 'FREQ=WEEKLY;BYDAY=' + ((sch.days && sch.days.length ? sch.days : [new Date().getDay()]).map(d => RRULE_DAYS[d]).join(','));
+  if (sch.freq === 'monthly') return 'FREQ=MONTHLY;BYMONTHDAY=' + (sch.dom || new Date().getDate());
+  if (sch.freq === 'annually') return `FREQ=YEARLY;BYMONTH=${(sch.month ?? new Date().getMonth()) + 1};BYMONTHDAY=${sch.dom || new Date().getDate()}`;
+  return null;
+}
 /* Removes the item (or project subtask) and queues its all-day event. Returns the queue entry. */
-function scheduleBlockToDay(bid, date) {
+function scheduleBlockToDay(bid, date, rrule) {
   const b = state.blocks[bid]; if (!b) return null;
   const it = state.items[b.itemId]; if (!it) return null;
   let entry;
@@ -865,6 +971,7 @@ function scheduleBlockToDay(bid, date) {
       payload: { type: open.length ? 'list' : 'task', subtasks: open, notes: it.notes || '', size: clampSize(it.size) } };
     deleteItem(it.id);
   }
+  if (rrule) entry.rrule = rrule;
   entry.at = Date.now();   // posted after the undo window (see processCalQueue)
   state.calQueue.push(entry);
   return entry;
@@ -1115,7 +1222,7 @@ function wireList(listEl, opts) {
   [...listEl.children].forEach(el => {
     if (!el.classList.contains('block')) return;
     const key = el.dataset.key;
-    const canArm = !!(opts.openEdit && opts.armable && opts.armable(key));
+    const canArm = !!(opts.armable && opts.armable(key));   // highlighting may have no block swipes (its actions live on the title)
     let drag = null, hold = null;
     gesture(el, {
       enabled: opts.enabled,
@@ -1124,13 +1231,14 @@ function wireList(listEl, opts) {
       moveEl: dir => (opts.moves && opts.moves(key, dir, isArmed(el)) === false) ? null : el,
       onDrag: opts.drag ? dx => opts.drag(key, dx, el, isArmed(el)) : null,
       onSwipeRight: (opts.swipeRight || canArm) ? () => {
-        if (isArmed(el)) { disarm(); opts.openEdit(key); return; }
+        if (isArmed(el)) { if (opts.openEdit) { disarm(); opts.openEdit(key); } return; }
         if (opts.swipeRight) opts.swipeRight(key);
       } : null,
-      allowLeft: () => !!opts.swipeLeft || (isArmed(el) && !!opts.armDelete),
-      allowRight: () => !!opts.swipeRight || (isArmed(el) && !!opts.openEdit),
+      // A highlighted block only moves where it has highlighted actions; otherwise the plain swipes apply.
+      allowLeft: () => isArmed(el) ? !!opts.armDelete : !!opts.swipeLeft,
+      allowRight: () => isArmed(el) ? !!opts.openEdit : !!opts.swipeRight,
       onSwipeLeft: (opts.swipeLeft || (canArm && opts.armDelete)) ? () => {
-        if (isArmed(el)) { disarm(); if (opts.armDelete) opts.armDelete(key); return; }
+        if (isArmed(el)) { if (opts.armDelete) { disarm(); opts.armDelete(key); } return; }
         if (opts.swipeLeft) opts.swipeLeft(key);
       } : null,
       onTap: () => {
@@ -4436,9 +4544,10 @@ function openSchedulePicker(name) {
 /* ---------- scheduling an item to another day (FOCUS → swipe right) ----------
    Months scroll left to right. Today and earlier can't be picked. ADD TO CALENDAR confirms;
    swipe right on SCHEDULE (or Android back) returns to STACK. */
-function openDayPicker(bid) {
+function openDayPicker(bid, withBacklog) {
   const name = blockName(bid);
   const el = screenEl('dayscreen daypick', `
+    ${withBacklog ? '<div class="schedtop"><button class="btn wide tobacklog">BACKLOG</button></div>' : ''}
     <div class="acttop"><span class="label kind"></span></div>
     <div class="mpager"></div>
     <div class="schedfoot"><button class="btn wide addcal" disabled>ADD TO CALENDAR</button></div>
@@ -4469,7 +4578,15 @@ function openDayPicker(bid) {
     const tp = getToken(true);   // first, so the tap may sign in
     closeTop(() => scheduleToDay(bid, picked, tp));
   });
-  gesture($('.sched-title', el), { moveEl: false, onSwipeRight: () => closeTop() });   // swipe right: back to STACK (like the SCHEDULE screen)
+  gesture($('.sched-title', el), { moveEl: false, onSwipeRight: () => closeTop(), onSwipeLeft: () => closeTop() });   // back to STACK
+  const tb = $('.tobacklog', el);
+  if (tb) tb.addEventListener('click', () => {   // BACKLOG: back to its backlog (MOMENTUM unchanged)
+    closeTop(() => {
+      const b = state.blocks[bid]; if (!b) return;
+      const msg = b.subId ? `Returned to ${state.items[b.itemId].name}` : `Sent to ${BACKLOG_TITLE[blockKind(bid)]}`;
+      withUndo(msg, () => sendToBacklog(bid));
+    });
+  });
   openScreen(el);
   // Start on next month when today is the last day of this one.
   if (first.slice(0, 7) !== todayStr().slice(0, 7)) requestAnimationFrame(() => { pager.scrollLeft = pager.clientWidth; });
@@ -4541,82 +4658,6 @@ function openComposer(name) {
       closeAll(() => { goPanel('stack'); toast(`Saved to ${BACKLOG_TITLE.task}`); });
     }
   });
-  paint();
-  openScreen(el);
-}
-
-/* ---------- SUPPORT ----------
-   TIRED (physical energy), STUCK (mental energy), DREAD (emotional energy): swipe right on the one that fits.
-   Each prompt ends the same way: split it into pieces, each with a size. The original becomes a project;
-   the pieces ("Original: Piece") take its place on STACK. TIRED starts with "Choose Best Time". */
-const SUPPORT = {
-  TIRED: { energy: 'Physical energy', prompt: 'Low on physical energy. Break it into pieces you can do now, and choose when your energy is highest.', seed: ['Choose Best Time'] },
-  STUCK: { energy: 'Mental energy', ask: 'What does done look like?', prompt: 'What’s the first step toward that? Add the steps.', seed: [] },
-  DREAD: { energy: 'Emotional energy', prompt: 'What’s the smallest part you could face for 5 minutes? Start there and build up.', seed: [] }
-};
-function openSupport(bid, slide) {
-  const b = state.blocks[bid]; if (!b) return;
-  const name = blockName(bid);
-  const el = screenEl('support' + (slide ? ' slidein' : ''), `
-    <div class="acttop"><span class="label kind"></span></div>
-    <div class="list rev supopts"></div>
-    <header class="title"><h1>SUPPORT</h1></header>`);
-  $('.kind', el).textContent = name;
-  const list = $('.supopts', el);
-  ['DREAD', 'STUCK', 'TIRED'].forEach(k => {
-    const o = document.createElement('div'); o.className = 'block supopt'; o.dataset.key = k;
-    o.innerHTML = `<span class="name">${k}</span><span class="meta">${SUPPORT[k].energy}</span>`;
-    list.appendChild(o);
-  });
-  wireList(list, { reverse: true, swipeRight: k => openSplit(bid, k) });
-  gesture($('.title', el), { moveEl: false, onSwipeLeft: () => closeTop(), onSwipeRight: () => closeTop() });
-  openScreen(el);
-}
-function openSplit(bid, kind) {
-  const cfg = SUPPORT[kind], name = blockName(bid);
-  const pieces = cfg.seed.map(n => ({ id: uid(), name: n, size: 1 }));
-  let newSize = 1, outcome = '';
-  const el = screenEl('activity split', `
-    <div class="acttop"><span class="label kind"></span></div>
-    <div class="splitprompt">${cfg.ask ? `<p class="q">${esc(cfg.ask)}</p><textarea class="notes outcome" rows="2" placeholder="Done looks like…"></textarea>` : ''}<p class="q">${esc(cfg.prompt)}</p></div>
-    <div class="actmain"><div class="list rev"></div><p class="empty">Add the first piece below.</p></div>
-    <div class="inputbar actinput"><input class="subin" type="text" placeholder="Add a piece" enterkeyhint="done" autocomplete="off"><div class="newsize"></div></div>
-    <header class="title act-title"><h1></h1></header>`);
-  $('.kind', el).textContent = kind;
-  $('.act-title h1', el).textContent = name.toUpperCase();
-  const list = $('.actmain .list', el), empty = $('.actmain .empty', el), inp = $('.subin', el);
-  const oc = $('.outcome', el); if (oc) oc.addEventListener('input', () => { outcome = oc.value.trim(); });
-  $('.newsize', el).appendChild(difficultyRow(newSize, n => { newSize = n; }));
-  const paint = () => {
-    list.innerHTML = '';
-    pieces.forEach(p => {
-      const e = document.createElement('div'); e.className = 'block'; e.dataset.key = p.id;
-      e.innerHTML = `<span class="name">${esc(p.name)}</span>${sizeIcon(p.size)}`;
-      list.appendChild(e);
-    });
-    empty.classList.toggle('hidden', !!pieces.length);
-    wireList(list, {
-      reverse: true,
-      onReorder: keys => { const m = new Map(pieces.map(p => [p.id, p])); pieces.splice(0, pieces.length, ...keys.map(k => m.get(k))); paint(); },
-      swipeLeft: k => { const i = pieces.findIndex(p => p.id === k); if (i >= 0) pieces.splice(i, 1); paint(); },
-      tap: k => { const p = pieces.find(x => x.id === k); if (p) { p.size = p.size % 4 + 1; paint(); } }
-    });
-  };
-  inp.addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    const v = inp.value.trim(); if (!v) return;
-    pieces.push({ id: uid(), name: v, size: newSize }); inp.value = ''; paint();
-  });
-  // Swipe right on the name: split it. Swipe left: back to the three choices.
-  gesture($('.act-title', el), { moveEl: false, onSwipeLeft: () => closeTop(), onSwipeRight: () => {
-    if (!pieces.length) { toast('Add at least one piece'); return; }
-    const notes = outcome ? `Done looks like: ${outcome}` : '';
-    let placed = 0;
-    withUndo('Split into pieces', () => { placed = splitIntoProject(bid, pieces, notes); });
-    const left = pieces.length - placed;
-    closeAll(() => { goPanel('stack'); toast(`Now a project: ${placed} piece${placed === 1 ? '' : 's'} on STACK${left ? `, ${left} waiting in it` : ''}`); });
-  } });
   paint();
   openScreen(el);
 }
@@ -4760,12 +4801,13 @@ function recDownload() {
 /* Paradigm: main panels and boot */
 'use strict';
 
-const VERSION = '2.2.1';
-const PANELS = ['project', 'list', 'task', 'stack', 'schedule', 'settings', 'recovery'];
+const VERSION = '3.0.2';
+const PANELS = ['recovery', 'settings', 'project', 'list', 'task', 'schedule', 'stack', 'focus', 'support'];
 let panel = 'stack';
 
 function goPanel(name, instant) {
-  disarm();   // leaving a screen ends FOCUS
+  if (panel === 'focus' && name !== 'focus') pauseTimer();   // leaving FOCUS pauses the timer (time is kept)
+  if (name !== 'stack') disarm();   // leaving STACK ends a highlight
   panel = name;
   const tr = $('#track');
   if (instant) tr.style.transition = 'none';
@@ -4797,28 +4839,34 @@ function blockEl(bid, where) {
   if ((it.type === 'list' || it.type === 'task') && !b.subId && (it.subtasks || []).length) meta += `<span class="meta">${it.subtasks.filter(s => s.done).length}/${it.subtasks.length}</span>`;
   if (it.cal && it.cal.date === todayStr() && it.cal.startMin != null && !b.subId) meta = `<span class="meta">${minToClock(it.cal.startMin)}</span>` + meta;
   if (!onStack) meta += sizeIcon(size);
-  el.insertAdjacentHTML('beforeend', `<span class="name">${l.proj ? `<span class="proj">${esc(l.proj)}:</span> ` : ''}${esc(l.name)}</span>${meta}`);
+  const warn = onStack && isCaution(bid) ? '<span class="warn" aria-label="Repeat detected">⚠</span>' : '';
+  if (warn) el.classList.add('caution');
+  el.insertAdjacentHTML('beforeend', `${warn}<span class="name">${l.proj ? `<span class="proj">${esc(l.proj)}:</span> ` : ''}${esc(l.name)}</span>${warn}${meta}`);
   return el;
 }
 
-/* ---------- gestures ----------
-   STACK block:     → schedule (pick a day) · ← to backlog
-                    highlighted (FOCUS): → SUPPORT · ← delete   (the block slides away; the screen stays)
-                    swipe left on the FOCUS title: its detail screen
-   Active block:    the same, except → completes: it fills left to right, then pops (not while highlighted)
-   Backlog item:    the same as a STACK block, except → adds it to the top of STACK
-   Red (carried over): anything that would skip SUPPORT (backlog, schedule, delete) opens SUPPORT instead. */
+/* ---------- gestures (3.0) ----------
+   Screens, left to right: RECOVERY · SETTINGS · PROJECT · LIST · TASK · SCHEDULE · STACK · FOCUS · SUPPORT.
+   Active block (bottom of STACK):  → complete (+difficulty) · ← bump to tomorrow
+                                    highlighted: → delete · ← pick a day (or BACKLOG)
+   Other STACK blocks: hold and drag to reorder (no swipes). Highlighted: the title reads FOCUS.
+   A block with ⚠ (repeat detected): → opens REPEAT DETECTED, active or not.
+   STACK title:  → SCHEDULE (highlighted: place it at a time today) · ← FOCUS (highlighted: that block; else the active one)
+   MOMENTUM bar: → HISTORY · ← GRAPH. */
 function blockEditable(bid) { return !!state.blocks[bid]; }
-function editBlock(bid, slide, from) { const b = state.blocks[bid]; if (b) openEditor(state.items[b.itemId], false, slide, from); }
-function scheduleBlock(bid) { if (state.blocks[bid]) openDayPicker(bid); }
+function editBlock(bid) { openFocus(bid); }
+function scheduleBlock(bid) { if (state.blocks[bid]) openDayPicker(bid, true); }
 function deleteBlock(bid) { if (state.blocks[bid]) withUndo(`Deleted ${blockName(bid)}`, () => deleteBlockItem(bid)); }
 const isActive = bid => state.stack[0] === bid;
 const openSubs = bid => { const b = state.blocks[bid], it = b && state.items[b.itemId]; return !!(it && !b.subId && (it.subtasks || []).some(s => !s.done)); };
-/* Completing the active block: it fills up left to right, then pops. */
 function completeActive(bid) {
-  if (openSubs(bid)) { editBlock(bid); return; }   // finish its subtasks first
+  if (openSubs(bid)) { openFocus(bid); toast('Finish its subtasks first'); return; }
   const name = blockName(bid), size = blockSize(bid);
   withUndo(`Completed ${name} · +${size}`, () => completeBlock(bid));
+}
+function bumpTomorrow(bid) {
+  const tp = getToken(true);   // first, so the swipe may sign in
+  scheduleToDay(bid, addDays(todayStr(), 1), tp);
 }
 const PANEL_TITLE = { project: 'PROJECT BACKLOG', list: 'LIST BACKLOG', task: 'TASK BACKLOG', stack: 'STACK' };
 /* FOCUS (highlight): the screen name reads FOCUS. Tap the block again to leave. */
@@ -4827,32 +4875,17 @@ function onArmChange(el) {
   const p = el && el.closest('.panel');
   if (p && PANEL_TITLE[p.id.slice(2)]) { $(`#t-${p.id.slice(2)} h1`).textContent = 'FOCUS'; p.classList.add('focusmode'); }
 }
-/* Swipe left on the FOCUS title: the highlighted block's detail screen. */
-function focusDetail(panelKey) {
-  const a = armed && armed.isConnected && armed.closest(`#p-${panelKey}`) ? armed : null;
-  if (!a) return false;
-  const key = a.dataset.key; disarm();
-  if (panelKey === 'project') openEditor(state.items[key], false, true); else editBlock(key, true, panelKey === 'stack' ? null : 'backlog');
-  return true;
-}
+function armedKey(panelKey) { return armed && armed.isConnected && armed.closest(`#p-${panelKey}`) ? armed.dataset.key : null; }
 function renderAll() {
   if (!state) return;
   renderStack(); renderBacklogs(); renderSettings(); onArmChange(null);
+  if (panel === 'focus') renderFocus(); if (panel === 'support') renderSupport();
 }
 
-/* ---------- STACK: progress bar, capacity line at MOMENTUM rows; bottom = active ---------- */
-/* The top of STACK: MOMENTUM = today's score (difficulty completed today; back to 0 each day). CAPACITY lives on SCHEDULE. */
+/* ---------- STACK ---------- */
+/* The top of STACK: MOMENTUM = today's score (difficulty completed today; back to 0 each day). */
 function renderScores() {
   $('#sc-m').textContent = state.score.date === todayStr() ? state.score.today : 0;
-  const c = $('#sched-cap'); if (c) c.textContent = capacity();
-}
-/* Keep the PREVIOUS DAY'S CAPACITY label over its marker, but fully on screen. */
-function placeCallout(call, line, box) {
-  requestAnimationFrame(() => {
-    const b = box.getBoundingClientRect(), l = line.getBoundingClientRect(), w = call.offsetWidth, pad = 12;
-    const x = Math.max(pad, Math.min(b.width - w - pad, l.left - b.left - w / 2));
-    call.style.left = x + 'px';
-  });
 }
 function renderStack() {
   renderScores();
@@ -4863,20 +4896,19 @@ function renderStack() {
     reverse: true,
     onReorder: keys => { state.stack = keys; save(); renderStack(); },
     armable: blockEditable,
-    openEdit: bid => openSupport(bid),                                                 // FOCUS → : SUPPORT
-    armDelete: bid => isCarried(bid) ? openSupport(bid) : deleteBlock(bid),            // FOCUS ← : delete (red: SUPPORT)
-    swipeRight: bid => {                                                               // → : complete (active) / schedule
+    // Highlighted swipes are for the active block only: → delete · ← pick a day / BACKLOG.
+    openEdit: bid => { if (isActive(bid)) deleteBlock(bid); else toast('Swipe the title: → SCHEDULE · ← FOCUS'); },
+    armDelete: bid => { if (isActive(bid)) openDayPicker(bid, true); else toast('Swipe the title: → SCHEDULE · ← FOCUS'); },
+    swipeRight: bid => {
+      if (isCaution(bid)) { openRepeat(bid); return; }   // ⚠: REPEAT DETECTED (any block)
       if (isActive(bid)) completeActive(bid);
-      else if (isCarried(bid)) openSupport(bid);
-      else scheduleBlock(bid);
     },
-    swipeLeft: bid => {                                                                // ← : to backlog (red: SUPPORT)
-      if (isCarried(bid)) { openSupport(bid); return; }
-      const b = state.blocks[bid];
-      const msg = b.subId ? `Returned to ${state.items[b.itemId].name}` : `Sent to ${BACKLOG_TITLE[blockKind(bid)]}`;
-      withUndo(msg, () => sendToBacklog(bid));
-    }
+    swipeLeft: bid => { if (isActive(bid)) bumpTomorrow(bid); },
+    // Only the active block (or a ⚠ block, to the right) moves sideways.
+    moves: (bid, dir) => isActive(bid) || (dir > 0 && isCaution(bid))
   });
+  // Non-active blocks only reorder: no sideways swipes unless they carry ⚠.
+  [...list.children].forEach(el => { if (!isActive(el.dataset.key) && !isCaution(el.dataset.key)) el.dataset.still = '1'; });
   $('#stack-empty').classList.toggle('hidden', !!state.stack.length);
   const area = $('#stack-area'); requestAnimationFrame(() => { area.scrollTop = area.scrollHeight; });
 }
@@ -4889,6 +4921,8 @@ function projectEl(id) {
   el.innerHTML = `<span class="name">${esc(it.name)}</span>${n ? `<span class="meta">${d}/${n}</span>` : ''}${sizeIcon(Math.min(4, Math.max(1, projectSize(it))))}<span class="mark" aria-hidden="true">›</span>`;
   return el;
 }
+/* Backlog items: → add to the top of STACK · ← delete (UNDO).
+   Highlighted (the title reads FOCUS): swipe right on FOCUS to schedule it for a day · left for its memory screen. */
 function renderBacklogs() {
   const pl = $('#bl-project');
   pl.innerHTML = '';
@@ -4897,9 +4931,8 @@ function renderBacklogs() {
     reverse: true,
     onReorder: keys => { state.backlogs.project = keys; save(); },
     armable: () => true,
-    openEdit: () => toast('Projects are already split. Add their subtasks to STACK with →'),
-    armDelete: id => withUndo(`Deleted ${state.items[id].name}`, () => deleteItem(id)),
-    swipeRight: id => openProjectSubs(id)                         // → : its subtasks, to send to STACK
+    swipeRight: id => openProjectSubs(id),                                              // → : its subtasks, to send to STACK
+    swipeLeft: id => withUndo(`Deleted ${state.items[id].name}`, () => deleteItem(id))  // ← : delete
   });
   $('#empty-project').classList.toggle('hidden', !!state.backlogs.project.length);
   for (const k of BLOCK_KINDS) {
@@ -4910,17 +4943,24 @@ function renderBacklogs() {
       reverse: true,
       onReorder: keys => { state.backlogs[k] = keys; save(); },
       armable: blockEditable,
-      openEdit: bid => openSupport(bid),                          // FOCUS → : SUPPORT
-      armDelete: deleteBlock,                                     // FOCUS ← : delete
       swipeRight: bid => {                                        // → : to the top of STACK
         const b = state.blocks[bid]; if (!b) return;
         const msg = addToStack(b.itemId, b.subId, 'top');
         if (msg) { toast(msg); return; }
         save(); renderAll(); toast('Added to top of STACK');
-      }
+      },
+      swipeLeft: deleteBlock                                      // ← : delete
     });
     $('#empty-' + k).classList.toggle('hidden', !!state.backlogs[k].length);
   }
+}
+/* A highlighted backlog block + its FOCUS title swiped right: pick a day for it. */
+function focusSchedule(panelKey) {
+  const k = armedKey(panelKey); if (!k) return false;
+  disarm();
+  if (panelKey === 'project') toast('Projects can’t be scheduled. Send their subtasks to STACK');
+  else openDayPicker(k);
+  return true;
 }
 /* ---------- search / create ---------- */
 function clearMainInput() { $('#main-input').value = ''; hideSuggest(); }
@@ -4970,7 +5010,7 @@ function renderSettings() {
       <button class="btn wide" id="b-connect">CONNECT GOOGLE</button>
     </div>
     <div class="sect"><h3>Capacity</h3>
-      <p>CAPACITY is your ${CAP_DAYS}-day average of difficulty completed (MOMENTUM at the end of each day), rounded down: STACK holds that much. RESET starts it over from a number you pick.</p>
+      <p>CAPACITY is how much STACK holds today: the average MOMENTUM of your last ${CAP_WEEKS} ${parseDate(todayStr()).toLocaleDateString(undefined, { weekday: 'long' })}s, rounded down. RESET starts it over from a number you pick (your HISTORY is kept).</p>
       <div class="inline"><input type="number" id="mreset" min="1" max="99" inputmode="numeric" value="${capacity()}"><button class="btn" id="b-mreset">RESET</button></div>
     </div>
     <div class="sect"><h3>Glasses</h3>
@@ -4995,7 +5035,7 @@ function renderSettings() {
     </div>`;
   $('#b-mreset').addEventListener('click', () => {
     const n = Math.max(1, Math.min(99, parseInt($('#mreset').value, 10) || 1));
-    confirmBox(`Reset CAPACITY to ${n}?`, 'RESET', () => { state.score.base = n; state.score.history = []; save(); renderAll(); toast(`CAPACITY is now ${n}`); });
+    confirmBox(`Reset CAPACITY to ${n}?`, 'RESET', () => { state.score.base = n; state.score.capFrom = todayStr(); save(); renderAll(); toast(`CAPACITY is now ${n}`); });
   });
   const fdb = $('#fdb');
   fdb.value = s.syncDb || '';
@@ -5183,7 +5223,7 @@ let calImporting = false;
 /* A new day: carry-overs turn red and cost MOMENTUM (store.js dayRollover). Runs before today's import. */
 function rollover() {
   const n = dayRollover();
-  if (n > 0) { save(); renderAll(); toast(`${n} block${n > 1 ? 's' : ''} carried over. Red blocks need completing or SUPPORT`); }
+  if (n > 0) { save(); renderAll(); const pen = (state.score.history.slice(-1)[0] || {}).penalty || 0; toast(`${n} block${n > 1 ? 's' : ''} carried over${pen ? ` · −${pen} from yesterday’s MOMENTUM` : ''}`); }
   else if (n < 0) { save(); renderAll(); }
   else renderScores();
 }
@@ -5251,7 +5291,7 @@ async function importTodayCalendar(interactive) {
       else { detach(bid); state.backlogs[blockKind(bid)].push(bid); waiting++; }
     }
     // Earliest at the very bottom: insert in reverse priority order.
-    for (const bid of onStack.slice().reverse()) { delete state.blocks[bid].carried; state.stack.unshift(bid); }
+    for (const bid of onStack.slice().reverse()) { delete state.blocks[bid].carried; state.stack.unshift(bid); countRepeat(bid); }
     state.calImportDate = today;
     save(); renderAll(); showCalBar(false);
     if (added || waiting || interactive) toast(added || waiting ? `Added ${added} event${added === 1 ? '' : 's'} from today’s calendar to STACK${waiting ? ` · ${waiting} didn’t fit (in backlogs)` : ''}` : 'Nothing on today’s calendar');
@@ -5293,16 +5333,208 @@ async function refreshSchedule(interactive) {
   if (!cache || JSON.stringify(cache.events) !== JSON.stringify(list)) { state.dayCache = { date, at: Date.now(), events: list }; save({ noBackup: true }); }
 }
 
-/* ---------- boot ---------- */
-/* Swipes on a bottom label move between screens. With a block in FOCUS on that screen,
-   swiping left (toward SCHEDULE) plans it on today's schedule instead. */
-/* Swipes on a bottom label move between screens. On a FOCUS title, swiping left opens the block's detail screen. */
-function navTitle(id, right, left, panelKey) {
-  gesture($(id), {
-    moveEl: false,
-    onSwipeRight: right ? () => goPanel(right) : null,
-    onSwipeLeft: () => { if (panelKey && focusDetail(panelKey)) return; if (left) goPanel(left); }
+/* ---------- FOCUS: a block's memory (notes, subtasks, difficulty) + a timer for the active block ---------- */
+let focusBid = null, timerStart = 0, timerTick = null;
+function openFocus(bid) { if (!state.blocks[bid]) return; focusBid = bid; renderFocus(); goPanel('focus'); }
+function focusItem() { const b = state.blocks[focusBid]; return b ? { b, it: state.items[b.itemId] } : null; }
+function timeOf(it) { return (it.timeSpent || 0) + (timerStart ? Date.now() - timerStart : 0); }
+function pauseTimer() {
+  if (!timerStart) return;
+  const f = focusItem(); if (f) f.it.timeSpent = (f.it.timeSpent || 0) + (Date.now() - timerStart);
+  timerStart = 0; clearInterval(timerTick); save();
+  if (panel === 'focus') renderFocus();
+}
+function renderFocus() {
+  const body = $('#focus-body'), f = focusItem();
+  if (!f) { body.innerHTML = '<p class="empty">Nothing in FOCUS.</p>'; $('#t-focus h1').textContent = 'FOCUS'; return; }
+  const { b, it } = f, active = isActive(focusBid);
+  $('#t-focus h1').textContent = blockName(focusBid).toUpperCase();
+  body.innerHTML = `${active ? '<button class="btn wide timerbtn"></button>' : ''}<div class="dettop"></div>
+    <div class="actmain"></div>${b.subId ? '' : '<div class="inputbar actinput"><input class="subin" type="text" placeholder="Add a subtask" enterkeyhint="done" autocomplete="off"></div>'}`;
+  const tb = $('.timerbtn', body);
+  if (tb) {
+    const paint = () => { const t = timeOf(it); tb.textContent = timerStart ? `❚❚ ${fmtDur(t)}` : (t ? `▶ RESUME TIMER · ${fmtDur(t)}` : '▶ START TIMER'); tb.classList.toggle('running', !!timerStart); };
+    tb.addEventListener('click', () => { if (timerStart) pauseTimer(); else { timerStart = Date.now(); clearInterval(timerTick); timerTick = setInterval(paint, 1000); } paint(); });
+    if (timerStart) { clearInterval(timerTick); timerTick = setInterval(paint, 1000); }   // keep ticking after a redraw
+    paint();
+  }
+  const target = b.subId ? (it.subtasks || []).find(x => x.id === b.subId) : it;
+  $('.dettop', body).appendChild(difficultyRow(clampSize(target && target.size), n => { if (target) { target.size = n; save(); renderStack(); } }));
+  const main = $('.actmain', body);
+  if (b.subId) { main.innerHTML = `<p class="note">Part of ${esc(it.name)}.</p>`; return; }
+  const open = (it.subtasks || []).filter(x => !x.done);
+  if (!open.length) {   // a task's notes, until subtasks replace them
+    main.innerHTML = '<textarea class="notes actnotes" placeholder="Notes"></textarea>';
+    const ta = $('textarea', main); ta.value = it.notes || ''; ta.addEventListener('input', () => { it.notes = ta.value; save(); });
+  } else {
+    main.innerHTML = '<div class="list rev"></div>';
+    const list = $('.list', main);
+    open.forEach(x => { const e = document.createElement('div'); e.className = 'block'; e.dataset.key = x.id; e.innerHTML = `<span class="name">${esc(x.name)}</span>`; list.appendChild(e); });
+    wireList(list, {
+      reverse: true,
+      onReorder: keys => { const done = it.subtasks.filter(x => x.done); it.subtasks = keys.map(k => it.subtasks.find(x => x.id === k)).concat(done); save(); renderFocus(); },
+      swipeRight: k => { it.subtasks = it.subtasks.filter(x => x.id !== k); if (maybeRevertToTask(it.id)) toast('All subtasks done'); save(); renderStack(); renderFocus(); },
+      swipeLeft: k => { it.subtasks = it.subtasks.filter(x => x.id !== k); maybeRevertToTask(it.id); save(); renderStack(); renderFocus(); }
+    });
+  }
+  const si = $('.subin', body);
+  if (si) si.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return; e.preventDefault();
+    const v = si.value.trim(); if (!v) return;
+    it.subtasks = it.subtasks || []; it.subtasks.push({ id: uid(), name: v, done: false });
+    if (it.type === 'task') it.type = 'list';
+    save(); renderStack(); renderFocus(); const n = $('#focus-body .subin'); if (n) n.focus();
   });
+}
+
+/* ---------- SUPPORT: two prompts, then DIVIDE & CONQUER ---------- */
+let supportBid = null;
+function openSupport(bid) { if (!state.blocks[bid]) return; supportBid = bid; focusBid = bid; renderSupport(); goPanel('support'); }
+function renderSupport() {
+  const body = $('#support-body');
+  if (!supportBid || !state.blocks[supportBid]) { body.innerHTML = '<p class="empty">Nothing to support.</p>'; return; }
+  if (body.dataset.for === supportBid && $('.sp1', body)) return;   // keep what's being typed
+  body.dataset.for = supportBid;
+  body.innerHTML = `<p class="supname"></p>
+    <label class="q">What is preventing you from completing this task?<textarea class="notes sp1" rows="3"></textarea></label>
+    <label class="q">What will help you complete this task?<textarea class="notes sp2" rows="3"></textarea></label>`;
+  $('.supname', body).textContent = blockName(supportBid);
+}
+/* The answer to "what will help" becomes the bottom subtask; "what's preventing" goes into the notes. +1 MOMENTUM. */
+function divideAndConquer() {
+  const bid = supportBid, b = state.blocks[bid]; if (!b) return;
+  const body = $('#support-body');
+  const p1 = (($('.sp1', body) || {}).value || '').trim(), p2 = (($('.sp2', body) || {}).value || '').trim();
+  if (!p2) { toast('Answer “What will help you complete this task?” first'); return; }
+  const it = state.items[b.itemId];
+  if (b.subId) {   // a project piece: the help becomes a new piece just before it
+    const i = it.subtasks.findIndex(x => x.id === b.subId);
+    it.subtasks.splice(Math.max(0, i), 0, { id: uid(), name: p2, done: false, size: 1 });
+  } else {
+    it.subtasks = it.subtasks || [];
+    it.subtasks.unshift({ id: uid(), name: p2, done: false });   // the bottom-most subtask
+    if (it.type === 'task') it.type = 'list';
+  }
+  if (p1) it.notes = (it.notes ? it.notes + '\n' : '') + `Preventing: ${p1}`;
+  addPoints(1);
+  delete body.dataset.for;
+  save(); renderAll();
+  toast('Divided · +1 MOMENTUM');
+  openFocus(bid);
+}
+
+/* ---------- REPEAT DETECTED → REQUIRES SUPPORT / REQUIRES SYSTEM ---------- */
+function openRepeat(bid) {
+  const el = screenEl('repeatscreen', `
+    <div class="repmain"><p class="reptxt"></p>
+      <button class="btn wide rsup">REQUIRES SUPPORT</button>
+      <button class="btn wide rsys">REQUIRES SYSTEM</button></div>
+    <header class="title"><h1>REPEAT DETECTED</h1></header>`);
+  const t = repeatTarget(bid);
+  $('.reptxt', el).textContent = `${blockName(bid)} has been on STACK ${(t && t.repeats) || REPEAT_AT} times.`;
+  $('.rsup', el).addEventListener('click', () => { clearRepeats(bid); save(); closeTop(() => { renderAll(); openSupport(bid); }); });
+  $('.rsys', el).addEventListener('click', () => closeTop(() => openBuildSystem(bid)));
+  gesture($('.title', el), { moveEl: false, onSwipeLeft: () => closeTop(), onSwipeRight: () => closeTop() });
+  openScreen(el);
+}
+/* BUILD SYSTEM: make it a recurring all-day event on the Paradigm calendar (it comes back each day it's due). */
+function openBuildSystem(bid) {
+  const d = { recurring: true, schedule: defaultSchedule('weekly') };
+  const el = screenEl('buildsys', `
+    <div class="repmain"><p class="reptxt"></p><div class="sysrule"></div>
+      <button class="btn wide primary rbuild">BUILD SYSTEM</button></div>
+    <header class="title"><h1>BUILD SYSTEM</h1></header>`);
+  $('.reptxt', el).textContent = `Make ${blockName(bid)} a recurring event. It leaves Paradigm and comes back each day it's due.`;
+  $('.sysrule', el).appendChild(scheduleUI(d));
+  $('.rbuild', el).addEventListener('click', () => {
+    if (d.schedule.freq === 'none') { toast('Pick how often it repeats'); return; }
+    const tp = getToken(true);
+    clearRepeats(bid);
+    const rule = rruleFor(d.schedule);
+    closeTop(() => {
+      const snap = JSON.stringify(state);
+      const entry = scheduleBlockToDay(bid, addDays(todayStr(), 1), rule); if (!entry) return;
+      save(); renderAll(); goPanel('stack');
+      toast(`${entry.name} is now a recurring event`, { label: 'UNDO', fn: () => {
+        const auth = state.auth, settings = state.settings; state = JSON.parse(snap); state.auth = auth; state.settings = settings; save(); renderAll(); undoneEntries.add(entry.id);
+      } });
+      tp.then(tok => { if (tok) processCalQueue(false, true); });
+    });
+  });
+  gesture($('.title', el), { moveEl: false, onSwipeLeft: () => closeTop(), onSwipeRight: () => closeTop() });
+  openScreen(el);
+}
+
+/* ---------- placing a block at a time today (highlighted + STACK title →) ---------- */
+function openPlacement(bid) {
+  const name = blockName(bid);
+  openDay({ mode: 'schedule', date: todayStr(), name, onSave: sel => {
+    const tp = getToken(true);
+    const t0 = parseDate(todayStr()).getTime(), b = state.blocks[bid]; if (!b) return;
+    b.at = t0 + sel.startMin * MIN; delete b.atDone;
+    state.calQueue.push({ id: uid(), kind: 'schedule', name, start: b.at, end: t0 + sel.endMin * MIN });
+    save();
+    closeTop(() => { renderAll(); goPanel('stack'); toast(`${name} at ${minToClock(sel.startMin)}: it moves to the bottom then`); });
+    tp.then(tok => { if (tok) processCalQueue(false, true); });
+  } });
+}
+
+/* ---------- HISTORY (MOMENTUM by day) and GRAPH ---------- */
+function dayScores() {
+  const m = new Map((state.score.history || []).map(h => [h.date, h.done]));
+  if (state.score.date === todayStr()) m.set(todayStr(), state.score.today);
+  return m;
+}
+function openHistory() {
+  const scores = dayScores(), now = new Date();
+  const el = screenEl('historyscreen slideinleft', `<div class="mpager histpager"></div><header class="title" id="t-history"><h1>HISTORY</h1></header>`);
+  let html = '';
+  for (let i = -11; i <= 0; i++) {
+    const m = new Date(now.getFullYear(), now.getMonth() + i, 1), days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+    let cells = '';
+    for (let k = 0; k < m.getDay(); k++) cells += '<span></span>';
+    for (let dd = 1; dd <= days; dd++) {
+      const ds = dateStr(new Date(m.getFullYear(), m.getMonth(), dd)), v = scores.get(ds);
+      cells += `<div class="hday${ds === todayStr() ? ' today' : ''}${v != null ? ' has' : ''}"><i>${dd}</i><b>${v != null ? v : ''}</b></div>`;
+    }
+    html += `<div class="mpage"><h2>${m.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase()}</h2><div class="dow">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(x => `<span>${x}</span>`).join('')}</div><div class="days hdays">${cells}</div></div>`;
+  }
+  $('.histpager', el).innerHTML = html;
+  gesture($('#t-history', el), { moveEl: false, onSwipeLeft: () => closeTop() });   // back to STACK
+  openScreen(el);
+  requestAnimationFrame(() => { const p = $('.histpager', el); p.scrollLeft = p.scrollWidth; });
+}
+function openGraph() {
+  const scores = dayScores();
+  const days = [...scores.keys()].sort().slice(-30), vals = days.map(d => scores.get(d));
+  const W = 340, H = 220, pad = 28, max = Math.max(4, ...vals);
+  const x = i => pad + (days.length < 2 ? (W - 2 * pad) / 2 : i * (W - 2 * pad) / (days.length - 1));
+  const y = v => H - pad - v * (H - 2 * pad) / max;
+  const pts = vals.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const svg = days.length ? `<svg viewBox="0 0 ${W} ${H}" class="graph" role="img" aria-label="MOMENTUM by day">
+      <line x1="${pad}" y1="${H - pad}" x2="${W - pad}" y2="${H - pad}" class="axis"/><line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H - pad}" class="axis"/>
+      <text x="${pad - 6}" y="${pad + 4}" class="lbl" text-anchor="end">${max}</text><text x="${pad - 6}" y="${H - pad + 4}" class="lbl" text-anchor="end">0</text>
+      <polyline points="${pts}" class="line"/>${vals.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" class="dot"/>`).join('')}
+      <text x="${pad}" y="${H - 8}" class="lbl">${days[0].slice(5)}</text><text x="${W - pad}" y="${H - 8}" class="lbl" text-anchor="end">${days[days.length - 1].slice(5)}</text></svg>`
+    : '<p class="empty">No days yet.</p>';
+  const el = screenEl('graphscreen slidein', `<div class="graphwrap">${svg}</div><header class="title" id="t-graph"><h1>GRAPH</h1></header>`);
+  gesture($('#t-graph', el), { moveEl: false, onSwipeRight: () => closeTop() });   // back to STACK
+  openScreen(el);
+}
+
+/* ---------- boot ---------- */
+/* Bottom labels. Left of STACK (RECOVERY … SCHEDULE): swipe right goes one further out, swipe left snaps straight
+   back to STACK. Right of STACK (FOCUS, SUPPORT): step through one screen at a time. */
+function navTitle(id, right, left) {
+  gesture($(id), { moveEl: false, onSwipeRight: right ? () => right() : null, onSwipeLeft: left ? () => left() : null });
+}
+const go = name => () => goPanel(name);
+/* A highlighted backlog block + its title swiped left: that block's FOCUS screen. */
+function focusTitle(panelKey) {
+  const k = armedKey(panelKey); if (!k) return false;
+  disarm();
+  if (panelKey === 'project') openEditor(state.items[k], false, true); else openFocus(k);
+  return true;
 }
 async function boot() {
   const t0 = Date.now();
@@ -5310,15 +5542,22 @@ async function boot() {
   try { await loadState(); }
   catch (e) { state = freshState(); toast('Storage is unavailable. Changes will not be kept.'); }
 
-  // Panels, left to right: PROJECT BACKLOG, LIST BACKLOG, TASK BACKLOG, STACK, SCHEDULE, SETTINGS, RECOVERY.
-  navTitle('#t-project', null, 'stack', 'project');   // end of the row: swiping right does nothing
-  navTitle('#t-list', 'project', 'stack', 'list');
-  navTitle('#t-task', 'list', 'stack', 'task');
-  navTitle('#t-stack', 'task', 'schedule', 'stack');
-  navTitle('#t-schedule', 'stack', 'settings');
-  // Mirror of the backlogs: on this side swipe left goes one screen further out, swipe right jumps straight back to STACK.
-  navTitle('#t-settings', 'stack', 'recovery');
-  navTitle('#t-recovery', 'stack', null);             // end of the row: swiping left does nothing
+  // RECOVERY · SETTINGS · PROJECT · LIST · TASK · SCHEDULE · STACK · FOCUS · SUPPORT
+  navTitle('#t-recovery', null, go('stack'));
+  navTitle('#t-settings', go('recovery'), go('stack'));
+  // Backlogs: highlighted → FOCUS title right = schedule, left = memory; otherwise the usual screen moves.
+  navTitle('#t-project', () => { if (!focusSchedule('project')) goPanel('settings'); }, () => { if (!focusTitle('project')) goPanel('stack'); });
+  navTitle('#t-list', () => { if (!focusSchedule('list')) goPanel('project'); }, () => { if (!focusTitle('list')) goPanel('stack'); });
+  navTitle('#t-task', () => { if (!focusSchedule('task')) goPanel('list'); }, () => { if (!focusTitle('task')) goPanel('stack'); });
+  navTitle('#t-schedule', go('task'), go('stack'));
+  // STACK: → SCHEDULE (highlighted: place it at a time today) · ← FOCUS (highlighted: that block; else the active one)
+  navTitle('#t-stack', () => { const k = armedKey('stack'); if (k) { disarm(); openPlacement(k); } else goPanel('schedule'); },
+                       () => { const k = armedKey('stack'); disarm(); if (k) openFocus(k); else if (state.stack.length) openFocus(state.stack[0]); else toast('STACK is empty'); });
+  navTitle('#t-focus', go('stack'), () => { if (focusBid && state.blocks[focusBid]) openSupport(focusBid); });
+  navTitle('#t-support', () => { if (focusBid && state.blocks[focusBid]) openFocus(focusBid); else goPanel('stack'); }, null);
+  // MOMENTUM bar: → HISTORY · ← GRAPH
+  gesture($('#scores'), { moveEl: false, onSwipeRight: openHistory, onSwipeLeft: openGraph });
+  $('#b-dnc').addEventListener('click', divideAndConquer);
   $('#b-refresh').addEventListener('click', () => refreshSchedule(true));
   $('#calbar').addEventListener('click', () => importTodayCalendar(true));
   setInterval(() => { if (panel === 'schedule' && !document.hidden) refreshSchedule(false); }, 5 * 60000);
@@ -5348,7 +5587,10 @@ async function boot() {
   syncStart();
   processCalQueue(false);
 
-  setInterval(() => { checkDue(); if (state.calImportDate !== todayStr()) importTodayCalendar(false); }, 15000);
+  setInterval(() => {
+    checkDue(); if (state.calImportDate !== todayStr()) importTodayCalendar(false);
+    const moved = dueTimed(); if (moved.length) { save(); renderAll(); toast(`It’s time: ${blockName(moved[0])}`); }
+  }, 15000);
   importTodayCalendar(false);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) flush();
